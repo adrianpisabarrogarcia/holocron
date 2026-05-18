@@ -1,6 +1,7 @@
 import type { AuthResponse, AuthenticatedUser, PlatformRole } from '@holocron/contracts';
 import { create } from 'zustand';
 import { apiFetch, getApiUrl, parseJsonError, setApiAuthHooks } from '../lib/api';
+import { useAdminStore } from './useAdminStore';
 import { useBoardStore } from './useBoardStore';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -58,24 +59,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
     await bootstrapPromise;
   },
   clearSession: () => {
+    useAdminStore.getState().resetAdmin();
     useBoardStore.getState().resetBoard();
     set({ accessToken: null, error: null, status: 'unauthenticated', user: null });
   },
-  createUser: async (input) => {
-    const response = await apiFetch('/admin/users', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(input),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseJsonError(response));
-    }
-
-    return (await response.json()) as AuthenticatedUser;
-  },
+  createUser: async (input) => useAdminStore.getState().createUser({ ...input, platformRole: input.platformRole ?? 'MEMBER' }),
   login: async (email, password) => {
     set({ error: null, status: 'loading' });
 

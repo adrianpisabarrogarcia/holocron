@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useState } from 'react';
-import type { TaskSummary } from '@holocron/contracts';
+import type { PlatformRole, ProjectMembershipRole, TaskSummary } from '@holocron/contracts';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { useAuthStore } from './store/useAuthStore';
+import { useAdminStore } from './store/useAdminStore';
 import { useBoardStore } from './store/useBoardStore';
 
 const statusOrder: TaskSummary['status'][] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'];
@@ -28,13 +29,35 @@ const priorityTone: Record<TaskSummary['priority'], string> = {
   URGENT: 'bg-rose-950 text-rose-200',
 };
 
+const platformRoles: PlatformRole[] = ['ADMIN', 'MEMBER'];
+const membershipRoles: ProjectMembershipRole[] = ['MANAGER', 'CONTRIBUTOR', 'VIEWER'];
+
 export function App() {
   const [email, setEmail] = useState('keeper@holocron.local');
   const [password, setPassword] = useState('ChangeMe123!');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState<PlatformRole>('MEMBER');
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [membershipProjectId, setMembershipProjectId] = useState('');
+  const [selectedMembershipRole, setSelectedMembershipRole] = useState<ProjectMembershipRole>('CONTRIBUTOR');
+  const [adminNotice, setAdminNotice] = useState<string | null>(null);
   const { bootstrap, error: authError, login, logout, status, user } = useAuthStore();
-  const { error, loadBoard, loading, projects, selectedProjectId, tasks } = useBoardStore();
-  const currentProject = projects.find((project) => project.id === selectedProjectId) ?? null;
+  const { error, loadBoard, loading, projects, selectedProjectId: boardSelectedProjectId, tasks } = useBoardStore();
+  const {
+    assignProjectMembership,
+    createUser,
+    createUserPending,
+    loadUsers,
+    users,
+    usersError,
+    usersLoading,
+    usersPending,
+  } = useAdminStore();
+  const currentProject = projects.find((project) => project.id === boardSelectedProjectId) ?? null;
   const projectAccessLabel = currentProject?.membershipRole ?? (user?.platformRole === 'ADMIN' ? 'ADMIN' : null);
+  const isAdmin = user?.platformRole === 'ADMIN';
 
   useEffect(() => {
     void bootstrap();
@@ -46,9 +69,67 @@ export function App() {
     }
   }, [loadBoard, status]);
 
+  useEffect(() => {
+    if (status === 'authenticated' && isAdmin) {
+      void loadUsers();
+    }
+  }, [isAdmin, loadUsers, status]);
+
+  useEffect(() => {
+    if (!membershipProjectId && projects[0]) {
+      setMembershipProjectId(projects[0].id);
+    }
+  }, [membershipProjectId, projects]);
+
+  useEffect(() => {
+    if (!selectedUserId && users[0]) {
+      setSelectedUserId(users[0].id);
+    }
+  }, [selectedUserId, users]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     await login(email, password);
+  };
+
+  const handleCreateUser = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAdminNotice(null);
+
+    try {
+      const createdUser = await createUser({
+        email: newUserEmail,
+        name: newUserName,
+        password: newUserPassword,
+        platformRole: newUserRole,
+      });
+
+      setNewUserEmail('');
+      setNewUserName('');
+      setNewUserPassword('');
+      setNewUserRole('MEMBER');
+      setSelectedUserId(createdUser.id);
+      setAdminNotice(`User ${createdUser.email} created.`);
+    } catch {
+      return;
+    }
+  };
+
+  const handleAssignMembership = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAdminNotice(null);
+
+    try {
+      const member = await assignProjectMembership({
+        projectId: membershipProjectId,
+        role: selectedMembershipRole,
+        userId: selectedUserId,
+      });
+
+      setAdminNotice(`Assigned ${member.email} to project as ${member.role}.`);
+    } catch {
+      return;
+    }
   };
 
   const tasksByStatus = statusOrder.map((status) => ({
@@ -231,6 +312,170 @@ export function App() {
             </CardContent>
           </Card>
         </section>
+
+        {isAdmin ? (
+          <section className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_1fr_1fr]">
+            <Card>
+              <CardHeader>
+                <CardDescription>Admin users</CardDescription>
+                <CardTitle>User directory</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-slate-300">All platform users visible to admins.</p>
+                  <Button disabled={usersLoading} onClick={() => void loadUsers()} type="button">
+                    {usersLoading ? 'Refreshing...' : 'Refresh users'}
+                  </Button>
+                </div>
+
+                {usersError ? <p className="text-sm text-rose-300">{usersError}</p> : null}
+                {adminNotice ? <p className="text-sm text-emerald-300">{adminNotice}</p> : null}
+
+                <div className="space-y-3">
+                  {users.map((member) => (
+                    <article key={member.id} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-slate-100">{member.name}</p>
+                          <p className="text-sm text-slate-400">{member.email}</p>
+                        </div>
+                        <span className="rounded-full border border-sky-500/30 bg-sky-950/50 px-2.5 py-1 text-[11px] font-medium text-sky-100">
+                          {member.platformRole}
+                        </span>
+                      </div>
+                    </article>
+                  ))}
+
+                  {!usersLoading && !users.length ? (
+                    <div className="rounded-2xl border border-dashed border-slate-700 p-4 text-sm text-slate-500">No users returned yet.</div>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardDescription>Admin create</CardDescription>
+                <CardTitle>Create user</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={handleCreateUser}>
+                  <label className="block text-sm text-slate-300">
+                    <span className="mb-2 block">Name</span>
+                    <input
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none ring-0"
+                      onChange={(event) => setNewUserName(event.target.value)}
+                      required
+                      type="text"
+                      value={newUserName}
+                    />
+                  </label>
+                  <label className="block text-sm text-slate-300">
+                    <span className="mb-2 block">Email</span>
+                    <input
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none ring-0"
+                      onChange={(event) => setNewUserEmail(event.target.value)}
+                      required
+                      type="email"
+                      value={newUserEmail}
+                    />
+                  </label>
+                  <label className="block text-sm text-slate-300">
+                    <span className="mb-2 block">Password</span>
+                    <input
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none ring-0"
+                      minLength={8}
+                      onChange={(event) => setNewUserPassword(event.target.value)}
+                      required
+                      type="password"
+                      value={newUserPassword}
+                    />
+                  </label>
+                  <label className="block text-sm text-slate-300">
+                    <span className="mb-2 block">Platform role</span>
+                    <select
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none ring-0"
+                      onChange={(event) => setNewUserRole(event.target.value as PlatformRole)}
+                      value={newUserRole}
+                    >
+                      {platformRoles.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Button className="w-full" disabled={createUserPending} type="submit">
+                    {createUserPending ? 'Creating...' : 'Create user'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardDescription>Admin access</CardDescription>
+                <CardTitle>Assign membership</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={handleAssignMembership}>
+                  <label className="block text-sm text-slate-300">
+                    <span className="mb-2 block">User</span>
+                    <select
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none ring-0"
+                      disabled={!users.length || usersPending}
+                      onChange={(event) => setSelectedUserId(event.target.value)}
+                      required
+                      value={selectedUserId}
+                    >
+                      <option value="">Select a user</option>
+                      {users.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name} ({member.email})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-sm text-slate-300">
+                    <span className="mb-2 block">Project</span>
+                    <select
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none ring-0"
+                      disabled={!projects.length || usersPending}
+                      onChange={(event) => setMembershipProjectId(event.target.value)}
+                      required
+                      value={membershipProjectId}
+                    >
+                      <option value="">Select a project</option>
+                      {projects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-sm text-slate-300">
+                    <span className="mb-2 block">Project role</span>
+                    <select
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none ring-0"
+                      disabled={usersPending}
+                      onChange={(event) => setSelectedMembershipRole(event.target.value as ProjectMembershipRole)}
+                      value={selectedMembershipRole}
+                    >
+                      {membershipRoles.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Button className="w-full" disabled={!membershipProjectId || !selectedUserId || usersPending} type="submit">
+                    {usersPending ? 'Assigning...' : 'Assign to project'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </section>
+        ) : null}
       </div>
     </main>
   );

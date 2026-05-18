@@ -499,6 +499,20 @@ app.post('/auth/logout', async (request, reply) => {
 
 app.get('/auth/me', { preHandler: authenticateRequest }, async (request) => request.authUser as AuthenticatedUser);
 
+app.get('/admin/users', { preHandler: requireAdmin }, async (): Promise<AuthenticatedUser[]> => {
+  const users = await prisma.user.findMany({
+    orderBy: [{ name: 'asc' }, { email: 'asc' }],
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      platformRole: true,
+    },
+  });
+
+  return users.map(buildAuthUser);
+});
+
 app.post('/admin/users', { preHandler: requireAdmin }, async (request, reply): Promise<AuthenticatedUser | void> => {
   const { email, name, password, platformRole } = (request.body ?? {}) as {
     email?: string;
