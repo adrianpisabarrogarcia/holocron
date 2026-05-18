@@ -1,0 +1,44 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    working_dir: /app
+    command: sh -c "corepack enable && pnpm install && pnpm --filter @holocron/web exec vite --host 0.0.0.0 --port 5173"
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    environment:
+      VITE_API_URL: http://localhost:${API_PORT:-3000}
+    volumes:
+      - .:/app
+      - web-node-modules:/app/node_modules
+      - pnpm-store:/pnpm/store
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    working_dir: /app
+    command: sh -c "corepack enable && pnpm install && pnpm --filter @holocron/db prisma:generate && pnpm --filter @holocron/db prisma:push && pnpm --filter @holocron/api dev"
+    ports:
+      - "${API_PORT:-3000}:3000"
+    environment:
+      PORT: ${API_PORT:-3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      DATABASE_URL: ${DATABASE_URL:-file:./data/dev.db}
+      UPLOADS_DIR: /app/storage/uploads
+    volumes:
+      - .:/app
+      - api-node-modules:/app/node_modules
+      - pnpm-store:/pnpm/store
+      - db-data:/app/packages/db/prisma/data
+      - uploads-data:/app/storage/uploads
+
+volumes:
+  web-node-modules:
+  api-node-modules:
+  pnpm-store:
+  db-data:
+  uploads-data:

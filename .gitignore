@@ -1,0 +1,11 @@
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+.env
+packages/db/prisma/data/*.db
+packages/db/prisma/data/*.db-journal
+packages/db/prisma/data/*.db-shm
+packages/db/prisma/data/*.db-wal
+storage/uploads/*
+!storage/uploads/.gitkeep

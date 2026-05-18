@@ -1,0 +1,20 @@
+{
+  "name": "@holocron/db",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "prisma:generate": "DATABASE_URL=file:./data/dev.db prisma generate --schema prisma/schema.prisma",
+    "prisma:push": "DATABASE_URL=file:./data/dev.db prisma db push --schema prisma/schema.prisma",
+    "prisma:validate": "DATABASE_URL=file:./data/dev.db prisma validate --schema prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.20.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.20.0",
+    "typescript": "^5.6.2"
+  }
+}

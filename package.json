@@ -1,0 +1,12 @@
+{
+  "name": "holocron",
+  "private": true,
+  "packageManager": "pnpm@9.12.3",
+  "scripts": {
+    "dev:web": "pnpm --filter @holocron/web dev",
+    "dev:api": "pnpm --filter @holocron/api dev",
+    "db:generate": "pnpm --filter @holocron/db prisma:generate",
+    "db:push": "pnpm --filter @holocron/db prisma:push",
+    "db:validate": "pnpm --filter @holocron/db prisma:validate"
+  }
+}
