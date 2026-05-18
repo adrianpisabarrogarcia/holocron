@@ -1,60 +1,62 @@
-import type { ProjectSummary, ProjectTasksResponse, TaskItem } from '@holocron/contracts';
+import type { ProjectSummary, TaskSummary } from '@holocron/contracts';
 import { create } from 'zustand';
-
-const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+import { apiFetch, parseJsonError } from '../lib/api';
 
 type BoardStore = {
-  currentProject: ProjectSummary | null;
   error: string | null;
-  isLoading: boolean;
+  loading: boolean;
   projects: ProjectSummary[];
-  tasks: TaskItem[];
+  resetBoard: () => void;
+  selectedProjectId: string | null;
+  tasks: TaskSummary[];
   loadBoard: () => Promise<void>;
 };
 
 export const useBoardStore = create<BoardStore>((set) => ({
-  currentProject: null,
   error: null,
-  isLoading: false,
+  loading: false,
   projects: [],
+  resetBoard: () => set({ error: null, loading: false, projects: [], selectedProjectId: null, tasks: [] }),
+  selectedProjectId: null,
   tasks: [],
   loadBoard: async () => {
-    set({ error: null, isLoading: true });
+    set({ error: null, loading: true });
 
     try {
-      const projectsResponse = await fetch(`${apiUrl}/api/projects`);
+      const projectsResponse = await apiFetch('/api/projects');
 
       if (!projectsResponse.ok) {
-        throw new Error(`Projects request failed with ${projectsResponse.status}`);
+        throw new Error(await parseJsonError(projectsResponse));
       }
 
       const projects = (await projectsResponse.json()) as ProjectSummary[];
-      const currentProject = projects[0] ?? null;
+      const selectedProject = projects[0] ?? null;
 
-      if (!currentProject) {
-        set({ currentProject: null, isLoading: false, projects: [], tasks: [] });
+      if (!selectedProject) {
+        set({ error: null, loading: false, projects: [], selectedProjectId: null, tasks: [] });
         return;
       }
 
-      const tasksResponse = await fetch(`${apiUrl}/api/projects/${currentProject.id}/tasks`);
+      const tasksResponse = await apiFetch(`/api/projects/${selectedProject.id}/tasks`);
 
       if (!tasksResponse.ok) {
-        throw new Error(`Tasks request failed with ${tasksResponse.status}`);
+        throw new Error(await parseJsonError(tasksResponse));
       }
 
-      const payload = (await tasksResponse.json()) as ProjectTasksResponse;
+      const tasks = (await tasksResponse.json()) as TaskSummary[];
 
       set({
-        currentProject: payload.project,
         error: null,
-        isLoading: false,
+        loading: false,
         projects,
-        tasks: payload.tasks,
+        selectedProjectId: selectedProject.id,
+        tasks,
       });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Unknown API error',
-        isLoading: false,
+        loading: false,
+        tasks: [],
       });
     }
   },

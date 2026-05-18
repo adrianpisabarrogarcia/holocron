@@ -8,15 +8,36 @@ datasource db {
 }
 
 model User {
-  id              String             @id @default(cuid())
-  email           String             @unique
-  name            String
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  ownedProjects   Project[]          @relation("ProjectOwner")
-  assignedTasks   Task[]             @relation("TaskAssignee")
-  createdTasks    Task[]             @relation("TaskCreator")
+  id               String             @id @default(cuid())
+  email            String             @unique
+  name             String
+  passwordHash     String             @default("")
+  platformRole     String             @default("MEMBER")
+  isActive         Boolean            @default(true)
+  lastLoginAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  ownedProjects    Project[]          @relation("ProjectOwner")
+  assignedTasks    Task[]             @relation("TaskAssignee")
+  createdTasks     Task[]             @relation("TaskCreator")
   stateTransitions TaskStateHistory[] @relation("StateChangedBy")
+  sessions         UserSession[]
+  memberships      ProjectMembership[]
+}
+
+model UserSession {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String    @unique
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+  revokedAt        DateTime?
+  userAgent        String?
+  ipAddress        String?
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Project {
@@ -29,8 +50,22 @@ model Project {
   updatedAt   DateTime      @updatedAt
   owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id])
   tasks       Task[]
+  memberships ProjectMembership[]
 
   @@index([ownerId])
+}
+
+model ProjectMembership {
+  projectId String
+  userId    String
+  role      String   @default("VIEWER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+  @@index([userId])
 }
 
 model Task {

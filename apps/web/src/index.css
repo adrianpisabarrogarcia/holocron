@@ -21,3 +21,10 @@ body {
 #root {
   min-height: 100vh;
 }
+
+.holocron-grid {
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}

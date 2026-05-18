@@ -4,9 +4,12 @@
   "packageManager": "pnpm@9.12.3",
   "scripts": {
     "dev:web": "pnpm --filter @holocron/web dev",
-    "dev:api": "pnpm --filter @holocron/api dev",
+    "dev:api": "API_PORT=4000 DATABASE_URL=file:./data/dev.db JWT_ACCESS_SECRET=holocron-local-access-secret JWT_REFRESH_SECRET=holocron-local-refresh-secret ACCESS_TOKEN_TTL_MINUTES=15 REFRESH_TOKEN_TTL_DAYS=7 INITIAL_ADMIN_PASSWORD=ChangeMe123! pnpm --filter @holocron/api dev",
     "db:generate": "pnpm --filter @holocron/db prisma:generate",
     "db:push": "pnpm --filter @holocron/db prisma:push",
-    "db:validate": "pnpm --filter @holocron/db prisma:validate"
+    "db:validate": "pnpm --filter @holocron/db prisma:validate",
+    "typecheck:api": "pnpm --filter @holocron/api exec tsc --noEmit",
+    "typecheck:web": "pnpm --filter @holocron/web exec tsc --noEmit",
+    "typecheck:db": "pnpm --filter @holocron/db exec tsc --noEmit"
   }
 }
