@@ -12,6 +12,7 @@ body {
   margin: 0;
   min-width: 320px;
   background: #020617;
+  color: #e2e8f0;
 }
 
 * {
@@ -24,7 +25,7 @@ body {
 
 .holocron-grid {
   background-image:
-    linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
-  background-size: 32px 32px;
+    linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
