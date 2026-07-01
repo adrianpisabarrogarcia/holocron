@@ -11,6 +11,7 @@ export type AuthenticatedUser = {
   email: string;
   name: string;
   platformRole: PlatformRole;
+  assignedProjects?: string[];
 };
 
 export type AuthResponse = {

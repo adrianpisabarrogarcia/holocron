@@ -7,7 +7,7 @@ import { fieldClassName } from '../../lib/constants';
 import { CreateUserModal } from '../users/CreateUserModal';
 import { AssignMemberModal } from '../users/AssignMemberModal';
 import { ProjectsAdminPage } from './ProjectsAdminPage';
-import { RefreshCw, UserPlus, Users, FolderKanban, Users2 } from 'lucide-react';
+import { RefreshCw, UserPlus, Users, Download } from 'lucide-react';
 
 export type AdminPageProps = {
   adminNotice: string | null;
@@ -30,7 +30,7 @@ export type AdminPageProps = {
   projects: Array<{ id: string; name: string }>;
   selectedMembershipRole: ProjectMembershipRole;
   selectedUserId: string;
-  users: Array<{ email: string; id: string; name: string; platformRole: PlatformRole }>;
+  users: Array<{ email: string; id: string; name: string; platformRole: PlatformRole; assignedProjects?: string[] }>;
   usersError: string | null;
   usersLoading: boolean;
   usersPending: boolean;
@@ -96,6 +96,35 @@ export function AdminPage({
     return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
   });
 
+  // Export Users to Excel (via CSV with UTF-8 BOM)
+  const exportToExcel = () => {
+    const headers = ['Nombre', 'Email', 'Rol del Sistema', 'Proyectos Asignados', 'ID de Cuenta'];
+    const rows = filteredUsers.map((u) => [
+      u.name,
+      u.email,
+      u.platformRole,
+      u.assignedProjects && u.assignedProjects.length > 0 ? u.assignedProjects.join(', ') : 'Ninguno',
+      u.id,
+    ]);
+
+    const csvContent =
+      '\uFEFF' + // UTF-8 BOM to prevent accent issues in Excel
+      [
+        headers.join(';'),
+        ...rows.map((row) => row.map((val) => `"${val.replace(/"/g, '""')}"`).join(';')),
+      ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `holocron_usuarios_${new Date().toISOString().substring(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <section className="space-y-6 animate-in fade-in duration-300">
       {adminNotice ? (
@@ -129,6 +158,10 @@ export function AdminPage({
             <RefreshCw className={cn('h-3.5 w-3.5', usersLoading && 'animate-spin')} />
             <span>{usersLoading ? 'Actualizando...' : 'Recargar'}</span>
           </Button>
+          <Button size="sm" variant="outline" onClick={exportToExcel} type="button">
+            <Download className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span>Exportar Excel</span>
+          </Button>
           <Button size="sm" variant="primary" className="text-white" onClick={() => setIsUserModalOpen(true)}>
             <UserPlus className="h-4 w-4" />
             <span>Nuevo Usuario</span>
@@ -154,6 +187,7 @@ export function AdminPage({
                   <th className="px-6 py-4">Usuario</th>
                   <th className="px-6 py-4">Email</th>
                   <th className="px-6 py-4">Rol del Sistema</th>
+                  <th className="px-6 py-4">Proyectos Asignados</th>
                   <th className="px-6 py-4">ID de Cuenta</th>
                 </tr>
               </thead>
@@ -198,6 +232,23 @@ export function AdminPage({
                         </span>
                       </td>
 
+                      {/* Assigned Projects */}
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1.5 max-w-xs">
+                          {member.assignedProjects && member.assignedProjects.length > 0 ? (
+                            member.assignedProjects.map((projName) => (
+                              <span key={projName} className="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-950/30 text-indigo-750 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40 px-2 py-0.5 text-xs font-semibold">
+                                {projName}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="italic text-xs text-slate-400 dark:text-slate-500">
+                              Ninguno
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
                       {/* ID */}
                       <td className="px-6 py-4 text-xs font-mono text-slate-400">
                         {member.id}
@@ -208,7 +259,7 @@ export function AdminPage({
                 
                 {!usersLoading && !filteredUsers.length ? (
                   <tr>
-                    <td className="px-6 py-12 text-center text-slate-400 dark:text-slate-500" colSpan={4}>
+                    <td className="px-6 py-12 text-center text-slate-400 dark:text-slate-500" colSpan={5}>
                       No se encontraron usuarios que coincidan con la búsqueda.
                     </td>
                   </tr>

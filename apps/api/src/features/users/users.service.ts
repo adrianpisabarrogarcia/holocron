@@ -17,10 +17,25 @@ export class UsersService {
         email: true,
         name: true,
         platformRole: true,
+        memberships: {
+          select: {
+            project: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    return users.map(buildAuthUser);
+    return users.map((user) => {
+      const mapped = buildAuthUser(user);
+      return {
+        ...mapped,
+        assignedProjects: user.memberships.map((m) => m.project.name),
+      };
+    });
   }
 
   async createUser(request: FastifyRequest, reply: FastifyReply): Promise<AuthenticatedUser | void> {
