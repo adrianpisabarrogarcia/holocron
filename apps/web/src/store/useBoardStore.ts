@@ -11,8 +11,8 @@ type BoardStore = {
   selectProject: (projectId: string) => Promise<void>;
   tasks: TaskSummary[];
   loadBoard: () => Promise<void>;
-  createProject: (name: string, description?: string, status?: string) => Promise<void>;
-  updateProject: (projectId: string, name?: string, description?: string, status?: string) => Promise<void>;
+  createProject: (name: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null) => Promise<void>;
+  updateProject: (projectId: string, name?: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
   createTask: (title: string, description?: string, status?: string, priority?: string) => Promise<void>;
   updateTask: (taskId: string, title?: string, description?: string, status?: string, priority?: string) => Promise<void>;
@@ -84,13 +84,13 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       });
     }
   },
-  createProject: async (name, description, status) => {
+  createProject: async (name, description, status, startDate, endDate) => {
     set({ error: null, loading: true });
     try {
       const response = await apiFetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, status }),
+        body: JSON.stringify({ name, description, status, startDate, endDate }),
       });
 
       if (!response.ok) {
@@ -103,13 +103,13 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw error;
     }
   },
-  updateProject: async (projectId, name, description, status) => {
+  updateProject: async (projectId, name, description, status, startDate, endDate) => {
     set({ error: null, loading: true });
     try {
       const response = await apiFetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, status }),
+        body: JSON.stringify({ name, description, status, startDate, endDate }),
       });
 
       if (!response.ok) {

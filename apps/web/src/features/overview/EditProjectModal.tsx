@@ -13,7 +13,16 @@ type EditProjectModalProps = {
   initialName: string;
   initialDesc: string;
   initialStatus: ProjectSummary['status'];
-  onSave: (id: string, name: string, description: string | undefined, status: ProjectSummary['status']) => Promise<void>;
+  initialStartDate?: string | null;
+  initialEndDate?: string | null;
+  onSave: (
+    id: string,
+    name: string,
+    description: string | undefined,
+    status: ProjectSummary['status'],
+    startDate?: string | null,
+    endDate?: string | null
+  ) => Promise<void>;
 };
 
 export function EditProjectModal({
@@ -23,11 +32,15 @@ export function EditProjectModal({
   initialName,
   initialDesc,
   initialStatus,
+  initialStartDate,
+  initialEndDate,
   onSave,
 }: EditProjectModalProps) {
   const [editName, setEditName] = useState(initialName);
   const [editDesc, setEditDesc] = useState(initialDesc);
   const [editStatus, setEditStatus] = useState<ProjectSummary['status']>(initialStatus);
+  const [editStartDate, setEditStartDate] = useState(initialStartDate ? initialStartDate.substring(0, 10) : '');
+  const [editEndDate, setEditEndDate] = useState(initialEndDate ? initialEndDate.substring(0, 10) : '');
   const [editError, setEditError] = useState<string | null>(null);
   const [editPending, setEditPending] = useState(false);
 
@@ -39,7 +52,7 @@ export function EditProjectModal({
     setEditError(null);
     setEditPending(true);
     try {
-      await onSave(editId, editName, editDesc || undefined, editStatus);
+      await onSave(editId, editName, editDesc || undefined, editStatus, editStartDate || null, editEndDate || null);
       onClose();
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Error al guardar cambios');
@@ -49,7 +62,7 @@ export function EditProjectModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-955/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200">
         <button
           onClick={onClose}
@@ -85,6 +98,26 @@ export function EditProjectModal({
                 onChange={(e) => setEditDesc(e.target.value)}
               />
             </label>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="block text-sm text-slate-650 dark:text-slate-355">
+                <span className="mb-1 block font-medium">Fecha de Inicio</span>
+                <input
+                  className={fieldClassName}
+                  type="date"
+                  value={editStartDate}
+                  onChange={(e) => setEditStartDate(e.target.value)}
+                />
+              </label>
+              <label className="block text-sm text-slate-650 dark:text-slate-355">
+                <span className="mb-1 block font-medium">Fecha de Fin</span>
+                <input
+                  className={fieldClassName}
+                  type="date"
+                  value={editEndDate}
+                  onChange={(e) => setEditEndDate(e.target.value)}
+                />
+              </label>
+            </div>
             <label className="block text-sm text-slate-650 dark:text-slate-355">
               <span className="mb-1 block font-medium">Estado del proyecto</span>
               <select

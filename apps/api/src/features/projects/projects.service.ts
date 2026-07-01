@@ -35,6 +35,8 @@ export class ProjectsService {
         name: true,
         description: true,
         status: true,
+        startDate: true,
+        endDate: true,
         memberships: {
           where: {
             userId: authUser.id,
@@ -64,15 +66,19 @@ export class ProjectsService {
       membershipRole: project.memberships[0] ? normalizeProjectRole(project.memberships[0].role) : null,
       taskCount: project._count.tasks,
       completedTaskCount: project.tasks.filter((task) => task.status === 'DONE').length,
+      startDate: project.startDate ? project.startDate.toISOString() : null,
+      endDate: project.endDate ? project.endDate.toISOString() : null,
     }));
   }
 
   async createProject(request: FastifyRequest, reply: FastifyReply): Promise<ProjectSummary | void> {
     const authUser = request.authUser as AuthenticatedUser;
-    const { name, description, status } = (request.body ?? {}) as {
+    const { name, description, status, startDate, endDate } = (request.body ?? {}) as {
       name?: string;
       description?: string;
       status?: string;
+      startDate?: string | null;
+      endDate?: string | null;
     };
 
     if (!name) {
@@ -84,6 +90,8 @@ export class ProjectsService {
         name,
         description,
         status: status ?? 'PLANNING',
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
         ownerId: authUser.id,
         memberships: {
           create: {
@@ -97,6 +105,8 @@ export class ProjectsService {
         name: true,
         description: true,
         status: true,
+        startDate: true,
+        endDate: true,
         memberships: {
           where: {
             userId: authUser.id,
@@ -127,6 +137,8 @@ export class ProjectsService {
       membershipRole: project.memberships[0] ? normalizeProjectRole(project.memberships[0].role) : null,
       taskCount: project._count.tasks,
       completedTaskCount: project.tasks.filter((task) => task.status === 'DONE').length,
+      startDate: project.startDate ? project.startDate.toISOString() : null,
+      endDate: project.endDate ? project.endDate.toISOString() : null,
     };
   }
 
@@ -139,24 +151,31 @@ export class ProjectsService {
       return;
     }
 
-    const { name, description, status } = (request.body ?? {}) as {
+    const { name, description, status, startDate, endDate } = (request.body ?? {}) as {
       name?: string;
       description?: string;
       status?: string;
+      startDate?: string | null;
+      endDate?: string | null;
     };
+
+    const dataToUpdate: any = {};
+    if (name !== undefined) dataToUpdate.name = name;
+    if (description !== undefined) dataToUpdate.description = description;
+    if (status !== undefined) dataToUpdate.status = status;
+    if (startDate !== undefined) dataToUpdate.startDate = startDate ? new Date(startDate) : null;
+    if (endDate !== undefined) dataToUpdate.endDate = endDate ? new Date(endDate) : null;
 
     const project = await prisma.project.update({
       where: { id: projectId },
-      data: {
-        name: name ?? undefined,
-        description: description ?? undefined,
-        status: status ?? undefined,
-      },
+      data: dataToUpdate,
       select: {
         id: true,
         name: true,
         description: true,
         status: true,
+        startDate: true,
+        endDate: true,
         memberships: {
           where: {
             userId: authUser.id,
@@ -186,6 +205,8 @@ export class ProjectsService {
       membershipRole: project.memberships[0] ? normalizeProjectRole(project.memberships[0].role) : null,
       taskCount: project._count.tasks,
       completedTaskCount: project.tasks.filter((task) => task.status === 'DONE').length,
+      startDate: project.startDate ? project.startDate.toISOString() : null,
+      endDate: project.endDate ? project.endDate.toISOString() : null,
     };
   }
 

@@ -11,6 +11,8 @@ export function CreateProjectCard() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('PLANNING');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -20,10 +22,12 @@ export function CreateProjectCard() {
     setError(null);
     setPending(true);
     try {
-      await createProject(name, description || undefined, status);
+      await createProject(name, description || undefined, status, startDate || null, endDate || null);
       setName('');
       setDescription('');
       setStatus('PLANNING');
+      setStartDate('');
+      setEndDate('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear proyecto');
     } finally {
@@ -62,6 +66,26 @@ export function CreateProjectCard() {
               onChange={(e) => setDescription(e.target.value)}
             />
           </label>
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block text-sm text-slate-650 dark:text-slate-355">
+              <span className="mb-1 block font-medium">Fecha de Inicio</span>
+              <input
+                className={fieldClassName}
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </label>
+            <label className="block text-sm text-slate-650 dark:text-slate-355">
+              <span className="mb-1 block font-medium">Fecha de Fin</span>
+              <input
+                className={fieldClassName}
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </label>
+          </div>
           <label className="block text-sm text-slate-650 dark:text-slate-355">
             <span className="mb-1 block font-medium">Estado inicial</span>
             <select className={fieldClassName} value={status} onChange={(e) => setStatus(e.target.value)}>

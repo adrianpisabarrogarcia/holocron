@@ -26,6 +26,8 @@ export type ProjectSummary = {
   membershipRole: ProjectMembershipRole | null;
   taskCount: number;
   completedTaskCount: number;
+  startDate?: string | null;
+  endDate?: string | null;
 };
 
 export type ProjectMemberSummary = {

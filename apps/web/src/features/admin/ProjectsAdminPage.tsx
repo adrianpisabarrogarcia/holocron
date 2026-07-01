@@ -21,17 +21,28 @@ export function ProjectsAdminPage() {
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editStatus, setEditStatus] = useState<ProjectSummary['status']>('PLANNING');
+  const [editStartDate, setEditStartDate] = useState<string | null>(null);
+  const [editEndDate, setEditEndDate] = useState<string | null>(null);
 
   const openEdit = (proj: ProjectSummary) => {
     setEditId(proj.id);
     setEditName(proj.name);
     setEditDesc(proj.description || '');
     setEditStatus(proj.status);
+    setEditStartDate(proj.startDate || null);
+    setEditEndDate(proj.endDate || null);
     setIsEditOpen(true);
   };
 
-  const handleEditSave = async (id: string, name: string, description: string | undefined, status: ProjectSummary['status']) => {
-    await updateProject(id, name, description, status);
+  const handleEditSave = async (
+    id: string,
+    name: string,
+    description: string | undefined,
+    status: ProjectSummary['status'],
+    startDate?: string | null,
+    endDate?: string | null
+  ) => {
+    await updateProject(id, name, description, status, startDate, endDate);
   };
 
   const handleDelete = async (projId: string, name: string) => {
@@ -88,7 +99,14 @@ export function ProjectsAdminPage() {
                           </div>
                           <div>
                             <p className="font-bold text-slate-900 dark:text-slate-100 leading-snug">{proj.name}</p>
-                            <span className="text-[10px] font-mono text-slate-400">{proj.id}</span>
+                            <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                              <span className="text-[10px] font-mono text-slate-400">{proj.id}</span>
+                              {(proj.startDate || proj.endDate) && (
+                                <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30 px-1.5 py-0.5 rounded">
+                                  {proj.startDate ? new Date(proj.startDate).toLocaleDateString() : '?'} — {proj.endDate ? new Date(proj.endDate).toLocaleDateString() : '?'}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -172,6 +190,8 @@ export function ProjectsAdminPage() {
           initialName={editName}
           initialDesc={editDesc}
           initialStatus={editStatus}
+          initialStartDate={editStartDate}
+          initialEndDate={editEndDate}
           onSave={handleEditSave}
         />
       )}

@@ -70,6 +70,8 @@ export function OverviewPage({
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editStatus, setEditStatus] = useState<ProjectSummary['status']>('PLANNING');
+  const [editStartDate, setEditStartDate] = useState<string | null>(null);
+  const [editEndDate, setEditEndDate] = useState<string | null>(null);
 
   const openEdit = (proj: ProjectSummary, e: React.MouseEvent) => {
     e.stopPropagation(); // prevent select project trigger
@@ -77,11 +79,20 @@ export function OverviewPage({
     setEditName(proj.name);
     setEditDesc(proj.description || '');
     setEditStatus(proj.status);
+    setEditStartDate(proj.startDate || null);
+    setEditEndDate(proj.endDate || null);
     setIsEditOpen(true);
   };
 
-  const handleEditSave = async (id: string, name: string, description: string | undefined, status: ProjectSummary['status']) => {
-    await updateProject(id, name, description, status);
+  const handleEditSave = async (
+    id: string,
+    name: string,
+    description: string | undefined,
+    status: ProjectSummary['status'],
+    startDate?: string | null,
+    endDate?: string | null
+  ) => {
+    await updateProject(id, name, description, status, startDate, endDate);
   };
 
   const handleDelete = async (projId: string, name: string, e: React.MouseEvent) => {
@@ -260,9 +271,21 @@ export function OverviewPage({
       {/* FOCUS DESCRIPTION */}
       {currentProject && (
         <Card>
-          <CardHeader>
-            <CardDescription>Descripción del proyecto</CardDescription>
-            <CardTitle className="text-lg">{currentProject.name}</CardTitle>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 gap-2">
+            <div>
+              <CardDescription>Descripción del proyecto</CardDescription>
+              <CardTitle className="text-lg">{currentProject.name}</CardTitle>
+            </div>
+            {(currentProject.startDate || currentProject.endDate) && (
+              <div className="text-xs font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5">
+                <span>🗓️ Duración:</span>
+                <span>
+                  {currentProject.startDate ? new Date(currentProject.startDate).toLocaleDateString() : 'Sin definir'} 
+                  {' — '} 
+                  {currentProject.endDate ? new Date(currentProject.endDate).toLocaleDateString() : 'Sin definir'}
+                </span>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <p className="text-slate-600 dark:text-slate-350 text-sm leading-relaxed">
@@ -284,6 +307,8 @@ export function OverviewPage({
           initialName={editName}
           initialDesc={editDesc}
           initialStatus={editStatus}
+          initialStartDate={editStartDate}
+          initialEndDate={editEndDate}
           onSave={handleEditSave}
         />
       )}
