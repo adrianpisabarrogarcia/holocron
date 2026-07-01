@@ -14,6 +14,7 @@ import {
   ListTodo,
   AlertTriangle,
   Plus,
+  Folder,
 } from 'lucide-react';
 import {
   projectStatusLabel,
@@ -59,7 +60,7 @@ export function OverviewPage({
   const highOrUrgent = tasks.filter(t => t.priority === 'HIGH' || t.priority === 'URGENT').length;
 
   // Project store actions
-  const { deleteProject, updateProject } = useBoardStore();
+  const { deleteProject, updateProject, folders } = useBoardStore();
 
   // Create Project modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -73,6 +74,95 @@ export function OverviewPage({
   const [editStartDate, setEditStartDate] = useState<string | null>(null);
   const [editEndDate, setEditEndDate] = useState<string | null>(null);
   const [editFolderId, setEditFolderId] = useState<string | null>(null);
+
+  // Collapsed folders state
+  const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({});
+  const toggleFolder = (folderId: string) => {
+    setCollapsedFolders((prev) => ({ ...prev, [folderId]: !prev[folderId] }));
+  };
+
+  const renderProjectHierarchy = (parentId: string | null, depth: number) => {
+    const childFolders = folders.filter((f) => f.parentFolderId === parentId);
+    const childProjects = projects.filter((p) => p.folderId === parentId);
+
+    // Keep track of all rendered project IDs to find orphans later
+    const renderedProjectIds: string[] = [];
+    const getRenderedIds = (pId: string | null) => {
+      folders.filter((f) => f.parentFolderId === pId).forEach((f) => {
+        projects.filter((p) => p.folderId === f.id).forEach((p) => renderedProjectIds.push(p.id));
+        getRenderedIds(f.id);
+      });
+    };
+    if (parentId === null) {
+      projects.filter((p) => p.folderId === null).forEach((p) => renderedProjectIds.push(p.id));
+      getRenderedIds(null);
+    }
+
+    return (
+      <div className="space-y-2">
+        {/* Render child folders */}
+        {childFolders.map((folder) => {
+          const isCollapsed = collapsedFolders[folder.id];
+          return (
+            <div key={folder.id} className="space-y-2 animate-in fade-in duration-200">
+              <div
+                style={{ marginLeft: `${depth * 16}px` }}
+                onClick={() => toggleFolder(folder.id)}
+                className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-900/40 dark:hover:bg-slate-800/40 border border-slate-200/40 dark:border-slate-800/40 cursor-pointer select-none transition"
+              >
+                <span className="text-slate-400 dark:text-slate-500 font-bold transition duration-200 text-[10px]">
+                  {isCollapsed ? '▶' : '▼'}
+                </span>
+                <Folder className="h-4 w-4 text-indigo-650 shrink-0" />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{folder.name}</span>
+              </div>
+              {!isCollapsed && (
+                <div className="space-y-2">
+                  {renderProjectHierarchy(folder.id, depth + 1)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Render child projects */}
+        {childProjects.map((proj) => {
+          const isSelected = proj.id === selectedProjectId;
+          const canManage = proj.membershipRole === 'MANAGER' || userRole === 'ADMIN';
+          return (
+            <div key={proj.id} style={{ marginLeft: `${depth * 16}px` }} className="animate-in fade-in duration-200">
+              <ProjectGridItem
+                proj={proj}
+                isSelected={isSelected}
+                canManage={canManage}
+                onSelect={(id) => void onProjectChange(id)}
+                onEdit={openEdit}
+                onDelete={handleDelete}
+              />
+            </div>
+          );
+        })}
+
+        {/* Render orphans only at root level */}
+        {parentId === null && projects.filter((p) => !renderedProjectIds.includes(p.id)).map((proj) => {
+          const isSelected = proj.id === selectedProjectId;
+          const canManage = proj.membershipRole === 'MANAGER' || userRole === 'ADMIN';
+          return (
+            <div key={proj.id} style={{ marginLeft: `${depth * 16}px` }} className="animate-in fade-in duration-200">
+              <ProjectGridItem
+                proj={proj}
+                isSelected={isSelected}
+                canManage={canManage}
+                onSelect={(id) => void onProjectChange(id)}
+                onEdit={openEdit}
+                onDelete={handleDelete}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const openEdit = (proj: ProjectSummary, e: React.MouseEvent) => {
     e.stopPropagation(); // prevent select project trigger
@@ -179,22 +269,7 @@ export function OverviewPage({
             </div>
           </CardHeader>
           <CardContent className="space-y-3 pt-2">
-            {projects.map((proj) => {
-              const isSelected = proj.id === selectedProjectId;
-              const canManage = proj.membershipRole === 'MANAGER' || userRole === 'ADMIN';
-
-              return (
-                <ProjectGridItem
-                  key={proj.id}
-                  proj={proj}
-                  isSelected={isSelected}
-                  canManage={canManage}
-                  onSelect={(id) => void onProjectChange(id)}
-                  onEdit={openEdit}
-                  onDelete={handleDelete}
-                />
-              );
-            })}
+            {renderProjectHierarchy(null, 0)}
           </CardContent>
         </Card>
 
