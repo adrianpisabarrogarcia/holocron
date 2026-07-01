@@ -51,14 +51,8 @@ export function AppLayout({
       <aside className="w-64 border-r border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-slate-900 flex flex-col justify-between shrink-0">
         <div>
           {/* Logo / Header */}
-          <div className="h-16 flex items-center px-6 border-b border-slate-200/80 dark:border-slate-800/80 gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-650 text-white font-bold text-lg shadow-md shadow-indigo-650/15">
-              H
-            </div>
-            <div>
-              <h2 className="font-extrabold text-slate-900 dark:text-white leading-none tracking-tight">Holocron</h2>
-              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 tracking-widest uppercase">Workspace</span>
-            </div>
+          <div className="h-16 flex items-center px-6 border-b border-slate-200/80 dark:border-slate-800/80">
+            <span className="text-xs font-black tracking-widest uppercase text-slate-400 dark:text-slate-500">Workspace</span>
           </div>
 
           {/* User profile brief */}
