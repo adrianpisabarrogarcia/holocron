@@ -27,4 +27,16 @@ export class ProjectsController {
   addOrUpdateMember = async (request: FastifyRequest, reply: FastifyReply) => {
     return this.projectsService.addOrUpdateMember(request, reply);
   };
+
+  listFolders = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.projectsService.listFolders(request, reply);
+  };
+
+  createFolder = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.projectsService.createFolder(request, reply);
+  };
+
+  deleteFolder = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.projectsService.deleteFolder(request, reply);
+  };
 }

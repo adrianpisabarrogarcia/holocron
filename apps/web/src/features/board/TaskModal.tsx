@@ -11,7 +11,15 @@ type TaskModalProps = {
   onClose: () => void;
   task: TaskSummary | null; // Null means create mode
   initialStatus?: TaskSummary['status'];
-  onSave: (title: string, desc: string | undefined, status: TaskSummary['status'], priority: TaskSummary['priority']) => Promise<void>;
+  initialFolderId?: string | null;
+  folders: Array<{ id: string; name: string; parentFolderId: string | null }>;
+  onSave: (
+    title: string,
+    desc: string | undefined,
+    status: TaskSummary['status'],
+    priority: TaskSummary['priority'],
+    folderId?: string | null
+  ) => Promise<void>;
   onDelete?: () => Promise<void>;
 };
 
@@ -20,6 +28,8 @@ export function TaskModal({
   onClose,
   task,
   initialStatus = 'TODO',
+  initialFolderId = null,
+  folders,
   onSave,
   onDelete,
 }: TaskModalProps) {
@@ -27,6 +37,7 @@ export function TaskModal({
   const [taskDesc, setTaskDesc] = useState(task?.description ?? '');
   const [taskPriority, setTaskPriority] = useState<TaskSummary['priority']>(task?.priority ?? 'MEDIUM');
   const [taskStatus, setTaskStatus] = useState<TaskSummary['status']>(task?.status ?? initialStatus);
+  const [taskFolderId, setTaskFolderId] = useState<string | null>(task?.folderId ?? initialFolderId ?? null);
 
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -39,7 +50,7 @@ export function TaskModal({
     setError(null);
     setPending(true);
     try {
-      await onSave(taskTitle, taskDesc || undefined, taskStatus, taskPriority);
+      await onSave(taskTitle, taskDesc || undefined, taskStatus, taskPriority, taskFolderId);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar la tarea');
@@ -61,8 +72,22 @@ export function TaskModal({
     }
   };
 
+  const getFlattenedFolders = () => {
+    const list: Array<{ id: string; name: string; depth: number }> = [];
+    const recurse = (parentId: string | null, depth: number) => {
+      folders
+        .filter((f) => f.parentFolderId === parentId)
+        .forEach((f) => {
+          list.push({ id: f.id, name: f.name, depth });
+          recurse(f.id, depth + 1);
+        });
+    };
+    recurse(null, 0);
+    return list;
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-955/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200">
         <button
           onClick={onClose}
@@ -99,6 +124,25 @@ export function TaskModal({
                 placeholder="Describe los pasos o requerimientos..."
               />
             </label>
+            
+            <label className="block text-sm text-slate-650 dark:text-slate-355">
+              <span className="mb-1 block font-medium">Carpeta / Subcarpeta (Opcional)</span>
+              <select
+                className={fieldClassName}
+                value={taskFolderId ?? ''}
+                onChange={(e) => setTaskFolderId(e.target.value || null)}
+              >
+                <option value="">(Ninguna - Raíz)</option>
+                {getFlattenedFolders().map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {'\u00A0\u00A0'.repeat(f.depth)}
+                    {f.depth > 0 ? '↳ ' : ''}
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <div className="grid grid-cols-2 gap-4">
               <label className="block text-sm text-slate-650 dark:text-slate-355">
                 <span className="mb-1 block font-medium">Prioridad</span>

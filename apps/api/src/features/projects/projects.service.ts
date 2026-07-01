@@ -9,6 +9,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   normalizeProjectRole,
   requireProjectManagerAccess,
+  requireProjectAccess,
   requireAdmin,
   sendError,
   allowedProjectRoles,
@@ -331,5 +332,95 @@ export class ProjectsService {
 
     reply.code(201);
     return buildProjectMemberSummary(membership);
+  }
+
+  async listFolders(request: FastifyRequest, reply: FastifyReply): Promise<any[] | void> {
+    const { projectId } = request.params as { projectId: string };
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access || reply.sent) return;
+
+    const folders = await prisma.folder.findMany({
+      where: { projectId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        projectId: true,
+        parentFolderId: true,
+        createdAt: true,
+      },
+    });
+
+    return folders.map((f) => ({
+      ...f,
+      createdAt: f.createdAt.toISOString(),
+    }));
+  }
+
+  async createFolder(request: FastifyRequest, reply: FastifyReply): Promise<any | void> {
+    const { projectId } = request.params as { projectId: string };
+    const authUser = request.authUser as AuthenticatedUser;
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access || reply.sent) return;
+
+    if (authUser.platformRole !== 'ADMIN' && access.membershipRole !== 'MANAGER' && access.membershipRole !== 'CONTRIBUTOR') {
+      return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
+    }
+
+    const { name, parentFolderId } = (request.body ?? {}) as {
+      name?: string;
+      parentFolderId?: string | null;
+    };
+
+    if (!name) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'Folder name is required');
+    }
+
+    const folder = await prisma.folder.create({
+      data: {
+        name,
+        projectId,
+        parentFolderId: parentFolderId ?? null,
+      },
+      select: {
+        id: true,
+        name: true,
+        projectId: true,
+        parentFolderId: true,
+        createdAt: true,
+      },
+    });
+
+    reply.code(201);
+    return {
+      ...folder,
+      createdAt: folder.createdAt.toISOString(),
+    };
+  }
+
+  async deleteFolder(request: FastifyRequest, reply: FastifyReply) {
+    const { projectId, folderId } = request.params as { projectId: string; folderId: string };
+    const authUser = request.authUser as AuthenticatedUser;
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access || reply.sent) return;
+
+    if (authUser.platformRole !== 'ADMIN' && access.membershipRole !== 'MANAGER' && access.membershipRole !== 'CONTRIBUTOR') {
+      return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
+    }
+
+    const folder = await prisma.folder.findUnique({
+      where: { id: folderId },
+      select: { id: true },
+    });
+
+    if (!folder) {
+      return sendError(reply, 404, 'NOT_FOUND', 'Folder not found');
+    }
+
+    await prisma.folder.delete({
+      where: { id: folderId },
+    });
+
+    return { success: true };
   }
 }
