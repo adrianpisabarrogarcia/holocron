@@ -109,20 +109,41 @@ export function AppLayout({
             </NavLink>
 
             {isAdmin ? (
-              <NavLink
-                to="/admin"
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
-                    isActive
-                      ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-bold border-l-4 border-indigo-600 dark:border-indigo-400 pl-3'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
-                  )
-                }
-              >
-                <ShieldCheck className="h-4 w-4" />
-                <span>Administración</span>
-              </NavLink>
+              <>
+                <div className="pt-4 pb-1">
+                  <p className="px-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">
+                    Administración
+                  </p>
+                </div>
+                <NavLink
+                  to="/admin/users"
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
+                      isActive
+                        ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-bold border-l-4 border-indigo-600 dark:border-indigo-400 pl-3'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+                    )
+                  }
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>Gestión Usuarios</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/projects"
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
+                      isActive
+                        ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-bold border-l-4 border-indigo-600 dark:border-indigo-400 pl-3'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+                    )
+                  }
+                >
+                  <Folder className="h-4 w-4" />
+                  <span>Gestión Proyectos</span>
+                </NavLink>
+              </>
             ) : null}
           </nav>
         </div>
@@ -180,7 +201,7 @@ export function AppLayout({
             <h1 className="text-lg font-bold text-slate-900 dark:text-white">
               {pathname === '/overview' && 'Resumen del Sistema'}
               {pathname === '/board' && 'Tablero del Proyecto'}
-              {pathname === '/admin' && 'Panel de Administración'}
+              {pathname.startsWith('/admin') && 'Panel de Administración'}
             </h1>
             
             {projects.length > 0 && (

@@ -19,6 +19,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { OverviewPage } from './features/overview/OverviewPage';
 import { BoardPage } from './features/board/BoardPage';
 import { AdminPage } from './features/admin/AdminPage';
+import { ProjectsAdminPage } from './features/admin/ProjectsAdminPage';
 import { CreateProjectCard } from './features/overview/CreateProjectCard';
 
 type RouteState = {
@@ -283,8 +284,9 @@ export function App() {
             />
           }
         />
+        <Route path="/admin" element={<Navigate replace to="/admin/users" />} />
         <Route
-          path="/admin"
+          path="/admin/users"
           element={
             isAdmin ? (
               <AdminPage
@@ -313,6 +315,16 @@ export function App() {
                 usersPending={usersPending}
                 onRefreshUsers={() => void loadUsers()}
               />
+            ) : (
+              <Navigate replace state={{ denied: 'admin' } satisfies RouteState} to="/overview" />
+            )
+          }
+        />
+        <Route
+          path="/admin/projects"
+          element={
+            isAdmin ? (
+              <ProjectsAdminPage />
             ) : (
               <Navigate replace state={{ denied: 'admin' } satisfies RouteState} to="/overview" />
             )

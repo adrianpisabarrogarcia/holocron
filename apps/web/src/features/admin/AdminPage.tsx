@@ -62,9 +62,6 @@ export function AdminPage({
   usersLoading,
   usersPending,
 }: AdminPageProps) {
-  // Tab control state
-  const [activeTab, setActiveTab] = useState<'users' | 'projects'>('users');
-
   // Modal toggle states
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -112,181 +109,147 @@ export function AdminPage({
           {usersError}
         </div>
       ) : null}
-      
-      {/* TABS SWITCHER */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2">
-        <button
-          onClick={() => setActiveTab('users')}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 transition-all duration-200 outline-none',
-            activeTab === 'users'
-              ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-          )}
-        >
-          <Users2 className="h-4 w-4" />
-          <span>Gestión de Usuarios</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('projects')}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 transition-all duration-200 outline-none',
-            activeTab === 'projects'
-              ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-          )}
-        >
-          <FolderKanban className="h-4 w-4" />
-          <span>Gestión de Proyectos</span>
-        </button>
+
+      {/* TOOLBAR */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        {/* Search bar */}
+        <div className="relative w-full md:max-w-xs">
+          <input
+            className={cn(fieldClassName, 'pr-10')}
+            placeholder="Buscar usuario por nombre o email..."
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button size="sm" variant="outline" disabled={usersLoading} onClick={onRefreshUsers} type="button">
+            <RefreshCw className={cn('h-3.5 w-3.5', usersLoading && 'animate-spin')} />
+            <span>{usersLoading ? 'Actualizando...' : 'Recargar'}</span>
+          </Button>
+          <Button size="sm" variant="primary" className="text-white" onClick={() => setIsUserModalOpen(true)}>
+            <UserPlus className="h-4 w-4" />
+            <span>Nuevo Usuario</span>
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => setIsAssignModalOpen(true)}>
+            <Users className="h-4 w-4" />
+            <span>Asignar Miembro</span>
+          </Button>
+        </div>
       </div>
 
-      {activeTab === 'users' ? (
-        <>
-          {/* TOOLBAR */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            {/* Search bar */}
-            <div className="relative w-full md:max-w-xs">
-              <input
-                className={cn(fieldClassName, 'pr-10')}
-                placeholder="Buscar usuario por nombre o email..."
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3">
-              <Button size="sm" variant="outline" disabled={usersLoading} onClick={onRefreshUsers} type="button">
-                <RefreshCw className={cn('h-3.5 w-3.5', usersLoading && 'animate-spin')} />
-                <span>{usersLoading ? 'Actualizando...' : 'Recargar'}</span>
-              </Button>
-              <Button size="sm" variant="primary" className="text-white" onClick={() => setIsUserModalOpen(true)}>
-                <UserPlus className="h-4 w-4" />
-                <span>Nuevo Usuario</span>
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => setIsAssignModalOpen(true)}>
-                <Users className="h-4 w-4" />
-                <span>Asignar Miembro</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* PREMIUM USERS TABLE */}
-          <Card>
-            <CardHeader className="border-b border-slate-200/80 dark:border-slate-800/80 pb-4">
-              <CardTitle>Directorio de Cuentas</CardTitle>
-              <CardDescription>Visualiza y administra todos los accesos del sistema</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm text-slate-600 dark:text-slate-355">
-                  <thead className="bg-slate-50/50 dark:bg-slate-900/40 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 dark:border-slate-800/80">
-                    <tr>
-                      <th className="px-6 py-4">Usuario</th>
-                      <th className="px-6 py-4">Email</th>
-                      <th className="px-6 py-4">Rol del Sistema</th>
-                      <th className="px-6 py-4">ID de Cuenta</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60 bg-white/30 dark:bg-slate-900/10">
-                    {filteredUsers.map((member) => {
-                      // Get initials
-                      const initials = member.name
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')
-                        .substring(0, 2)
-                        .toUpperCase();
+      {/* PREMIUM USERS TABLE */}
+      <Card>
+        <CardHeader className="border-b border-slate-200/80 dark:border-slate-800/80 pb-4">
+          <CardTitle>Directorio de Cuentas</CardTitle>
+          <CardDescription>Visualiza y administra todos los accesos del sistema</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm text-slate-600 dark:text-slate-355">
+              <thead className="bg-slate-50/50 dark:bg-slate-900/40 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 dark:border-slate-800/80">
+                <tr>
+                  <th className="px-6 py-4">Usuario</th>
+                  <th className="px-6 py-4">Email</th>
+                  <th className="px-6 py-4">Rol del Sistema</th>
+                  <th className="px-6 py-4">ID de Cuenta</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60 bg-white/30 dark:bg-slate-900/10">
+                {filteredUsers.map((member) => {
+                  // Get initials
+                  const initials = member.name
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .substring(0, 2)
+                    .toUpperCase();
+                  
+                  return (
+                    <tr key={member.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition duration-150">
+                      {/* Avatar & Name */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 font-extrabold text-xs flex items-center justify-center border border-indigo-100 dark:border-indigo-900/30">
+                            {initials}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-slate-100 leading-snug">{member.name}</p>
+                          </div>
+                        </div>
+                      </td>
                       
-                      return (
-                        <tr key={member.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition duration-150">
-                          {/* Avatar & Name */}
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="h-9 w-9 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 font-extrabold text-xs flex items-center justify-center border border-indigo-100 dark:border-indigo-900/30">
-                                {initials}
-                              </div>
-                              <div>
-                                <p className="font-bold text-slate-900 dark:text-slate-100 leading-snug">{member.name}</p>
-                              </div>
-                            </div>
-                          </td>
-                          
-                          {/* Email */}
-                          <td className="px-6 py-4 text-slate-500 dark:text-slate-405 font-medium">
-                            {member.email}
-                          </td>
-                          
-                          {/* Role Badges */}
-                          <td className="px-6 py-4">
-                            <span className={cn(
-                              'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold tracking-wide border',
-                              member.platformRole === 'ADMIN'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/30'
-                                : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-305 dark:border-slate-700/60'
-                            )}>
-                              {member.platformRole}
-                            </span>
-                          </td>
+                      {/* Email */}
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-405 font-medium">
+                        {member.email}
+                      </td>
+                      
+                      {/* Role Badges */}
+                      <td className="px-6 py-4">
+                        <span className={cn(
+                          'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold tracking-wide border',
+                          member.platformRole === 'ADMIN'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/30'
+                            : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-305 dark:border-slate-700/60'
+                        )}>
+                          {member.platformRole}
+                        </span>
+                      </td>
 
-                          {/* ID */}
-                          <td className="px-6 py-4 text-xs font-mono text-slate-400">
-                            {member.id}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    
-                    {!usersLoading && !filteredUsers.length ? (
-                      <tr>
-                        <td className="px-6 py-12 text-center text-slate-400 dark:text-slate-500" colSpan={4}>
-                          No se encontraron usuarios que coincidan con la búsqueda.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                      {/* ID */}
+                      <td className="px-6 py-4 text-xs font-mono text-slate-400">
+                        {member.id}
+                      </td>
+                    </tr>
+                  );
+                })}
+                
+                {!usersLoading && !filteredUsers.length ? (
+                  <tr>
+                    <td className="px-6 py-12 text-center text-slate-400 dark:text-slate-500" colSpan={4}>
+                      No se encontraron usuarios que coincidan con la búsqueda.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* CREATE USER MODAL */}
-          <CreateUserModal
-            isOpen={isUserModalOpen}
-            onClose={() => setIsUserModalOpen(false)}
-            onSubmit={onCreateUserSubmit}
-            newUserName={newUserName}
-            onNewUserNameChange={onNewUserNameChange}
-            newUserEmail={newUserEmail}
-            onNewUserEmailChange={onNewUserEmailChange}
-            newUserPassword={newUserPassword}
-            onNewUserPasswordChange={onNewUserPasswordChange}
-            newUserRole={newUserRole}
-            onNewUserRoleChange={onNewUserRoleChange}
-            createUserPending={createUserPending}
-          />
+      {/* CREATE USER MODAL */}
+      <CreateUserModal
+        isOpen={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
+        onSubmit={onCreateUserSubmit}
+        newUserName={newUserName}
+        onNewUserNameChange={onNewUserNameChange}
+        newUserEmail={newUserEmail}
+        onNewUserEmailChange={onNewUserEmailChange}
+        newUserPassword={newUserPassword}
+        onNewUserPasswordChange={onNewUserPasswordChange}
+        newUserRole={newUserRole}
+        onNewUserRoleChange={onNewUserRoleChange}
+        createUserPending={createUserPending}
+      />
 
-          {/* ASSIGN PROJECT MEMBERSHIP MODAL */}
-          <AssignMemberModal
-            isOpen={isAssignModalOpen}
-            onClose={() => setIsAssignModalOpen(false)}
-            onSubmit={onAssignMemberSubmit}
-            users={users}
-            projects={projects}
-            selectedUserId={selectedUserId}
-            onSelectedUserIdChange={onSelectedUserIdChange}
-            membershipProjectId={membershipProjectId}
-            onMembershipProjectIdChange={onMembershipProjectIdChange}
-            selectedMembershipRole={selectedMembershipRole}
-            onSelectedMembershipRoleChange={onSelectedMembershipRoleChange}
-            usersPending={usersPending}
-          />
-        </>
-      ) : (
-        <ProjectsAdminPage />
-      )}
+      {/* ASSIGN PROJECT MEMBERSHIP MODAL */}
+      <AssignMemberModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        onSubmit={onAssignMemberSubmit}
+        users={users}
+        projects={projects}
+        selectedUserId={selectedUserId}
+        onSelectedUserIdChange={onSelectedUserIdChange}
+        membershipProjectId={membershipProjectId}
+        onMembershipProjectIdChange={onMembershipProjectIdChange}
+        selectedMembershipRole={selectedMembershipRole}
+        onSelectedMembershipRoleChange={onSelectedMembershipRoleChange}
+        usersPending={usersPending}
+      />
     </section>
   );
 }
