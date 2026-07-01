@@ -29,6 +29,7 @@ export type ProjectSummary = {
   completedTaskCount: number;
   startDate?: string | null;
   endDate?: string | null;
+  folderId?: string | null;
 };
 
 export type ProjectMemberSummary = {
@@ -50,13 +51,11 @@ export type TaskSummary = {
   description: string | null;
   status: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  folderId?: string | null;
 };
 
 export type FolderSummary = {
   id: string;
   name: string;
-  projectId: string;
   parentFolderId: string | null;
   createdAt: string;
 };

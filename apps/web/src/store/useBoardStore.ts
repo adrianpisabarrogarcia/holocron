@@ -12,14 +12,14 @@ type BoardStore = {
   selectProject: (projectId: string) => Promise<void>;
   tasks: TaskSummary[];
   loadBoard: () => Promise<void>;
-  loadFolders: (projectId: string) => Promise<void>;
+  loadFolders: () => Promise<void>;
   createFolder: (name: string, parentFolderId?: string | null) => Promise<void>;
   deleteFolder: (folderId: string) => Promise<void>;
-  createProject: (name: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null) => Promise<void>;
-  updateProject: (projectId: string, name?: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null) => Promise<void>;
+  createProject: (name: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null, folderId?: string | null) => Promise<void>;
+  updateProject: (projectId: string, name?: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null, folderId?: string | null) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
-  createTask: (title: string, description?: string, status?: string, priority?: string, folderId?: string | null) => Promise<void>;
-  updateTask: (taskId: string, title?: string, description?: string, status?: string, priority?: string, folderId?: string | null) => Promise<void>;
+  createTask: (title: string, description?: string, status?: string, priority?: string) => Promise<void>;
+  updateTask: (taskId: string, title?: string, description?: string, status?: string, priority?: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   moveTask: (taskId: string, newStatus: TaskSummary['status']) => Promise<void>;
 };
@@ -35,8 +35,8 @@ async function loadProjectTasks(projectId: string) {
   return (await tasksResponse.json()) as TaskSummary[];
 }
 
-async function loadProjectFolders(projectId: string) {
-  const foldersResponse = await apiFetch(`/api/projects/${projectId}/folders`);
+async function loadProjectFolders() {
+  const foldersResponse = await apiFetch('/api/folders');
 
   if (!foldersResponse.ok) {
     throw new Error(await parseJsonError(foldersResponse));
@@ -56,13 +56,10 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     set({ error: null, loading: true, selectedProjectId: projectId });
 
     try {
-      const [tasks, folders] = await Promise.all([
-        loadProjectTasks(projectId),
-        loadProjectFolders(projectId),
-      ]);
-      set({ error: null, loading: false, tasks, folders });
+      const tasks = await loadProjectTasks(projectId);
+      set({ error: null, loading: false, tasks });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false, tasks: [], folders: [] });
+      set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false, tasks: [] });
     }
   },
   tasks: [],
@@ -87,7 +84,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
       const [tasks, folders] = await Promise.all([
         loadProjectTasks(selectedProject.id),
-        loadProjectFolders(selectedProject.id),
+        loadProjectFolders(),
       ]);
 
       set({
@@ -107,13 +104,13 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       });
     }
   },
-  createProject: async (name, description, status, startDate, endDate) => {
+  createProject: async (name, description, status, startDate, endDate, folderId) => {
     set({ error: null, loading: true });
     try {
       const response = await apiFetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, status, startDate, endDate }),
+        body: JSON.stringify({ name, description, status, startDate, endDate, folderId }),
       });
 
       if (!response.ok) {
@@ -126,13 +123,13 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw error;
     }
   },
-  updateProject: async (projectId, name, description, status, startDate, endDate) => {
+  updateProject: async (projectId, name, description, status, startDate, endDate, folderId) => {
     set({ error: null, loading: true });
     try {
       const response = await apiFetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, status, startDate, endDate }),
+        body: JSON.stringify({ name, description, status, startDate, endDate, folderId }),
       });
 
       if (!response.ok) {
@@ -167,7 +164,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw error;
     }
   },
-  createTask: async (title, description, status, priority, folderId) => {
+  createTask: async (title, description, status, priority) => {
     const { selectedProjectId } = get();
     if (!selectedProjectId) throw new Error('No project selected');
     set({ error: null, loading: true });
@@ -175,7 +172,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       const response = await apiFetch(`/api/projects/${selectedProjectId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, status, priority, folderId }),
+        body: JSON.stringify({ title, description, status, priority }),
       });
 
       if (!response.ok) {
@@ -188,7 +185,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw error;
     }
   },
-  updateTask: async (taskId, title, description, status, priority, folderId) => {
+  updateTask: async (taskId, title, description, status, priority) => {
     const { selectedProjectId } = get();
     if (!selectedProjectId) throw new Error('No project selected');
     set({ error: null, loading: true });
@@ -196,7 +193,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       const response = await apiFetch(`/api/projects/${selectedProjectId}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, status, priority, folderId }),
+        body: JSON.stringify({ title, description, status, priority }),
       });
 
       if (!response.ok) {
@@ -256,21 +253,19 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       set({ error: error instanceof Error ? error.message : 'Failed to move task', tasks: previousTasks });
     }
   },
-  loadFolders: async (projectId) => {
+  loadFolders: async () => {
     set({ error: null, loading: true });
     try {
-      const folders = await loadProjectFolders(projectId);
+      const folders = await loadProjectFolders();
       set({ error: null, folders, loading: false });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false, folders: [] });
     }
   },
   createFolder: async (name, parentFolderId) => {
-    const { selectedProjectId } = get();
-    if (!selectedProjectId) throw new Error('No project selected');
     set({ error: null, loading: true });
     try {
-      const response = await apiFetch(`/api/projects/${selectedProjectId}/folders`, {
+      const response = await apiFetch('/api/folders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, parentFolderId }),
@@ -291,11 +286,9 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     }
   },
   deleteFolder: async (folderId) => {
-    const { selectedProjectId } = get();
-    if (!selectedProjectId) throw new Error('No project selected');
     set({ error: null, loading: true });
     try {
-      const response = await apiFetch(`/api/projects/${selectedProjectId}/folders/${folderId}`, {
+      const response = await apiFetch(`/api/folders/${folderId}`, {
         method: 'DELETE',
       });
 

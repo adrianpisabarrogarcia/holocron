@@ -38,6 +38,7 @@ export class ProjectsService {
         status: true,
         startDate: true,
         endDate: true,
+        folderId: true,
         memberships: {
           where: {
             userId: authUser.id,
@@ -69,17 +70,19 @@ export class ProjectsService {
       completedTaskCount: project.tasks.filter((task) => task.status === 'DONE').length,
       startDate: project.startDate ? project.startDate.toISOString() : null,
       endDate: project.endDate ? project.endDate.toISOString() : null,
+      folderId: project.folderId,
     }));
   }
 
   async createProject(request: FastifyRequest, reply: FastifyReply): Promise<ProjectSummary | void> {
     const authUser = request.authUser as AuthenticatedUser;
-    const { name, description, status, startDate, endDate } = (request.body ?? {}) as {
+    const { name, description, status, startDate, endDate, folderId } = (request.body ?? {}) as {
       name?: string;
       description?: string;
       status?: string;
       startDate?: string | null;
       endDate?: string | null;
+      folderId?: string | null;
     };
 
     if (!name) {
@@ -93,6 +96,7 @@ export class ProjectsService {
         status: status ?? 'PLANNING',
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
+        folderId: folderId ?? null,
         ownerId: authUser.id,
         memberships: {
           create: {
@@ -108,6 +112,7 @@ export class ProjectsService {
         status: true,
         startDate: true,
         endDate: true,
+        folderId: true,
         memberships: {
           where: {
             userId: authUser.id,
@@ -140,6 +145,7 @@ export class ProjectsService {
       completedTaskCount: project.tasks.filter((task) => task.status === 'DONE').length,
       startDate: project.startDate ? project.startDate.toISOString() : null,
       endDate: project.endDate ? project.endDate.toISOString() : null,
+      folderId: project.folderId,
     };
   }
 
@@ -152,12 +158,13 @@ export class ProjectsService {
       return;
     }
 
-    const { name, description, status, startDate, endDate } = (request.body ?? {}) as {
+    const { name, description, status, startDate, endDate, folderId } = (request.body ?? {}) as {
       name?: string;
       description?: string;
       status?: string;
       startDate?: string | null;
       endDate?: string | null;
+      folderId?: string | null;
     };
 
     const dataToUpdate: any = {};
@@ -166,6 +173,7 @@ export class ProjectsService {
     if (status !== undefined) dataToUpdate.status = status;
     if (startDate !== undefined) dataToUpdate.startDate = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) dataToUpdate.endDate = endDate ? new Date(endDate) : null;
+    if (folderId !== undefined) dataToUpdate.folderId = folderId;
 
     const project = await prisma.project.update({
       where: { id: projectId },
@@ -177,6 +185,7 @@ export class ProjectsService {
         status: true,
         startDate: true,
         endDate: true,
+        folderId: true,
         memberships: {
           where: {
             userId: authUser.id,
@@ -208,6 +217,7 @@ export class ProjectsService {
       completedTaskCount: project.tasks.filter((task) => task.status === 'DONE').length,
       startDate: project.startDate ? project.startDate.toISOString() : null,
       endDate: project.endDate ? project.endDate.toISOString() : null,
+      folderId: project.folderId,
     };
   }
 
@@ -335,17 +345,11 @@ export class ProjectsService {
   }
 
   async listFolders(request: FastifyRequest, reply: FastifyReply): Promise<any[] | void> {
-    const { projectId } = request.params as { projectId: string };
-    const access = await requireProjectAccess(request, reply, projectId);
-    if (!access || reply.sent) return;
-
     const folders = await prisma.folder.findMany({
-      where: { projectId },
       orderBy: { createdAt: 'asc' },
       select: {
         id: true,
         name: true,
-        projectId: true,
         parentFolderId: true,
         createdAt: true,
       },
@@ -358,13 +362,9 @@ export class ProjectsService {
   }
 
   async createFolder(request: FastifyRequest, reply: FastifyReply): Promise<any | void> {
-    const { projectId } = request.params as { projectId: string };
     const authUser = request.authUser as AuthenticatedUser;
-    const access = await requireProjectAccess(request, reply, projectId);
-    if (!access || reply.sent) return;
-
-    if (authUser.platformRole !== 'ADMIN' && access.membershipRole !== 'MANAGER' && access.membershipRole !== 'CONTRIBUTOR') {
-      return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
+    if (authUser.platformRole !== 'ADMIN') {
+      return sendError(reply, 403, 'FORBIDDEN', 'Admin role is required to manage folders');
     }
 
     const { name, parentFolderId } = (request.body ?? {}) as {
@@ -379,13 +379,11 @@ export class ProjectsService {
     const folder = await prisma.folder.create({
       data: {
         name,
-        projectId,
         parentFolderId: parentFolderId ?? null,
       },
       select: {
         id: true,
         name: true,
-        projectId: true,
         parentFolderId: true,
         createdAt: true,
       },
@@ -399,14 +397,12 @@ export class ProjectsService {
   }
 
   async deleteFolder(request: FastifyRequest, reply: FastifyReply) {
-    const { projectId, folderId } = request.params as { projectId: string; folderId: string };
     const authUser = request.authUser as AuthenticatedUser;
-    const access = await requireProjectAccess(request, reply, projectId);
-    if (!access || reply.sent) return;
-
-    if (authUser.platformRole !== 'ADMIN' && access.membershipRole !== 'MANAGER' && access.membershipRole !== 'CONTRIBUTOR') {
-      return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
+    if (authUser.platformRole !== 'ADMIN') {
+      return sendError(reply, 403, 'FORBIDDEN', 'Admin role is required to manage folders');
     }
+
+    const { folderId } = request.params as { folderId: string };
 
     const folder = await prisma.folder.findUnique({
       where: { id: folderId },

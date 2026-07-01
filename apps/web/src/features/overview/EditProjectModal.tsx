@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Folder, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { fieldClassName } from '../../lib/constants';
+import { useBoardStore } from '../../store/useBoardStore';
 
 type EditProjectModalProps = {
   isOpen: boolean;
@@ -15,13 +16,15 @@ type EditProjectModalProps = {
   initialStatus: ProjectSummary['status'];
   initialStartDate?: string | null;
   initialEndDate?: string | null;
+  initialFolderId?: string | null;
   onSave: (
     id: string,
     name: string,
     description: string | undefined,
     status: ProjectSummary['status'],
     startDate?: string | null,
-    endDate?: string | null
+    endDate?: string | null,
+    folderId?: string | null
   ) => Promise<void>;
 };
 
@@ -34,13 +37,16 @@ export function EditProjectModal({
   initialStatus,
   initialStartDate,
   initialEndDate,
+  initialFolderId = null,
   onSave,
 }: EditProjectModalProps) {
+  const { folders } = useBoardStore();
   const [editName, setEditName] = useState(initialName);
   const [editDesc, setEditDesc] = useState(initialDesc);
   const [editStatus, setEditStatus] = useState<ProjectSummary['status']>(initialStatus);
   const [editStartDate, setEditStartDate] = useState(initialStartDate ? initialStartDate.substring(0, 10) : '');
   const [editEndDate, setEditEndDate] = useState(initialEndDate ? initialEndDate.substring(0, 10) : '');
+  const [editFolderId, setEditFolderId] = useState<string>(initialFolderId ?? '');
   const [editError, setEditError] = useState<string | null>(null);
   const [editPending, setEditPending] = useState(false);
 
@@ -52,7 +58,15 @@ export function EditProjectModal({
     setEditError(null);
     setEditPending(true);
     try {
-      await onSave(editId, editName, editDesc || undefined, editStatus, editStartDate || null, editEndDate || null);
+      await onSave(
+        editId,
+        editName,
+        editDesc || undefined,
+        editStatus,
+        editStartDate || null,
+        editEndDate || null,
+        editFolderId || null
+      );
       onClose();
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Error al guardar cambios');
@@ -61,12 +75,26 @@ export function EditProjectModal({
     }
   };
 
+  const getFlattenedFolders = () => {
+    const list: Array<{ id: string; name: string; depth: number }> = [];
+    const recurse = (parentId: string | null, depth: number) => {
+      folders
+        .filter((f) => f.parentFolderId === parentId)
+        .forEach((f) => {
+          list.push({ id: f.id, name: f.name, depth });
+          recurse(f.id, depth + 1);
+        });
+    };
+    recurse(null, 0);
+    return list;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-955/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 dark:hover:text-slate-200"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-655 dark:hover:text-slate-200"
         >
           <X className="h-5 w-5" />
         </button>
@@ -118,6 +146,21 @@ export function EditProjectModal({
                 />
               </label>
             </div>
+
+            <label className="block text-sm text-slate-650 dark:text-slate-355">
+              <span className="mb-1 block font-medium">Carpeta Organizadora (Opcional)</span>
+              <select className={fieldClassName} value={editFolderId} onChange={(e) => setEditFolderId(e.target.value)}>
+                <option value="">(Ninguna - Raíz)</option>
+                {getFlattenedFolders().map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {'\u00A0\u00A0'.repeat(f.depth)}
+                    {f.depth > 0 ? '↳ ' : ''}
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <label className="block text-sm text-slate-650 dark:text-slate-355">
               <span className="mb-1 block font-medium">Estado del proyecto</span>
               <select

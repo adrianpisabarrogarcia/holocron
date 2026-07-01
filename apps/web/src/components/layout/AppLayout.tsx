@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import type { ProjectSummary, AuthenticatedUser } from '@holocron/contracts';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/cn';
+import { useBoardStore } from '../../store/useBoardStore';
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -44,6 +45,44 @@ export function AppLayout({
   loading,
   loadBoard,
 }: AppLayoutProps) {
+  const { folders } = useBoardStore();
+
+  const getHierarchicalProjects = () => {
+    const list: Array<{
+      type: 'project' | 'folder';
+      id: string;
+      name: string;
+      depth: number;
+      disabled?: boolean;
+    }> = [];
+
+    const recurse = (parentId: string | null, depth: number) => {
+      folders
+        .filter((f) => f.parentFolderId === parentId)
+        .forEach((f) => {
+          list.push({ type: 'folder', id: f.id, name: f.name, depth, disabled: true });
+          recurse(f.id, depth + 1);
+        });
+
+      projects
+        .filter((p) => p.folderId === parentId)
+        .forEach((p) => {
+          list.push({ type: 'project', id: p.id, name: p.name, depth });
+        });
+    };
+
+    recurse(null, 0);
+
+    // Add orphaned projects at root
+    projects.forEach((p) => {
+      if (!list.some((item) => item.type === 'project' && item.id === p.id)) {
+        list.push({ type: 'project', id: p.id, name: p.name, depth: 0 });
+      }
+    });
+
+    return list;
+  };
+
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
       
@@ -200,15 +239,25 @@ export function AppLayout({
             
             {projects.length > 0 && (
               <div className="w-64 flex items-center gap-2">
-                <Folder className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <Folder className="h-4 w-4 text-indigo-650 dark:text-indigo-400 shrink-0" />
                 <select
-                  className="bg-transparent text-sm font-semibold text-slate-700 dark:text-slate-355 outline-none cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+                  className="bg-transparent text-sm font-semibold text-slate-700 dark:text-slate-355 outline-none cursor-pointer hover:text-indigo-655 dark:hover:text-indigo-400 transition"
                   value={boardSelectedProjectId ?? ''}
                   onChange={(e) => void handleProjectChange(e.target.value)}
                 >
-                  {projects.map((proj) => (
-                    <option key={proj.id} value={proj.id} className="dark:bg-slate-900">
-                      {proj.name}
+                  {getHierarchicalProjects().map((item) => (
+                    <option
+                      key={item.type + '-' + item.id}
+                      value={item.type === 'project' ? item.id : ''}
+                      disabled={item.disabled}
+                      className={cn(
+                        'dark:bg-slate-900',
+                        item.type === 'folder' ? 'text-slate-400 font-bold dark:text-slate-500' : 'text-slate-700 dark:text-slate-200'
+                      )}
+                    >
+                      {'\u00A0\u00A0'.repeat(item.depth)}
+                      {item.type === 'folder' ? '📁 ' : '📄 '}
+                      {item.name}
                     </option>
                   ))}
                 </select>

@@ -72,6 +72,7 @@ export function OverviewPage({
   const [editStatus, setEditStatus] = useState<ProjectSummary['status']>('PLANNING');
   const [editStartDate, setEditStartDate] = useState<string | null>(null);
   const [editEndDate, setEditEndDate] = useState<string | null>(null);
+  const [editFolderId, setEditFolderId] = useState<string | null>(null);
 
   const openEdit = (proj: ProjectSummary, e: React.MouseEvent) => {
     e.stopPropagation(); // prevent select project trigger
@@ -81,6 +82,7 @@ export function OverviewPage({
     setEditStatus(proj.status);
     setEditStartDate(proj.startDate || null);
     setEditEndDate(proj.endDate || null);
+    setEditFolderId(proj.folderId || null);
     setIsEditOpen(true);
   };
 
@@ -90,9 +92,10 @@ export function OverviewPage({
     description: string | undefined,
     status: ProjectSummary['status'],
     startDate?: string | null,
-    endDate?: string | null
+    endDate?: string | null,
+    folderId?: string | null
   ) => {
-    await updateProject(id, name, description, status, startDate, endDate);
+    await updateProject(id, name, description, status, startDate, endDate, folderId);
   };
 
   const handleDelete = async (projId: string, name: string, e: React.MouseEvent) => {
@@ -309,6 +312,7 @@ export function OverviewPage({
           initialStatus={editStatus}
           initialStartDate={editStartDate}
           initialEndDate={editEndDate}
+          initialFolderId={editFolderId}
           onSave={handleEditSave}
         />
       )}

@@ -7,12 +7,13 @@ import { cn } from '../../lib/cn';
 import { fieldClassName } from '../../lib/constants';
 
 export function CreateProjectCard() {
-  const { createProject } = useBoardStore();
+  const { createProject, folders } = useBoardStore();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('PLANNING');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [folderId, setFolderId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -22,17 +23,39 @@ export function CreateProjectCard() {
     setError(null);
     setPending(true);
     try {
-      await createProject(name, description || undefined, status, startDate || null, endDate || null);
+      await createProject(
+        name,
+        description || undefined,
+        status,
+        startDate || null,
+        endDate || null,
+        folderId || null
+      );
       setName('');
       setDescription('');
       setStatus('PLANNING');
       setStartDate('');
       setEndDate('');
+      setFolderId('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear proyecto');
     } finally {
       setPending(false);
     }
+  };
+
+  const getFlattenedFolders = () => {
+    const list: Array<{ id: string; name: string; depth: number }> = [];
+    const recurse = (parentId: string | null, depth: number) => {
+      folders
+        .filter((f) => f.parentFolderId === parentId)
+        .forEach((f) => {
+          list.push({ id: f.id, name: f.name, depth });
+          recurse(f.id, depth + 1);
+        });
+    };
+    recurse(null, 0);
+    return list;
   };
 
   return (
@@ -86,6 +109,21 @@ export function CreateProjectCard() {
               />
             </label>
           </div>
+          
+          <label className="block text-sm text-slate-650 dark:text-slate-355">
+            <span className="mb-1 block font-medium">Carpeta Organizadora (Opcional)</span>
+            <select className={fieldClassName} value={folderId} onChange={(e) => setFolderId(e.target.value)}>
+              <option value="">(Ninguna - Raíz)</option>
+              {getFlattenedFolders().map((f) => (
+                <option key={f.id} value={f.id}>
+                  {'\u00A0\u00A0'.repeat(f.depth)}
+                  {f.depth > 0 ? '↳ ' : ''}
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="block text-sm text-slate-650 dark:text-slate-355">
             <span className="mb-1 block font-medium">Estado inicial</span>
             <select className={fieldClassName} value={status} onChange={(e) => setStatus(e.target.value)}>

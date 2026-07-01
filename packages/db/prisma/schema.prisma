@@ -46,16 +46,18 @@ model Project {
   description String?
   status      String        @default("PLANNING")
   ownerId     String
+  folderId    String?
   startDate   DateTime?
   endDate     DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id])
+  folder      Folder?       @relation(fields: [folderId], references: [id], onDelete: SetNull)
   tasks       Task[]
   memberships ProjectMembership[]
-  folders     Folder[]
 
   @@index([ownerId])
+  @@index([folderId])
 }
 
 model ProjectMembership {
@@ -78,19 +80,16 @@ model Task {
   status        String             @default("TODO")
   priority      String             @default("MEDIUM")
   projectId     String
-  folderId      String?
   assigneeId    String?
   createdById   String
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   project       Project            @relation(fields: [projectId], references: [id])
-  folder        Folder?            @relation(fields: [folderId], references: [id], onDelete: SetNull)
   assignee      User?              @relation("TaskAssignee", fields: [assigneeId], references: [id])
   createdBy     User               @relation("TaskCreator", fields: [createdById], references: [id])
   stateHistory  TaskStateHistory[]
 
   @@index([projectId])
-  @@index([folderId])
   @@index([assigneeId])
   @@index([createdById])
 }
@@ -98,16 +97,13 @@ model Task {
 model Folder {
   id             String    @id @default(cuid())
   name           String
-  projectId      String
   parentFolderId String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parentFolder   Folder?   @relation("Subfolders", fields: [parentFolderId], references: [id], onDelete: Cascade)
   subfolders     Folder[]  @relation("Subfolders")
-  tasks          Task[]
+  projects       Project[]
 
-  @@index([projectId])
   @@index([parentFolderId])
 }
 

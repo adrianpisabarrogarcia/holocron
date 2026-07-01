@@ -24,7 +24,6 @@ export class TasksService {
         description: true,
         status: true,
         priority: true,
-        folderId: true,
       },
     });
 
@@ -32,7 +31,6 @@ export class TasksService {
       ...task,
       status: task.status as TaskSummary['status'],
       priority: task.priority as TaskSummary['priority'],
-      folderId: task.folderId,
     }));
   }
 
@@ -47,12 +45,11 @@ export class TasksService {
       return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
     }
 
-    const { title, description, status, priority, folderId } = (request.body ?? {}) as {
+    const { title, description, status, priority } = (request.body ?? {}) as {
       title?: string;
       description?: string;
       status?: string;
       priority?: string;
-      folderId?: string | null;
     };
 
     if (!title) {
@@ -66,7 +63,6 @@ export class TasksService {
         status: status ?? 'TODO',
         priority: priority ?? 'MEDIUM',
         projectId,
-        folderId: folderId ?? null,
         createdById: authUser.id,
       },
       select: {
@@ -75,7 +71,6 @@ export class TasksService {
         description: true,
         status: true,
         priority: true,
-        folderId: true,
       },
     });
 
@@ -95,7 +90,6 @@ export class TasksService {
       description: task.description,
       status: task.status as TaskSummary['status'],
       priority: task.priority as TaskSummary['priority'],
-      folderId: task.folderId,
     };
   }
 
@@ -110,12 +104,11 @@ export class TasksService {
       return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
     }
 
-    const { title, description, status, priority, folderId } = (request.body ?? {}) as {
+    const { title, description, status, priority } = (request.body ?? {}) as {
       title?: string;
       description?: string;
       status?: string;
       priority?: string;
-      folderId?: string | null;
     };
 
     const existingTask = await prisma.task.findUnique({
@@ -132,7 +125,6 @@ export class TasksService {
     if (description !== undefined) dataToUpdate.description = description;
     if (status !== undefined) dataToUpdate.status = status;
     if (priority !== undefined) dataToUpdate.priority = priority;
-    if (folderId !== undefined) dataToUpdate.folderId = folderId;
 
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
@@ -143,7 +135,6 @@ export class TasksService {
         description: true,
         status: true,
         priority: true,
-        folderId: true,
       },
     });
 
@@ -165,7 +156,6 @@ export class TasksService {
       description: updatedTask.description,
       status: updatedTask.status as TaskSummary['status'],
       priority: updatedTask.priority as TaskSummary['priority'],
-      folderId: updatedTask.folderId,
     };
   }
 
