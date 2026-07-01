@@ -130,16 +130,16 @@ export function AppLayout({
         {/* Sidebar Footer: Theme Toggle & Logout */}
         <div className="p-4 border-t border-slate-200/80 dark:border-slate-800/80 space-y-3">
           {/* Theme Toggle */}
-          <div className="flex items-center justify-between p-2 rounded-xl bg-slate-100/80 dark:bg-slate-955/50">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 px-1">Apariencia</span>
+          <div className="flex items-center justify-between p-1.5 rounded-xl bg-slate-100/80 dark:bg-slate-950 border border-slate-200/40 dark:border-slate-800/60">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 px-1.5">Apariencia</span>
             <div className="flex gap-1">
               <button
                 onClick={() => setTheme('light')}
                 className={cn(
                   'p-1.5 rounded-lg transition duration-200',
                   theme === 'light'
-                    ? 'bg-white text-indigo-600 shadow-sm dark:bg-transparent'
-                    : 'text-slate-400 hover:text-slate-650'
+                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
                 )}
                 title="Modo Claro"
               >
@@ -150,8 +150,8 @@ export function AppLayout({
                 className={cn(
                   'p-1.5 rounded-lg transition duration-200',
                   theme === 'dark'
-                    ? 'bg-slate-800 text-indigo-400 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-300'
+                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
                 )}
                 title="Modo Oscuro"
               >

@@ -19,7 +19,6 @@ import { AppLayout } from './components/layout/AppLayout';
 import { OverviewPage } from './features/overview/OverviewPage';
 import { BoardPage } from './features/board/BoardPage';
 import { AdminPage } from './features/admin/AdminPage';
-import { UsersPage } from './features/users/UsersPage';
 import { CreateProjectCard } from './features/overview/CreateProjectCard';
 
 type RouteState = {
