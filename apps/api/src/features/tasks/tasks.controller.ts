@@ -23,4 +23,8 @@ export class TasksController {
   uploadFile = async (request: FastifyRequest, reply: FastifyReply) => {
     return this.tasksService.uploadFile(request, reply);
   };
+
+  deleteUpload = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.tasksService.deleteUpload(request, reply);
+  };
 }

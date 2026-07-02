@@ -8,4 +8,5 @@ export function registerTasksRoutes(app: FastifyInstance, controller: TasksContr
   app.patch('/api/projects/:projectId/tasks/:taskId', { preHandler: authenticateRequest }, controller.updateTask);
   app.delete('/api/projects/:projectId/tasks/:taskId', { preHandler: authenticateRequest }, controller.deleteTask);
   app.post('/api/tasks/upload', { preHandler: authenticateRequest, bodyLimit: 7 * 1024 * 1024 }, controller.uploadFile);
+  app.delete('/api/tasks/upload/:filename', { preHandler: authenticateRequest }, controller.deleteUpload);
 }

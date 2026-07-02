@@ -1,7 +1,7 @@
 import type { AuthenticatedUser, TaskSummary } from '@holocron/contracts';
 import { prisma } from '@holocron/db';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import {
@@ -258,6 +258,27 @@ export class TasksService {
       };
     } catch (error) {
       return sendError(reply, 500, 'UPLOAD_ERROR', error instanceof Error ? error.message : 'Failed to write file');
+    }
+  }
+  async deleteUpload(request: FastifyRequest, reply: FastifyReply) {
+    const { filename } = request.params as { filename: string };
+
+    // Security: prevent path traversal
+    if (!filename || filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'Invalid filename');
+    }
+
+    const filePath = join(uploadsDir, filename);
+    if (!existsSync(filePath)) {
+      // Already gone — treat as success
+      return reply.status(204).send();
+    }
+
+    try {
+      unlinkSync(filePath);
+      return reply.status(204).send();
+    } catch (error) {
+      return sendError(reply, 500, 'DELETE_ERROR', error instanceof Error ? error.message : 'Failed to delete file');
     }
   }
 }

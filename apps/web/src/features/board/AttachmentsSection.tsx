@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Paperclip, Image, X, Loader2 } from 'lucide-react';
+import { Paperclip, X, Loader2 } from 'lucide-react';
 import { useBoardStore } from '../../store/useBoardStore';
 import { getApiUrl } from '../../lib/api';
 
@@ -17,7 +17,19 @@ type AttachmentsSectionProps = {
 const MAX_FILE_MB = 7;
 const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
 
-function compressImageToWebp(file: File): Promise<string> {
+function getFileEmoji(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+  if (['pdf'].includes(ext)) return '📄';
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return '🗜️';
+  if (['doc', 'docx'].includes(ext)) return '📝';
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return '📊';
+  if (['ppt', 'pptx'].includes(ext)) return '📽️';
+  if (['mp4', 'mov', 'avi', 'webm'].includes(ext)) return '🎬';
+  if (['mp3', 'wav', 'ogg'].includes(ext)) return '🎵';
+  return '📎';
+}
+
+export function compressImageToWebp(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -49,13 +61,12 @@ function compressImageToWebp(file: File): Promise<string> {
 }
 
 export function AttachmentsSection({ attachments, onChange }: AttachmentsSectionProps) {
-  const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { uploadFile } = useBoardStore();
+  const { uploadFile, deleteUpload } = useBoardStore();
 
-  const handleFileChange = (isImage: boolean) => async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -69,7 +80,7 @@ export function AttachmentsSection({ attachments, onChange }: AttachmentsSection
 
     setUploading(true);
     try {
-      // isImage comes from which input triggered the event
+      const isImage = file.type.startsWith('image/');
       let base64Data: string;
       let filename = file.name;
 
@@ -92,20 +103,30 @@ export function AttachmentsSection({ attachments, onChange }: AttachmentsSection
       setError(err instanceof Error ? err.message : 'Error al subir el archivo');
     } finally {
       setUploading(false);
-      if (imageInputRef.current) imageInputRef.current.value = '';
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const removeAttachment = (index: number) => {
+  const removeAttachment = async (index: number) => {
+    const att = attachments[index];
+    // Extract filename from URL: last segment after /uploads/
+    const parts = att.url.split('/uploads/');
+    const filename = parts[1] ?? '';
     onChange(attachments.filter((_, i) => i !== index));
+    if (filename) {
+      try {
+        await deleteUpload(filename);
+      } catch {
+        // Silently ignore — file may already be gone
+      }
+    }
   };
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-slate-650 dark:text-slate-355">Adjuntos</span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {uploading && (
             <span className="flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold animate-pulse">
               <Loader2 className="h-3 w-3 animate-spin" /> Subiendo...
@@ -113,23 +134,12 @@ export function AttachmentsSection({ attachments, onChange }: AttachmentsSection
           )}
           <button
             type="button"
-            title="Adjuntar imagen (WebP comprimida)"
-            disabled={uploading}
-            onClick={() => imageInputRef.current?.click()}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-650 dark:hover:text-indigo-400 transition disabled:opacity-50 bg-white dark:bg-slate-950"
-          >
-            <Image className="h-3.5 w-3.5" />
-            Imagen
-          </button>
-          <button
-            type="button"
-            title="Adjuntar archivo (PDF, ZIP, etc.)"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-650 dark:hover:text-indigo-400 transition disabled:opacity-50 bg-white dark:bg-slate-950"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-650 dark:hover:text-indigo-400 transition disabled:opacity-50 bg-white dark:bg-slate-950"
           >
             <Paperclip className="h-3.5 w-3.5" />
-            Archivo
+            Adjuntar
           </button>
         </div>
       </div>
@@ -152,7 +162,7 @@ export function AttachmentsSection({ attachments, onChange }: AttachmentsSection
                   className="h-8 w-8 rounded object-cover border border-slate-200 dark:border-slate-700 shrink-0"
                 />
               ) : (
-                <span className="text-base shrink-0">📎</span>
+                <span className="text-base shrink-0">{getFileEmoji(att.filename)}</span>
               )}
               <a
                 href={att.url}
@@ -176,11 +186,12 @@ export function AttachmentsSection({ attachments, onChange }: AttachmentsSection
       )}
 
       {attachments.length === 0 && !uploading && (
-        <p className="text-[11px] text-slate-400 dark:text-slate-600">Sin adjuntos. Máx. {MAX_FILE_MB} MB por archivo.</p>
+        <p className="text-[11px] text-slate-400 dark:text-slate-600">
+          Sin adjuntos. Cualquier tipo de archivo, máx. {MAX_FILE_MB} MB.
+        </p>
       )}
 
-      <input ref={imageInputRef} type="file" accept="image/*" onChange={handleFileChange(true)} className="hidden" />
-      <input ref={fileInputRef} type="file" onChange={handleFileChange(false)} className="hidden" />
+      <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" />
     </div>
   );
 }

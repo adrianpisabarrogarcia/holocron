@@ -25,6 +25,7 @@ type BoardStore = {
   moveTask: (taskId: string, newStatus: TaskSummary['status']) => Promise<void>;
   syncColumns: (projectId: string, columns: { id?: string; name: string; emoji?: string | null; position: number }[]) => Promise<void>;
   uploadFile: (filename: string, base64Data: string) => Promise<{ url: string; filename: string }>;
+  deleteUpload: (filename: string) => Promise<void>;
 };
 
 async function loadProjectMembers(projectId: string) {
@@ -354,5 +355,13 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw new Error(await parseJsonError(response));
     }
     return (await response.json()) as { url: string; filename: string };
+  },
+  deleteUpload: async (filename: string) => {
+    const response = await apiFetch(`/api/tasks/upload/${encodeURIComponent(filename)}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw new Error(await parseJsonError(response));
+    }
   },
 }));
