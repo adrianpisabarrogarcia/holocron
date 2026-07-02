@@ -116,119 +116,135 @@ export function TaskModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 dark:hover:text-slate-200"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 z-10"
         >
           <X className="h-5 w-5" />
         </button>
-        <CardHeader className="p-0 mb-4 flex flex-row items-center gap-3">
-          <ListTodo className="h-5 w-5 text-indigo-650" />
-          <div>
-            <CardTitle className="text-base">{task ? 'Modificar Tarea' : 'Nueva Tarea'}</CardTitle>
-            <CardDescription>{task ? 'Detalles y parámetros de la tarea' : 'Añadir tarea al tablero'}</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <label className="block text-sm text-slate-650 dark:text-slate-355">
-              <span className="mb-1 block font-medium">Título</span>
-              <input
-                className={fieldClassName}
-                type="text"
-                value={taskTitle}
-                onChange={(e) => setTaskTitle(e.target.value)}
-                placeholder="Ej: Maquetar dashboard"
-                required
-              />
-            </label>
 
-            <div className="block text-sm text-slate-650 dark:text-slate-355">
-              <span className="mb-1 block font-medium">Descripción</span>
-              <RichTextEditor
-                value={taskDesc}
-                onChange={(html) => setTaskDesc(html)}
-                placeholder="Describe los pasos, requerimientos o contexto de la tarea..."
-              />
+        {/* Header */}
+        <div className="px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+          <CardHeader className="p-0 flex flex-row items-center gap-3">
+            <ListTodo className="h-5 w-5 text-indigo-650" />
+            <div>
+              <CardTitle className="text-base">{task ? 'Modificar Tarea' : 'Nueva Tarea'}</CardTitle>
+              <CardDescription>{task ? 'Detalles y parámetros de la tarea' : 'Añadir tarea al tablero'}</CardDescription>
             </div>
+          </CardHeader>
+        </div>
+        {/* Scrollable body */}
+        <CardContent className="p-0 overflow-y-auto flex-1">
+          <form onSubmit={handleSubmit}>
+            <div className="grid grid-cols-[1fr_260px] divide-x divide-slate-100 dark:divide-slate-800">
 
-            {/* Attachments */}
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 p-3">
-              <AttachmentsSection
-                attachments={attachments}
-                onChange={setAttachments}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <label className="block text-sm text-slate-650 dark:text-slate-355">
-                <span className="mb-1 block font-medium">Prioridad</span>
-                <select
-                  className={fieldClassName}
-                  value={taskPriority}
-                  onChange={(e) => setTaskPriority(e.target.value as TaskSummary['priority'])}
-                >
-                  <option value="LOW">Baja</option>
-                  <option value="MEDIUM">Media</option>
-                  <option value="HIGH">Alta</option>
-                  <option value="URGENT">Urgente</option>
-                </select>
-              </label>
-              <label className="block text-sm text-slate-650 dark:text-slate-355">
-                <span className="mb-1 block font-medium">Estado</span>
-                <select
-                  className={fieldClassName}
-                  value={taskStatus}
-                  onChange={(e) => setTaskStatus(e.target.value)}
-                >
-                  {columns.map((colName) => (
-                    <option key={colName} value={colName}>
-                      {colName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            {/* Blocked checkbox and reason */}
-            <div className="bg-slate-50 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 space-y-3">
-              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isBlocked}
-                  onChange={(e) => setIsBlocked(e.target.checked)}
-                  className="rounded border-slate-300 dark:border-slate-700 text-indigo-650 focus:ring-indigo-600 h-4.5 w-4.5 transition duration-150"
-                />
-                <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-250">
-                  Esta tarea está bloqueada
-                </span>
-              </label>
-
-              {isBlocked && (
-                <label className="block text-sm text-slate-655 dark:text-slate-355">
-                  <span className="mb-1 block text-xs font-medium text-slate-400 dark:text-slate-500">Motivo del bloqueo</span>
+              {/* ── Left column: title + description + attachments ── */}
+              <div className="flex flex-col gap-4 p-6">
+                <label className="block text-sm text-slate-650 dark:text-slate-355">
+                  <span className="mb-1 block font-medium">Título</span>
                   <input
+                    className={fieldClassName}
                     type="text"
-                    className={`${fieldClassName} text-xs py-1.5`}
-                    value={blockedReason}
-                    onChange={(e) => setBlockedReason(e.target.value)}
-                    placeholder="Ej: Esperando respuesta del cliente"
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    placeholder="Ej: Maquetar dashboard"
                     required
                   />
                 </label>
-              )}
+
+                <div className="flex-1 flex flex-col gap-1">
+                  <span className="text-sm font-medium text-slate-650 dark:text-slate-355">Descripción</span>
+                  <div className="flex-1">
+                    <RichTextEditor
+                      value={taskDesc}
+                      onChange={(html) => setTaskDesc(html)}
+                      placeholder="Describe los pasos, requerimientos o contexto de la tarea..."
+                    />
+                  </div>
+                </div>
+
+                {/* Attachments */}
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 p-3">
+                  <AttachmentsSection
+                    attachments={attachments}
+                    onChange={setAttachments}
+                  />
+                </div>
+              </div>
+
+              {/* ── Right column: metadata ── */}
+              <div className="flex flex-col gap-4 p-6">
+                <label className="block text-sm text-slate-650 dark:text-slate-355">
+                  <span className="mb-1 block font-medium">Prioridad</span>
+                  <select
+                    className={fieldClassName}
+                    value={taskPriority}
+                    onChange={(e) => setTaskPriority(e.target.value as TaskSummary['priority'])}
+                  >
+                    <option value="LOW">Baja</option>
+                    <option value="MEDIUM">Media</option>
+                    <option value="HIGH">Alta</option>
+                    <option value="URGENT">Urgente</option>
+                  </select>
+                </label>
+
+                <label className="block text-sm text-slate-650 dark:text-slate-355">
+                  <span className="mb-1 block font-medium">Estado</span>
+                  <select
+                    className={fieldClassName}
+                    value={taskStatus}
+                    onChange={(e) => setTaskStatus(e.target.value)}
+                  >
+                    {columns.map((colName) => (
+                      <option key={colName} value={colName}>
+                        {colName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {/* Blocked checkbox and reason */}
+                <div className="bg-slate-50 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 space-y-3">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isBlocked}
+                      onChange={(e) => setIsBlocked(e.target.checked)}
+                      className="rounded border-slate-300 dark:border-slate-700 text-indigo-650 focus:ring-indigo-600 h-4.5 w-4.5 transition duration-150"
+                    />
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-250">
+                      Tarea bloqueada
+                    </span>
+                  </label>
+
+                  {isBlocked && (
+                    <label className="block text-sm text-slate-655 dark:text-slate-355">
+                      <span className="mb-1 block text-xs font-medium text-slate-400 dark:text-slate-500">Motivo</span>
+                      <input
+                        type="text"
+                        className={`${fieldClassName} text-xs py-1.5`}
+                        value={blockedReason}
+                        onChange={(e) => setBlockedReason(e.target.value)}
+                        placeholder="Ej: Esperando respuesta del cliente"
+                        required
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {error && <div className="text-xs text-rose-500">{error}</div>}
-            <div className="flex gap-2 justify-between pt-2">
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 justify-between shrink-0 bg-white dark:bg-slate-900 rounded-b-2xl">
               {task && onDelete ? (
                 <Button type="button" variant="danger" className="text-white" onClick={handleDelete} disabled={pending}>
                   <Trash2 className="h-4 w-4" />
                   <span>Eliminar</span>
                 </Button>
               ) : <div />}
-              <div className="flex gap-2">
+              <div className="flex items-center gap-3">
+                {error && <span className="text-xs text-rose-500 font-medium">{error}</span>}
                 <Button type="button" variant="outline" onClick={onClose}>
                   Cancelar
                 </Button>
