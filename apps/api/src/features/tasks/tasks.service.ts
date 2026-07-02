@@ -1,9 +1,13 @@
 import type { AuthenticatedUser, TaskSummary } from '@holocron/contracts';
 import { prisma } from '@holocron/db';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { writeFileSync } from 'node:fs';
+import { join, extname } from 'node:path';
+import { randomBytes } from 'node:crypto';
 import {
   requireProjectAccess,
   sendError,
+  uploadsDir,
 } from '../../shared';
 
 export class TasksService {
@@ -209,5 +213,51 @@ export class TasksService {
     ]);
 
     return { success: true };
+  }
+
+  async uploadFile(request: FastifyRequest, reply: FastifyReply) {
+    const { filename, base64Data } = (request.body ?? {}) as {
+      filename?: string;
+      base64Data?: string;
+    };
+
+    if (!base64Data) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'base64Data is required');
+    }
+
+    try {
+      const match = base64Data.match(/^data:([^;]+);base64,(.+)$/);
+      let buffer: Buffer;
+      let fileExt = '.bin';
+
+      if (match) {
+        const mimeType = match[1];
+        const data = match[2];
+        buffer = Buffer.from(data, 'base64');
+        if (mimeType.includes('webp')) fileExt = '.webp';
+        else if (mimeType.includes('png')) fileExt = '.png';
+        else if (mimeType.includes('jpeg')) fileExt = '.jpg';
+        else if (mimeType.includes('pdf')) fileExt = '.pdf';
+        else if (mimeType.includes('svg')) fileExt = '.svg';
+      } else {
+        buffer = Buffer.from(base64Data, 'base64');
+      }
+
+      if (filename) {
+        const originalExt = extname(filename);
+        if (originalExt) fileExt = originalExt;
+      }
+
+      const randomName = `${randomBytes(16).toString('hex')}${fileExt}`;
+      const filePath = join(uploadsDir, randomName);
+      writeFileSync(filePath, buffer);
+
+      return {
+        url: `/uploads/${randomName}`,
+        filename: filename || randomName,
+      };
+    } catch (error) {
+      return sendError(reply, 500, 'UPLOAD_ERROR', error instanceof Error ? error.message : 'Failed to write file');
+    }
   }
 }

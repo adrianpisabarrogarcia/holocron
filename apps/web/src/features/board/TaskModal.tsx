@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button';
 import { ListTodo, Trash2, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { fieldClassName } from '../../lib/constants';
+import { RichTextEditor } from './RichTextEditor';
 
 type TaskModalProps = {
   isOpen: boolean;
@@ -108,15 +109,14 @@ export function TaskModal({
                 required
               />
             </label>
-            <label className="block text-sm text-slate-650 dark:text-slate-355">
+            <div className="block text-sm text-slate-650 dark:text-slate-355">
               <span className="mb-1 block font-medium">Descripción</span>
-              <textarea
-                className={cn(fieldClassName, 'resize-none h-24')}
+              <RichTextEditor
                 value={taskDesc}
-                onChange={(e) => setTaskDesc(e.target.value)}
-                placeholder="Describe los pasos o requerimientos..."
+                onChange={(html) => setTaskDesc(html)}
+                placeholder="Describe los pasos, requerimientos, o adjunta imágenes y archivos..."
               />
-            </label>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <label className="block text-sm text-slate-650 dark:text-slate-355">
                 <span className="mb-1 block font-medium">Prioridad</span>

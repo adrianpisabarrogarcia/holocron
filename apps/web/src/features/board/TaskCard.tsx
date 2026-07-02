@@ -9,7 +9,19 @@ type TaskCardProps = {
   onClick: () => void;
 };
 
+function stripHtml(html: string | null | undefined): string {
+  if (!html) return '';
+  try {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || '';
+  } catch (e) {
+    return html.replace(/<[^>]*>/g, '');
+  }
+}
+
 export function TaskCard({ task, canWrite, onDragStart, onClick }: TaskCardProps) {
+  const plainDescription = stripHtml(task.description);
+
   return (
     <article
       draggable={canWrite}
@@ -32,7 +44,7 @@ export function TaskCard({ task, canWrite, onDragStart, onClick }: TaskCardProps
         </span>
       </div>
       <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-3">
-        {task.description || 'Sin descripción añadida.'}
+        {plainDescription || 'Sin descripción añadida.'}
       </p>
 
       {task.isBlocked && (

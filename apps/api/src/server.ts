@@ -1,5 +1,6 @@
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -39,6 +40,11 @@ await app.register(cors, {
 });
 
 await app.register(cookie);
+
+await app.register(fastifyStatic, {
+  root: resolve(process.cwd(), uploadsDir),
+  prefix: '/uploads/',
+});
 
 app.setErrorHandler((error, _request, reply) => {
   app.log.error(error);
