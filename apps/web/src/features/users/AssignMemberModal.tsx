@@ -1,5 +1,5 @@
 import { FormEvent } from 'react';
-import type { ProjectMembershipRole } from '@holocron/contracts';
+import type { ProjectMembershipRole, ProjectSummary, FolderSummary } from '@holocron/contracts';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Users, X } from 'lucide-react';
@@ -10,8 +10,8 @@ type AssignMemberModalProps = {
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   users: Array<{ email: string; id: string; name: string }>;
-  projects: Array<{ id: string; name: string }>;
-  folders: Array<{ id: string; name: string }>;
+  projects: ProjectSummary[];
+  folders: FolderSummary[];
   selectedUserId: string;
   onSelectedUserIdChange: (val: string) => void;
   membershipProjectId: string;
@@ -49,6 +49,43 @@ export function AssignMemberModal({
   usersPending,
 }: AssignMemberModalProps) {
   if (!isOpen) return null;
+
+  const getHierarchicalTargets = () => {
+    const list: Array<{
+      type: 'project' | 'folder';
+      id: string;
+      name: string;
+      depth: number;
+    }> = [];
+
+    const recurse = (parentId: string | null, depth: number) => {
+      // Add child folders
+      folders
+        .filter((f) => f.parentFolderId === parentId)
+        .forEach((f) => {
+          list.push({ type: 'folder', id: f.id, name: f.name, depth });
+          recurse(f.id, depth + 1);
+        });
+
+      // Add child projects
+      projects
+        .filter((p) => p.folderId === parentId)
+        .forEach((p) => {
+          list.push({ type: 'project', id: p.id, name: p.name, depth });
+        });
+    };
+
+    recurse(null, 0);
+
+    // Add orphaned projects
+    projects.forEach((p) => {
+      if (!list.some((item) => item.type === 'project' && item.id === p.id)) {
+        list.push({ type: 'project', id: p.id, name: p.name, depth: 0 });
+      }
+    });
+
+    return list;
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-sm p-4">
@@ -96,24 +133,15 @@ export function AssignMemberModal({
                 value={membershipProjectId}
               >
                 <option value="">Selecciona un proyecto o una carpeta</option>
-                {projects.length > 0 && (
-                  <optgroup label="Proyectos">
-                    {projects.map((project) => (
-                      <option key={project.id} value={`project:${project.id}`}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                {folders.length > 0 && (
-                  <optgroup label="Carpetas">
-                    {folders.map((folder) => (
-                      <option key={folder.id} value={`folder:${folder.id}`}>
-                        📁 {folder.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
+                {getHierarchicalTargets().map((item) => {
+                  const indent = '\u00A0\u00A0\u00A0\u00A0'.repeat(item.depth);
+                  const prefix = item.type === 'folder' ? '📁 ' : '📄 ';
+                  return (
+                    <option key={`${item.type}:${item.id}`} value={`${item.type}:${item.id}`}>
+                      {indent}{prefix}{item.name}
+                    </option>
+                  );
+                })}
               </select>
             </label>
             <label className="block text-sm text-slate-655 dark:text-slate-355">

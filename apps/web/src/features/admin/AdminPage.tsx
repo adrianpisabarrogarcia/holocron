@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import type { PlatformRole, ProjectMembershipRole } from '@holocron/contracts';
+import type { PlatformRole, ProjectMembershipRole, ProjectSummary, FolderSummary } from '@holocron/contracts';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/cn';
@@ -28,8 +28,8 @@ export type AdminPageProps = {
   onSelectedMembershipRoleChange: (value: ProjectMembershipRole) => void;
   onSelectedScrumRoleChange: (value: string) => void;
   onSelectedUserIdChange: (value: string) => void;
-  projects: Array<{ id: string; name: string }>;
-  folders: Array<{ id: string; name: string }>;
+  projects: ProjectSummary[];
+  folders: FolderSummary[];
   selectedMembershipRole: ProjectMembershipRole;
   selectedScrumRole: string;
   selectedUserId: string;
