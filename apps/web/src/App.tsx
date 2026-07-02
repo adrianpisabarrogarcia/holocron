@@ -57,9 +57,10 @@ export function App() {
   }, [theme]);
 
   const { bootstrap, error: authError, login, logout, status, user } = useAuthStore();
-  const { error, loadBoard, loading, projects, selectProject, selectedProjectId: boardSelectedProjectId, tasks } = useBoardStore();
+  const { error, loadBoard, loading, projects, selectProject, selectedProjectId: boardSelectedProjectId, tasks, folders } = useBoardStore();
   const {
     assignProjectMembership,
+    assignFolderMembership,
     createUser,
     createUserPending,
     loadUsers,
@@ -139,15 +140,26 @@ export function App() {
     event.preventDefault();
     setAdminNotice(null);
 
-    try {
-      const member = await assignProjectMembership({
-        projectId: membershipProjectId,
-        role: selectedMembershipRole,
-        userId: selectedUserId,
-        scrumRole: selectedScrumRole || null,
-      });
+    const [type, targetId] = membershipProjectId.split(':');
+    const realTargetId = targetId || membershipProjectId;
 
-      setAdminNotice(`Asignado ${member.email} al proyecto como ${member.role}${member.scrumRole ? ` (${member.scrumRole})` : ''}.`);
+    try {
+      if (type === 'folder') {
+        const member = await assignFolderMembership({
+          folderId: realTargetId,
+          role: selectedMembershipRole,
+          userId: selectedUserId,
+        });
+        setAdminNotice(`Asignado ${member.email} a la carpeta de proyectos como ${member.role}.`);
+      } else {
+        const member = await assignProjectMembership({
+          projectId: realTargetId,
+          role: selectedMembershipRole,
+          userId: selectedUserId,
+          scrumRole: selectedScrumRole || null,
+        });
+        setAdminNotice(`Asignado ${member.email} al proyecto como ${member.role}${member.scrumRole ? ` (${member.scrumRole})` : ''}.`);
+      }
     } catch {
       throw new Error('Error al asignar miembro');
     }
@@ -310,6 +322,7 @@ export function App() {
                 onSelectedScrumRoleChange={setSelectedScrumRole}
                 onSelectedUserIdChange={setSelectedUserId}
                 projects={projects}
+                folders={folders}
                 selectedMembershipRole={selectedMembershipRole}
                 selectedScrumRole={selectedScrumRole}
                 selectedUserId={selectedUserId}

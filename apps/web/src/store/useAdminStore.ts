@@ -1,4 +1,4 @@
-import type { AuthenticatedUser, ProjectMemberSummary, ProjectMembershipRole, PlatformRole } from '@holocron/contracts';
+import type { AuthenticatedUser, ProjectMemberSummary, ProjectMembershipRole, PlatformRole, FolderMemberSummary } from '@holocron/contracts';
 import { create } from 'zustand';
 import { apiFetch, parseJsonError } from '../lib/api';
 
@@ -16,8 +16,15 @@ type AssignProjectMembershipInput = {
   scrumRole?: string | null;
 };
 
+type AssignFolderMembershipInput = {
+  folderId: string;
+  role: ProjectMembershipRole;
+  userId: string;
+};
+
 type AdminStore = {
   assignProjectMembership: (input: AssignProjectMembershipInput) => Promise<ProjectMemberSummary>;
+  assignFolderMembership: (input: AssignFolderMembershipInput) => Promise<FolderMemberSummary>;
   createUser: (input: CreateUserInput) => Promise<AuthenticatedUser>;
   createUserPending: boolean;
   loadUsers: () => Promise<void>;
@@ -46,6 +53,31 @@ export const useAdminStore = create<AdminStore>((set) => ({
       }
 
       return (await response.json()) as ProjectMemberSummary;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown API error';
+      set({ usersError: message });
+      throw error;
+    } finally {
+      set({ usersPending: false });
+    }
+  },
+  assignFolderMembership: async ({ folderId, role, userId }) => {
+    set({ usersError: null, usersPending: true });
+
+    try {
+      const response = await apiFetch(`/api/folders/${folderId}/members`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role, userId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseJsonError(response));
+      }
+
+      return (await response.json()) as FolderMemberSummary;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown API error';
       set({ usersError: message });

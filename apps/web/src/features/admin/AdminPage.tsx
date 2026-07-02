@@ -29,6 +29,7 @@ export type AdminPageProps = {
   onSelectedScrumRoleChange: (value: string) => void;
   onSelectedUserIdChange: (value: string) => void;
   projects: Array<{ id: string; name: string }>;
+  folders: Array<{ id: string; name: string }>;
   selectedMembershipRole: ProjectMembershipRole;
   selectedScrumRole: string;
   selectedUserId: string;
@@ -58,6 +59,7 @@ export function AdminPage({
   onSelectedScrumRoleChange,
   onSelectedUserIdChange,
   projects,
+  folders,
   selectedMembershipRole,
   selectedScrumRole,
   selectedUserId,
@@ -297,6 +299,7 @@ export function AdminPage({
         onSubmit={onAssignMemberSubmit}
         users={users}
         projects={projects}
+        folders={folders}
         selectedUserId={selectedUserId}
         onSelectedUserIdChange={onSelectedUserIdChange}
         membershipProjectId={membershipProjectId}

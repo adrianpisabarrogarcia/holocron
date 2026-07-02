@@ -11,6 +11,7 @@ type AssignMemberModalProps = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   users: Array<{ email: string; id: string; name: string }>;
   projects: Array<{ id: string; name: string }>;
+  folders: Array<{ id: string; name: string }>;
   selectedUserId: string;
   onSelectedUserIdChange: (val: string) => void;
   membershipProjectId: string;
@@ -36,6 +37,7 @@ export function AssignMemberModal({
   onSubmit,
   users,
   projects,
+  folders,
   selectedUserId,
   onSelectedUserIdChange,
   membershipProjectId,
@@ -85,20 +87,33 @@ export function AssignMemberModal({
               </select>
             </label>
             <label className="block text-sm text-slate-655 dark:text-slate-355">
-              <span className="mb-1 block font-medium">Proyecto</span>
+              <span className="mb-1 block font-medium">Asignar a (Proyecto o Carpeta)</span>
               <select
                 className={fieldClassName}
-                disabled={!projects.length || usersPending}
+                disabled={(!projects.length && !folders.length) || usersPending}
                 onChange={(event) => onMembershipProjectIdChange(event.target.value)}
                 required
                 value={membershipProjectId}
               >
-                <option value="">Selecciona un proyecto</option>
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
+                <option value="">Selecciona un proyecto o una carpeta</option>
+                {projects.length > 0 && (
+                  <optgroup label="Proyectos">
+                    {projects.map((project) => (
+                      <option key={project.id} value={`project:${project.id}`}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {folders.length > 0 && (
+                  <optgroup label="Carpetas">
+                    {folders.map((folder) => (
+                      <option key={folder.id} value={`folder:${folder.id}`}>
+                        📁 {folder.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </label>
             <label className="block text-sm text-slate-655 dark:text-slate-355">
