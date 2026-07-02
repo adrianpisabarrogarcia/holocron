@@ -49,12 +49,13 @@ function compressImageToWebp(file: File): Promise<string> {
 }
 
 export function AttachmentsSection({ attachments, onChange }: AttachmentsSectionProps) {
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { uploadFile } = useBoardStore();
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (isImage: boolean) => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -68,7 +69,7 @@ export function AttachmentsSection({ attachments, onChange }: AttachmentsSection
 
     setUploading(true);
     try {
-      const isImage = file.type.startsWith('image/');
+      // isImage comes from which input triggered the event
       let base64Data: string;
       let filename = file.name;
 
@@ -91,6 +92,7 @@ export function AttachmentsSection({ attachments, onChange }: AttachmentsSection
       setError(err instanceof Error ? err.message : 'Error al subir el archivo');
     } finally {
       setUploading(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -113,12 +115,7 @@ export function AttachmentsSection({ attachments, onChange }: AttachmentsSection
             type="button"
             title="Adjuntar imagen (WebP comprimida)"
             disabled={uploading}
-            onClick={() => {
-              if (fileInputRef.current) {
-                fileInputRef.current.accept = 'image/*';
-                fileInputRef.current.click();
-              }
-            }}
+            onClick={() => imageInputRef.current?.click()}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-650 dark:hover:text-indigo-400 transition disabled:opacity-50 bg-white dark:bg-slate-950"
           >
             <Image className="h-3.5 w-3.5" />
@@ -128,12 +125,7 @@ export function AttachmentsSection({ attachments, onChange }: AttachmentsSection
             type="button"
             title="Adjuntar archivo (PDF, ZIP, etc.)"
             disabled={uploading}
-            onClick={() => {
-              if (fileInputRef.current) {
-                fileInputRef.current.accept = '';
-                fileInputRef.current.click();
-              }
-            }}
+            onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-650 dark:hover:text-indigo-400 transition disabled:opacity-50 bg-white dark:bg-slate-950"
           >
             <Paperclip className="h-3.5 w-3.5" />
@@ -187,7 +179,8 @@ export function AttachmentsSection({ attachments, onChange }: AttachmentsSection
         <p className="text-[11px] text-slate-400 dark:text-slate-600">Sin adjuntos. Máx. {MAX_FILE_MB} MB por archivo.</p>
       )}
 
-      <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" />
+      <input ref={imageInputRef} type="file" accept="image/*" onChange={handleFileChange(true)} className="hidden" />
+      <input ref={fileInputRef} type="file" onChange={handleFileChange(false)} className="hidden" />
     </div>
   );
 }
