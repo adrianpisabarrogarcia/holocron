@@ -187,6 +187,8 @@ Nota de avance:
 1. Se implemento persistencia de membresias por proyecto con roles `MANAGER`, `CONTRIBUTOR` y `VIEWER`.
 2. `GET /api/projects` y `GET /api/projects/:projectId/tasks` ya respetan membresias para usuarios `Member`, mientras `Admin` mantiene visibilidad global.
 3. Se agregaron endpoints minimos para listar y asignar miembros por proyecto, dejando la UI administrativa grande para una iteracion posterior.
+4. Se implementaron los roles Scrum/Equipo (`DEVELOPER`, `PRODUCT_OWNER`, `SCRUM_MASTER`) en la membresía del proyecto (`ProjectMembership`), con soporte en base de datos, tipos de contratos, endpoints API de asignación y visualización interactiva de avatares con tooltip en el Tablero de Tareas (`BoardPage`).
+5. Se modificó el nombre del header lateral a "Holocron Workspace" para reflejar adecuadamente el nombre oficial del espacio de trabajo.
 
 #### Sprint 3 - Dominio de tareas
 
