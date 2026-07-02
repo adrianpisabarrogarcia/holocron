@@ -1,38 +1,26 @@
 import { FormEvent, useState } from 'react';
-import type { PlatformRole, ProjectMembershipRole, ProjectSummary, FolderSummary } from '@holocron/contracts';
+import type { PlatformRole } from '@holocron/contracts';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/cn';
 import { fieldClassName } from '../../lib/constants';
 import { CreateUserModal } from '../users/CreateUserModal';
-import { AssignMemberModal } from '../users/AssignMemberModal';
 import { ProjectsAdminPage } from './ProjectsAdminPage';
-import { RefreshCw, UserPlus, Users, Download } from 'lucide-react';
+import { RefreshCw, UserPlus, Download } from 'lucide-react';
 
 export type AdminPageProps = {
   adminNotice: string | null;
   createUserPending: boolean;
-  handleAssignMembership: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleCreateUser: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  membershipProjectId: string;
   newUserEmail: string;
   newUserName: string;
   newUserPassword: string;
   newUserRole: PlatformRole;
-  onMembershipProjectIdChange: (value: string) => void;
   onNewUserEmailChange: (value: string) => void;
   onNewUserNameChange: (value: string) => void;
   onNewUserPasswordChange: (value: string) => void;
   onNewUserRoleChange: (value: PlatformRole) => void;
   onRefreshUsers: () => void;
-  onSelectedMembershipRoleChange: (value: ProjectMembershipRole) => void;
-  onSelectedScrumRoleChange: (value: string) => void;
-  onSelectedUserIdChange: (value: string) => void;
-  projects: ProjectSummary[];
-  folders: FolderSummary[];
-  selectedMembershipRole: ProjectMembershipRole;
-  selectedScrumRole: string;
-  selectedUserId: string;
   users: Array<{ email: string; id: string; name: string; platformRole: PlatformRole; assignedProjects?: string[]; assignedFolders?: string[] }>;
   usersError: string | null;
   usersLoading: boolean;
@@ -42,27 +30,16 @@ export type AdminPageProps = {
 export function AdminPage({
   adminNotice,
   createUserPending,
-  handleAssignMembership,
   handleCreateUser,
-  membershipProjectId,
   newUserEmail,
   newUserName,
   newUserPassword,
   newUserRole,
-  onMembershipProjectIdChange,
   onNewUserEmailChange,
   onNewUserNameChange,
   onNewUserPasswordChange,
   onNewUserRoleChange,
   onRefreshUsers,
-  onSelectedMembershipRoleChange,
-  onSelectedScrumRoleChange,
-  onSelectedUserIdChange,
-  projects,
-  folders,
-  selectedMembershipRole,
-  selectedScrumRole,
-  selectedUserId,
   users,
   usersError,
   usersLoading,
@@ -70,7 +47,6 @@ export function AdminPage({
 }: AdminPageProps) {
   // Modal toggle states
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   
   // Client-side search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,16 +57,6 @@ export function AdminPage({
     try {
       await handleCreateUser(e);
       setIsUserModalOpen(false);
-    } catch {
-      // Keep modal open if error
-    }
-  };
-
-  const onAssignMemberSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    try {
-      await handleAssignMembership(e);
-      setIsAssignModalOpen(false);
     } catch {
       // Keep modal open if error
     }
@@ -171,10 +137,6 @@ export function AdminPage({
           <Button size="sm" variant="primary" className="text-white" onClick={() => setIsUserModalOpen(true)}>
             <UserPlus className="h-4 w-4" />
             <span>Nuevo Usuario</span>
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => setIsAssignModalOpen(true)}>
-            <Users className="h-4 w-4" />
-            <span>Asignar Miembro</span>
           </Button>
         </div>
       </div>
@@ -298,25 +260,6 @@ export function AdminPage({
         newUserRole={newUserRole}
         onNewUserRoleChange={onNewUserRoleChange}
         createUserPending={createUserPending}
-      />
-
-      {/* ASSIGN PROJECT MEMBERSHIP MODAL */}
-      <AssignMemberModal
-        isOpen={isAssignModalOpen}
-        onClose={() => setIsAssignModalOpen(false)}
-        onSubmit={onAssignMemberSubmit}
-        users={users}
-        projects={projects}
-        folders={folders}
-        selectedUserId={selectedUserId}
-        onSelectedUserIdChange={onSelectedUserIdChange}
-        membershipProjectId={membershipProjectId}
-        onMembershipProjectIdChange={onMembershipProjectIdChange}
-        selectedMembershipRole={selectedMembershipRole}
-        onSelectedMembershipRoleChange={onSelectedMembershipRoleChange}
-        selectedScrumRole={selectedScrumRole}
-        onSelectedScrumRoleChange={onSelectedScrumRoleChange}
-        usersPending={usersPending}
       />
     </section>
   );

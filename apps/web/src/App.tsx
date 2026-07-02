@@ -307,26 +307,15 @@ export function App() {
               <AdminPage
                 adminNotice={adminNotice}
                 createUserPending={createUserPending}
-                handleAssignMembership={handleAssignMembership}
                 handleCreateUser={handleCreateUser}
-                membershipProjectId={membershipProjectId}
                 newUserEmail={newUserEmail}
                 newUserName={newUserName}
                 newUserPassword={newUserPassword}
                 newUserRole={newUserRole}
-                onMembershipProjectIdChange={setMembershipProjectId}
                 onNewUserEmailChange={setNewUserEmail}
                 onNewUserNameChange={setNewUserName}
                 onNewUserPasswordChange={setNewUserPassword}
                 onNewUserRoleChange={setNewUserRole}
-                onSelectedMembershipRoleChange={setSelectedMembershipRole}
-                onSelectedScrumRoleChange={setSelectedScrumRole}
-                onSelectedUserIdChange={setSelectedUserId}
-                projects={projects}
-                folders={folders}
-                selectedMembershipRole={selectedMembershipRole}
-                selectedScrumRole={selectedScrumRole}
-                selectedUserId={selectedUserId}
                 users={users}
                 usersError={usersError}
                 usersLoading={usersLoading}
