@@ -1,11 +1,38 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, useMemo } from 'react';
 import type { TaskSummary } from '@holocron/contracts';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { ListTodo, Trash2, X } from 'lucide-react';
-import { cn } from '../../lib/cn';
 import { fieldClassName } from '../../lib/constants';
 import { RichTextEditor } from './RichTextEditor';
+import { AttachmentsSection, type Attachment } from './AttachmentsSection';
+
+// --- Attachment serialization helpers ---
+const ATT_MARKER = 'data-holocron-attachments';
+
+function serializeAttachments(atts: Attachment[]): string {
+  if (atts.length === 0) return '';
+  const json = JSON.stringify(atts);
+  return `<div ${ATT_MARKER}="${encodeURIComponent(json)}" style="display:none"></div>`;
+}
+
+function parseAttachments(html: string): { cleanHtml: string; attachments: Attachment[] } {
+  const markerStart = `<div ${ATT_MARKER}="`;
+  const idx = html.indexOf(markerStart);
+  if (idx === -1) return { cleanHtml: html, attachments: [] };
+  try {
+    const valueStart = idx + markerStart.length;
+    const valueEnd = html.indexOf('"', valueStart);
+    const encoded = html.substring(valueStart, valueEnd);
+    const attachments: Attachment[] = JSON.parse(decodeURIComponent(encoded));
+    const cleanHtml = html.substring(0, idx).trim();
+    return { cleanHtml, attachments };
+  } catch {
+    return { cleanHtml: html, attachments: [] };
+  }
+}
+
+// ----------------------------------------
 
 type TaskModalProps = {
   isOpen: boolean;
@@ -33,8 +60,14 @@ export function TaskModal({
   onDelete,
   columns,
 }: TaskModalProps) {
+  const { cleanHtml: initialHtml, attachments: initialAtts } = useMemo(
+    () => parseAttachments(task?.description ?? ''),
+    [task?.description]
+  );
+
   const [taskTitle, setTaskTitle] = useState(task?.title ?? '');
-  const [taskDesc, setTaskDesc] = useState(task?.description ?? '');
+  const [taskDesc, setTaskDesc] = useState(initialHtml);
+  const [attachments, setAttachments] = useState<Attachment[]>(initialAtts);
   const [taskPriority, setTaskPriority] = useState<TaskSummary['priority']>(task?.priority ?? 'MEDIUM');
   const [taskStatus, setTaskStatus] = useState<TaskSummary['status']>(task?.status ?? initialStatus);
   const [isBlocked, setIsBlocked] = useState(task?.isBlocked ?? false);
@@ -51,9 +84,10 @@ export function TaskModal({
     setError(null);
     setPending(true);
     try {
+      const fullDesc = taskDesc + serializeAttachments(attachments);
       await onSave(
         taskTitle,
-        taskDesc || undefined,
+        fullDesc || undefined,
         taskStatus,
         taskPriority,
         isBlocked,
@@ -82,7 +116,7 @@ export function TaskModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 dark:hover:text-slate-200"
@@ -109,14 +143,24 @@ export function TaskModal({
                 required
               />
             </label>
+
             <div className="block text-sm text-slate-650 dark:text-slate-355">
               <span className="mb-1 block font-medium">Descripción</span>
               <RichTextEditor
                 value={taskDesc}
                 onChange={(html) => setTaskDesc(html)}
-                placeholder="Describe los pasos, requerimientos, o adjunta imágenes y archivos..."
+                placeholder="Describe los pasos, requerimientos o contexto de la tarea..."
               />
             </div>
+
+            {/* Attachments */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 p-3">
+              <AttachmentsSection
+                attachments={attachments}
+                onChange={setAttachments}
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <label className="block text-sm text-slate-650 dark:text-slate-355">
                 <span className="mb-1 block font-medium">Prioridad</span>
