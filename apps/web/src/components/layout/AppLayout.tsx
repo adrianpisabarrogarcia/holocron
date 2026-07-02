@@ -91,7 +91,7 @@ export function AppLayout({
         <div>
           {/* Logo / Header */}
           <div className="h-16 flex items-center px-6 border-b border-slate-200/80 dark:border-slate-800/80">
-            <span className="text-xs font-black tracking-widest uppercase text-slate-400 dark:text-slate-500">Holocron</span>
+            <span className="text-xs font-black tracking-widest uppercase text-slate-400 dark:text-slate-500">Holocron Workspace</span>
           </div>
 
           {/* User profile brief */}
