@@ -163,7 +163,7 @@ export function RichTextEditor({ value, onChange, placeholder = 'Escribe aquí l
       )}
 
       {/* EDITABLE CONTAINER */}
-      <div className="relative min-h-[120px] max-h-[280px] overflow-y-auto p-3 text-sm">
+      <div className="relative min-h-[120px] max-h-[420px] overflow-y-auto p-3 text-sm">
         <div
           ref={editorRef}
           contentEditable

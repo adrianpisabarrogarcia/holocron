@@ -1,4 +1,5 @@
 import { FormEvent } from 'react';
+import { useEscapeKey } from '../../lib/useEscapeKey';
 import type { PlatformRole } from '@holocron/contracts';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -36,6 +37,7 @@ export function EditUserModal({
   onRoleChange,
   pending,
 }: EditUserModalProps) {
+  useEscapeKey(onClose, isOpen);
   if (!isOpen) return null;
 
   return (

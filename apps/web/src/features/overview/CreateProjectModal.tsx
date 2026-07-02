@@ -1,5 +1,6 @@
 import { Folder, X } from 'lucide-react';
 import { CreateProjectCard } from './CreateProjectCard';
+import { useEscapeKey } from '../../lib/useEscapeKey';
 
 type CreateProjectModalProps = {
   isOpen: boolean;
@@ -7,6 +8,7 @@ type CreateProjectModalProps = {
 };
 
 export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps) {
+  useEscapeKey(onClose, isOpen);
   if (!isOpen) return null;
 
   return (

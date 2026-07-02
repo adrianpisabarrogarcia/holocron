@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react';
+import { useEscapeKey } from '../../lib/useEscapeKey';
 import type { ProjectSummary } from '@holocron/contracts';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -50,6 +51,7 @@ export function EditProjectModal({
   const [editError, setEditError] = useState<string | null>(null);
   const [editPending, setEditPending] = useState(false);
 
+  useEscapeKey(onClose, isOpen);
   if (!isOpen) return null;
 
   const handleEditSubmit = async (e: FormEvent) => {

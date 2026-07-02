@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEscapeKey } from '../../lib/useEscapeKey';
 import { Plus, Trash2, ArrowUp, ArrowDown, X, Settings } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { fieldClassName } from '../../lib/constants';
@@ -44,7 +45,10 @@ export function ManageColumnsModal({
   const [activePickerIndex, setActivePickerIndex] = useState<number | null>(null);
   const [isNewColPickerOpen, setIsNewColPickerOpen] = useState(false);
 
+  useEscapeKey(onClose, isOpen);
+
   if (!isOpen) return null;
+
 
   const handleAddColumn = () => {
     if (!newColName.trim()) return;
