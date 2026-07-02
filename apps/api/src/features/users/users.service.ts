@@ -26,6 +26,15 @@ export class UsersService {
             },
           },
         },
+        folderMemberships: {
+          select: {
+            folder: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -34,6 +43,7 @@ export class UsersService {
       return {
         ...mapped,
         assignedProjects: user.memberships.map((m) => m.project.name),
+        assignedFolders: user.folderMemberships.map((fm) => fm.folder.name),
       };
     });
   }

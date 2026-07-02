@@ -12,6 +12,7 @@ export type AuthenticatedUser = {
   name: string;
   platformRole: PlatformRole;
   assignedProjects?: string[];
+  assignedFolders?: string[];
 };
 
 export type AuthResponse = {

@@ -33,7 +33,7 @@ export type AdminPageProps = {
   selectedMembershipRole: ProjectMembershipRole;
   selectedScrumRole: string;
   selectedUserId: string;
-  users: Array<{ email: string; id: string; name: string; platformRole: PlatformRole; assignedProjects?: string[] }>;
+  users: Array<{ email: string; id: string; name: string; platformRole: PlatformRole; assignedProjects?: string[]; assignedFolders?: string[] }>;
   usersError: string | null;
   usersLoading: boolean;
   usersPending: boolean;
@@ -238,15 +238,23 @@ export function AdminPage({
                         </span>
                       </td>
 
-                      {/* Assigned Projects */}
+                      {/* Assigned Projects & Folders */}
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1.5 max-w-xs">
-                          {member.assignedProjects && member.assignedProjects.length > 0 ? (
-                            member.assignedProjects.map((projName) => (
-                              <span key={projName} className="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-950/30 text-indigo-750 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40 px-2 py-0.5 text-xs font-semibold">
-                                {projName}
-                              </span>
-                            ))
+                          {((member.assignedProjects && member.assignedProjects.length > 0) || 
+                            (member.assignedFolders && member.assignedFolders.length > 0)) ? (
+                            <>
+                              {member.assignedFolders?.map((foldName) => (
+                                <span key={`fold-${foldName}`} className="inline-flex items-center rounded-md bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 px-2 py-0.5 text-xs font-semibold">
+                                  📁 {foldName}
+                                </span>
+                              ))}
+                              {member.assignedProjects?.map((projName) => (
+                                <span key={`proj-${projName}`} className="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-950/30 text-indigo-750 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40 px-2 py-0.5 text-xs font-semibold">
+                                  {projName}
+                                </span>
+                              ))}
+                            </>
                           ) : (
                             <span className="italic text-xs text-slate-400 dark:text-slate-500">
                               Ninguno
