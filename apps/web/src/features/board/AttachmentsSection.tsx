@@ -14,7 +14,7 @@ type AttachmentsSectionProps = {
   onChange: (attachments: Attachment[]) => void;
 };
 
-const MAX_FILE_MB = 15;
+const MAX_FILE_MB = 7;
 const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
 
 function compressImageToWebp(file: File): Promise<string> {
