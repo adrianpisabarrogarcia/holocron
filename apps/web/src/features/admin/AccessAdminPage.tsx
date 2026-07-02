@@ -18,6 +18,9 @@ const scrumRoles = [
   { value: 'SCRUM_MASTER', label: 'Scrum Master' },
 ];
 
+const inlineSelectClassName =
+  'rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-2.5 py-1 text-xs text-slate-800 dark:text-slate-100 outline-none transition focus:border-indigo-500 focus-visible:ring-1 focus-visible:ring-indigo-500/20';
+
 export function AccessAdminPage() {
   const { projects, folders, loadBoard } = useBoardStore();
   const { users, loadUsers } = useAdminStore();
@@ -413,7 +416,7 @@ export function AccessAdminPage() {
                             {/* INLINE PERMISSION ROLE SELECT */}
                             <td className="px-5 py-3">
                               <select
-                                className={cn(fieldClassName, 'h-8 py-0.5 text-xs w-28 bg-transparent border-slate-200 dark:border-slate-800 focus:ring-0 focus:border-indigo-650')}
+                                className={cn(inlineSelectClassName, 'w-28 h-8')}
                                 onChange={(e) => handleUpdateRole(m.userId, e.target.value as ProjectMembershipRole, m.scrumRole)}
                                 value={m.role}
                               >
@@ -429,7 +432,7 @@ export function AccessAdminPage() {
                             {!selectedInfo?.isFolder && (
                               <td className="px-5 py-3">
                                 <select
-                                  className={cn(fieldClassName, 'h-8 py-0.5 text-xs w-36 bg-transparent border-slate-200 dark:border-slate-800 focus:ring-0 focus:border-indigo-650')}
+                                  className={cn(inlineSelectClassName, 'w-40 h-8')}
                                   onChange={(e) => handleUpdateRole(m.userId, m.role, e.target.value)}
                                   value={m.scrumRole || ''}
                                 >
