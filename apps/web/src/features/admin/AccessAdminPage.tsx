@@ -29,6 +29,7 @@ export function AccessAdminPage() {
   const [members, setMembers] = useState<any[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Add member form state
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -242,29 +243,43 @@ export function AccessAdminPage() {
           </div>
           <CardDescription>Selecciona un recurso para gestionar sus accesos</CardDescription>
         </CardHeader>
+        <div className="px-4.5 py-2.5 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/20 dark:bg-slate-900/10">
+          <input
+            type="text"
+            placeholder="Buscar por nombre..."
+            className={cn(fieldClassName, 'h-9 px-3 py-1 text-xs')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
         <CardContent className="pt-4 px-3 flex-1">
           <div className="space-y-1">
-            {getHierarchicalTargets().map((item) => {
-              const isSelected = selectedTarget === `${item.type}:${item.id}`;
-              const indentClass = item.depth === 0 ? '' : `pl-${item.depth * 4}`;
-              
-              return (
-                <button
-                  key={`${item.type}:${item.id}`}
-                  onClick={() => setSelectedTarget(`${item.type}:${item.id}`)}
-                  className={cn(
-                    'w-full text-left flex items-center gap-2.5 p-2.5 rounded-xl text-xs transition duration-150 border border-transparent font-medium select-none',
-                    isSelected
-                      ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-650 dark:text-indigo-400 font-bold border-indigo-100 dark:border-indigo-900/30 shadow-sm'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-900/40 hover:text-slate-900 dark:hover:text-slate-150'
-                  )}
-                  style={{ paddingLeft: `${item.depth * 14 + 10}px` }}
-                >
-                  <span className="shrink-0">{item.type === 'folder' ? '📁' : '📄'}</span>
-                  <span className="truncate">{item.name}</span>
-                </button>
-              );
-            })}
+            {getHierarchicalTargets()
+              .filter((item) => {
+                if (!searchQuery.trim()) return true;
+                return item.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
+              })
+              .map((item) => {
+                const isSelected = selectedTarget === `${item.type}:${item.id}`;
+                const indentClass = item.depth === 0 ? '' : `pl-${item.depth * 4}`;
+                
+                return (
+                  <button
+                    key={`${item.type}:${item.id}`}
+                    onClick={() => setSelectedTarget(`${item.type}:${item.id}`)}
+                    className={cn(
+                      'w-full text-left flex items-center gap-2.5 p-2.5 rounded-xl text-xs transition duration-150 border border-transparent font-medium select-none',
+                      isSelected
+                        ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-650 dark:text-indigo-400 font-bold border-indigo-100 dark:border-indigo-900/30 shadow-sm'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-900/40 hover:text-slate-900 dark:hover:text-slate-150'
+                    )}
+                    style={{ paddingLeft: `${item.depth * 14 + 10}px` }}
+                  >
+                    <span className="shrink-0">{item.type === 'folder' ? '📁' : '📄'}</span>
+                    <span className="truncate">{item.name}</span>
+                  </button>
+                );
+              })}
           </div>
         </CardContent>
       </Card>

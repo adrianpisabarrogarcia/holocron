@@ -13,6 +13,9 @@ import { fieldClassName } from '../../lib/constants';
 export function ProjectsAdminPage() {
   const { projects, folders, deleteProject, updateProject, createFolder, deleteFolder } = useBoardStore();
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Create Project modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -188,6 +191,15 @@ export function ProjectsAdminPage() {
             <CardTitle>Listado de Proyectos</CardTitle>
             <CardDescription>Visualiza tu estructura jerárquica de proyectos. Haz clic en las carpetas para abrirlas o cerrarlas.</CardDescription>
           </CardHeader>
+          <div className="px-6 py-3 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/20 dark:bg-slate-900/10">
+            <input
+              type="text"
+              placeholder="Buscar proyecto o carpeta por nombre..."
+              className={fieldClassName}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm text-slate-650 dark:text-slate-355">
@@ -201,10 +213,14 @@ export function ProjectsAdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60 bg-white/30 dark:bg-slate-900/10">
-                  {getHierarchicalTableItems().map((item) => {
-                    if (item.parentId && !isRowVisible(item.parentId)) {
-                      return null;
-                    }
+                  {getHierarchicalTableItems()
+                    .filter((item) => {
+                      if (searchQuery.trim()) {
+                        return item.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
+                      }
+                      return !item.parentId || isRowVisible(item.parentId);
+                    })
+                    .map((item) => {
 
                     if (item.type === 'folder') {
                       const isCollapsed = collapsedAdminFolders[item.id];
