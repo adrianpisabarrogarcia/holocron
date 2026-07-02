@@ -137,7 +137,7 @@ export function ManageColumnsModal({
                 <input
                   type="text"
                   maxLength={2}
-                  className={`${fieldClassName} w-12 text-center text-base py-1.5 shrink-0`}
+                  className="w-11 h-10 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-center text-lg outline-none transition focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/20 text-slate-800 dark:text-slate-100 shrink-0"
                   value={col.emoji || ''}
                   onChange={(e) => handleEmojiChange(index, e.target.value)}
                   placeholder="📌"
@@ -193,7 +193,7 @@ export function ManageColumnsModal({
                 placeholder="📌"
                 value={newColEmoji}
                 onChange={(e) => setNewColEmoji(e.target.value)}
-                className={`${fieldClassName} w-12 text-center text-base py-1.5 shrink-0`}
+                className="w-11 h-10 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-center text-lg outline-none transition focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/20 text-slate-800 dark:text-slate-100 shrink-0"
               />
               <input
                 type="text"
