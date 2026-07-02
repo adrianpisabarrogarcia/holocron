@@ -727,7 +727,7 @@ export class ProjectsService {
 
       // 3. Update existing and create new
       for (const col of sortedCols) {
-        if (col.id) {
+        if (col.id && currentIds.includes(col.id)) {
           // Update
           await tx.projectColumn.update({
             where: { id: col.id },
