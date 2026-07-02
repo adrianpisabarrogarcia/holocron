@@ -11,4 +11,12 @@ export class UsersController {
   createUser = async (request: FastifyRequest, reply: FastifyReply) => {
     return this.usersService.createUser(request, reply);
   };
+
+  updateUser = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.usersService.updateUser(request, reply);
+  };
+
+  deleteUser = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.usersService.deleteUser(request, reply);
+  };
 }

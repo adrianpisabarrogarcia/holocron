@@ -5,8 +5,9 @@ import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/cn';
 import { fieldClassName } from '../../lib/constants';
 import { CreateUserModal } from '../users/CreateUserModal';
+import { EditUserModal } from '../users/EditUserModal';
 import { ProjectsAdminPage } from './ProjectsAdminPage';
-import { RefreshCw, UserPlus, Download } from 'lucide-react';
+import { RefreshCw, UserPlus, Download, Pencil, Trash2 } from 'lucide-react';
 
 export type AdminPageProps = {
   adminNotice: string | null;
@@ -25,6 +26,9 @@ export type AdminPageProps = {
   usersError: string | null;
   usersLoading: boolean;
   usersPending: boolean;
+  currentUserId: string;
+  onUpdateUser: (userId: string, payload: any) => Promise<void>;
+  onDeleteUser: (userId: string, name: string) => Promise<void>;
 };
 
 export function AdminPage({
@@ -44,9 +48,47 @@ export function AdminPage({
   usersError,
   usersLoading,
   usersPending,
+  currentUserId,
+  onUpdateUser,
+  onDeleteUser,
 }: AdminPageProps) {
   // Modal toggle states
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Edit user state
+  const [editUserId, setEditUserId] = useState('');
+  const [editUserName, setEditUserName] = useState('');
+  const [editUserEmail, setEditUserEmail] = useState('');
+  const [editUserPassword, setEditUserPassword] = useState('');
+  const [editUserRole, setEditUserRole] = useState<PlatformRole>('MEMBER');
+
+  const onEditUserClick = (member: any) => {
+    setEditUserId(member.id);
+    setEditUserName(member.name);
+    setEditUserEmail(member.email);
+    setEditUserPassword('');
+    setEditUserRole(member.platformRole);
+    setIsEditModalOpen(true);
+  };
+
+  const onEditUserSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      const payload: any = {
+        name: editUserName,
+        email: editUserEmail,
+        platformRole: editUserRole,
+      };
+      if (editUserPassword) {
+        payload.password = editUserPassword;
+      }
+      await onUpdateUser(editUserId, payload);
+      setIsEditModalOpen(false);
+    } catch {
+      // Keep modal open if error
+    }
+  };
   
   // Client-side search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -157,6 +199,7 @@ export function AdminPage({
                   <th className="px-6 py-4">Rol del Sistema</th>
                   <th className="px-6 py-4">Proyectos Asignados</th>
                   <th className="px-6 py-4">ID de Cuenta</th>
+                  <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60 bg-white/30 dark:bg-slate-900/10">
@@ -229,13 +272,37 @@ export function AdminPage({
                       <td className="px-6 py-4 text-xs font-mono text-slate-400">
                         {member.id}
                       </td>
+
+                      {/* Acciones */}
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-1.5">
+                          <button
+                            type="button"
+                            className="text-slate-500 hover:text-indigo-650 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200 h-8 w-8 inline-flex items-center justify-center rounded-lg transition duration-150 active:scale-95"
+                            onClick={() => onEditUserClick(member)}
+                            title="Editar usuario"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          {currentUserId !== member.id && (
+                            <button
+                              type="button"
+                              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/20 h-8 w-8 inline-flex items-center justify-center rounded-lg transition duration-150 active:scale-95"
+                              onClick={() => onDeleteUser(member.id, member.name)}
+                              title="Borrar usuario"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
                 
                 {!usersLoading && !filteredUsers.length ? (
                   <tr>
-                    <td className="px-6 py-12 text-center text-slate-400 dark:text-slate-500" colSpan={5}>
+                    <td className="px-6 py-12 text-center text-slate-400 dark:text-slate-500" colSpan={6}>
                       No se encontraron usuarios que coincidan con la búsqueda.
                     </td>
                   </tr>
@@ -260,6 +327,22 @@ export function AdminPage({
         newUserRole={newUserRole}
         onNewUserRoleChange={onNewUserRoleChange}
         createUserPending={createUserPending}
+      />
+
+      {/* EDIT USER MODAL */}
+      <EditUserModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={onEditUserSubmit}
+        name={editUserName}
+        onNameChange={setEditUserName}
+        email={editUserEmail}
+        onEmailChange={setEditUserEmail}
+        password={editUserPassword}
+        onPasswordChange={setEditUserPassword}
+        role={editUserRole}
+        onRoleChange={setEditUserRole}
+        pending={usersPending}
       />
     </section>
   );

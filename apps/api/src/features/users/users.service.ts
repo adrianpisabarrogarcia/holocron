@@ -91,4 +91,79 @@ export class UsersService {
       throw error;
     }
   }
+
+  async updateUser(request: FastifyRequest, reply: FastifyReply): Promise<AuthenticatedUser | void> {
+    const { userId } = request.params as { userId: string };
+    const { email, name, password, platformRole } = (request.body ?? {}) as {
+      email?: string;
+      name?: string;
+      password?: string;
+      platformRole?: AuthenticatedUser['platformRole'];
+    };
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return sendError(reply, 404, 'NOT_FOUND', 'User not found');
+    }
+
+    if (platformRole && !allowedPlatformRoles.has(platformRole)) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'platformRole must be ADMIN or MEMBER');
+    }
+
+    const data: any = {};
+    if (email) data.email = email;
+    if (name) data.name = name;
+    if (password) data.passwordHash = hashPassword(password);
+    if (platformRole) data.platformRole = platformRole;
+
+    try {
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          platformRole: true,
+        },
+      });
+
+      return buildAuthUser(updatedUser);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Unique constraint')) {
+        return sendError(reply, 409, 'USER_EXISTS', 'A user with that email already exists');
+      }
+      return sendError(reply, 500, 'INTERNAL_ERROR', 'Failed to update user');
+    }
+  }
+
+  async deleteUser(request: FastifyRequest, reply: FastifyReply): Promise<{ success: boolean } | void> {
+    const { userId } = request.params as { userId: string };
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return sendError(reply, 404, 'NOT_FOUND', 'User not found');
+    }
+
+    const currentUser = request.authUser as AuthenticatedUser;
+    if (currentUser.id === userId) {
+      return sendError(reply, 400, 'BAD_REQUEST', 'You cannot delete yourself');
+    }
+
+    try {
+      await prisma.user.delete({
+        where: { id: userId },
+      });
+
+      return { success: true };
+    } catch (error) {
+      return sendError(reply, 500, 'INTERNAL_ERROR', 'Failed to delete user');
+    }
+  }
 }

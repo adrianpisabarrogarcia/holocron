@@ -22,10 +22,19 @@ type AssignFolderMembershipInput = {
   userId: string;
 };
 
+type UpdateUserInput = {
+  email?: string;
+  name?: string;
+  password?: string;
+  platformRole?: PlatformRole;
+};
+
 type AdminStore = {
   assignProjectMembership: (input: AssignProjectMembershipInput) => Promise<ProjectMemberSummary>;
   assignFolderMembership: (input: AssignFolderMembershipInput) => Promise<FolderMemberSummary>;
   createUser: (input: CreateUserInput) => Promise<AuthenticatedUser>;
+  updateUser: (userId: string, input: UpdateUserInput) => Promise<AuthenticatedUser>;
+  deleteUser: (userId: string) => Promise<void>;
   createUserPending: boolean;
   loadUsers: () => Promise<void>;
   resetAdmin: () => void;
@@ -113,6 +122,60 @@ export const useAdminStore = create<AdminStore>((set) => ({
       throw error;
     } finally {
       set({ createUserPending: false });
+    }
+  },
+  updateUser: async (userId, input) => {
+    set({ usersError: null, usersPending: true });
+
+    try {
+      const response = await apiFetch(`/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(input),
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseJsonError(response));
+      }
+
+      const updatedUser = (await response.json()) as AuthenticatedUser;
+      set((state) => ({
+        users: state.users
+          .map((u) => (u.id === userId ? { ...u, ...updatedUser } : u))
+          .sort((left, right) => left.name.localeCompare(right.name) || left.email.localeCompare(right.email)),
+      }));
+      return updatedUser;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown API error';
+      set({ usersError: message });
+      throw error;
+    } finally {
+      set({ usersPending: false });
+    }
+  },
+  deleteUser: async (userId) => {
+    set({ usersError: null, usersPending: true });
+
+    try {
+      const response = await apiFetch(`/admin/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseJsonError(response));
+      }
+
+      set((state) => ({
+        users: state.users.filter((u) => u.id !== userId),
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown API error';
+      set({ usersError: message });
+      throw error;
+    } finally {
+      set({ usersPending: false });
     }
   },
   createUserPending: false,

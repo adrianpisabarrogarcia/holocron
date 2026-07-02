@@ -63,6 +63,8 @@ export function App() {
     assignProjectMembership,
     assignFolderMembership,
     createUser,
+    updateUser,
+    deleteUser,
     createUserPending,
     loadUsers,
     users,
@@ -137,32 +139,24 @@ export function App() {
     }
   };
 
-  const handleAssignMembership = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleUpdateUser = async (userId: string, payload: any) => {
     setAdminNotice(null);
-
-    const [type, targetId] = membershipProjectId.split(':');
-    const realTargetId = targetId || membershipProjectId;
-
     try {
-      if (type === 'folder') {
-        const member = await assignFolderMembership({
-          folderId: realTargetId,
-          role: selectedMembershipRole,
-          userId: selectedUserId,
-        });
-        setAdminNotice(`Asignado ${member.email} a la carpeta de proyectos como ${member.role}.`);
-      } else {
-        const member = await assignProjectMembership({
-          projectId: realTargetId,
-          role: selectedMembershipRole,
-          userId: selectedUserId,
-          scrumRole: selectedScrumRole || null,
-        });
-        setAdminNotice(`Asignado ${member.email} al proyecto como ${member.role}${member.scrumRole ? ` (${member.scrumRole})` : ''}.`);
-      }
+      await updateUser(userId, payload);
+      setAdminNotice(`Usuario actualizado correctamente.`);
     } catch {
-      throw new Error('Error al asignar miembro');
+      throw new Error('Error al actualizar usuario');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, name: string) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar al usuario "${name}"?`)) return;
+    setAdminNotice(null);
+    try {
+      await deleteUser(userId);
+      setAdminNotice(`Usuario ${name} eliminado.`);
+    } catch {
+      throw new Error('Error al eliminar usuario');
     }
   };
 
@@ -320,6 +314,9 @@ export function App() {
                 usersError={usersError}
                 usersLoading={usersLoading}
                 usersPending={usersPending}
+                currentUserId={user?.id || ''}
+                onUpdateUser={handleUpdateUser}
+                onDeleteUser={handleDeleteUser}
                 onRefreshUsers={() => void loadUsers()}
               />
             ) : (
