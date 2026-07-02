@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Trash2, ArrowUp, ArrowDown, X, Settings } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { fieldClassName } from '../../lib/constants';
+import { cn } from '../../lib/cn';
 
 type ColumnItem = {
   id?: string;
@@ -123,7 +124,7 @@ export function ManageColumnsModal({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 transition duration-150"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition duration-150"
         >
           <X className="h-5 w-5" />
         </button>
@@ -140,7 +141,7 @@ export function ManageColumnsModal({
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
           {/* COLUMN LIST CONTAINER */}
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1 mb-5">
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1 mb-5 pb-28">
             {columns.map((col, index) => (
               <div
                 key={col.id || `temp-${index}`}
@@ -154,7 +155,7 @@ export function ManageColumnsModal({
                       setActivePickerIndex(activePickerIndex === index ? null : index);
                       setIsNewColPickerOpen(false);
                     }}
-                    className="w-11 h-10 rounded-xl border border-slate-200 bg-white dark:border-slate-850 dark:bg-slate-950 text-center text-lg outline-none transition hover:border-indigo-500 focus:border-indigo-500 text-slate-800 dark:text-slate-100 flex items-center justify-center"
+                    className="w-11 h-10 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-center text-lg outline-none transition hover:border-indigo-500 focus:border-indigo-500 text-slate-800 dark:text-slate-100 flex items-center justify-center"
                     title="Elegir emoji"
                   >
                     {col.emoji || '📌'}
@@ -162,7 +163,10 @@ export function ManageColumnsModal({
                   {activePickerIndex === index && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setActivePickerIndex(null)} />
-                      <div className="absolute left-0 mt-2 z-50 p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl grid grid-cols-5 gap-1.5 w-48 animate-in fade-in zoom-in-95 duration-100">
+                      <div className={cn(
+                        "absolute left-0 z-50 p-2 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl grid grid-cols-5 gap-1.5 w-48 animate-in fade-in zoom-in-95 duration-100",
+                        index >= columns.length - 2 ? "bottom-full mb-2" : "top-full mt-2"
+                      )}>
                         {EMOJIS.map((emoji) => (
                           <button
                             key={emoji}
@@ -233,7 +237,7 @@ export function ManageColumnsModal({
                     setIsNewColPickerOpen(!isNewColPickerOpen);
                     setActivePickerIndex(null);
                   }}
-                  className="w-11 h-10 rounded-xl border border-slate-200 bg-white dark:border-slate-850 dark:bg-slate-950 text-center text-lg outline-none transition hover:border-indigo-500 focus:border-indigo-500 text-slate-800 dark:text-slate-100 flex items-center justify-center"
+                  className="w-11 h-10 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-center text-lg outline-none transition hover:border-indigo-500 focus:border-indigo-500 text-slate-800 dark:text-slate-100 flex items-center justify-center"
                   title="Elegir emoji"
                 >
                   {newColEmoji}
@@ -241,7 +245,7 @@ export function ManageColumnsModal({
                 {isNewColPickerOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsNewColPickerOpen(false)} />
-                    <div className="absolute left-0 bottom-full mb-2 z-50 p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl grid grid-cols-5 gap-1.5 w-48 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="absolute left-0 bottom-full mb-2 z-50 p-2 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl grid grid-cols-5 gap-1.5 w-48 animate-in fade-in zoom-in-95 duration-100">
                       {EMOJIS.map((emoji) => (
                         <button
                           key={emoji}
