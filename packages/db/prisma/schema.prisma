@@ -23,6 +23,7 @@ model User {
   stateTransitions TaskStateHistory[] @relation("StateChangedBy")
   sessions         UserSession[]
   memberships      ProjectMembership[]
+  folderMemberships FolderMembership[]
 }
 
 model UserSession {
@@ -64,6 +65,7 @@ model ProjectMembership {
   projectId String
   userId    String
   role      String   @default("VIEWER")
+  scrumRole String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -103,8 +105,22 @@ model Folder {
   parentFolder   Folder?   @relation("Subfolders", fields: [parentFolderId], references: [id], onDelete: Cascade)
   subfolders     Folder[]  @relation("Subfolders")
   projects       Project[]
+  memberships    FolderMembership[]
 
   @@index([parentFolderId])
+}
+
+model FolderMembership {
+  folderId  String
+  userId    String
+  role      String   @default("VIEWER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([folderId, userId])
+  @@index([userId])
 }
 
 model TaskStateHistory {

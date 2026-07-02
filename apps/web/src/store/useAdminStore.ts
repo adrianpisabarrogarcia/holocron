@@ -13,6 +13,7 @@ type AssignProjectMembershipInput = {
   projectId: string;
   role: ProjectMembershipRole;
   userId: string;
+  scrumRole?: string | null;
 };
 
 type AdminStore = {
@@ -28,7 +29,7 @@ type AdminStore = {
 };
 
 export const useAdminStore = create<AdminStore>((set) => ({
-  assignProjectMembership: async ({ projectId, role, userId }) => {
+  assignProjectMembership: async ({ projectId, role, userId, scrumRole }) => {
     set({ usersError: null, usersPending: true });
 
     try {
@@ -37,7 +38,7 @@ export const useAdminStore = create<AdminStore>((set) => ({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ role, userId }),
+        body: JSON.stringify({ role, userId, scrumRole }),
       });
 
       if (!response.ok) {

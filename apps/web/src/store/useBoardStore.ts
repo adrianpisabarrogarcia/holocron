@@ -1,4 +1,4 @@
-import type { ProjectSummary, TaskSummary, FolderSummary } from '@holocron/contracts';
+import type { ProjectSummary, TaskSummary, FolderSummary, ProjectMemberSummary } from '@holocron/contracts';
 import { create } from 'zustand';
 import { apiFetch, parseJsonError } from '../lib/api';
 
@@ -11,6 +11,7 @@ type BoardStore = {
   selectedProjectId: string | null;
   selectProject: (projectId: string) => Promise<void>;
   tasks: TaskSummary[];
+  members: ProjectMemberSummary[];
   loadBoard: () => Promise<void>;
   loadFolders: () => Promise<void>;
   createFolder: (name: string, parentFolderId?: string | null) => Promise<void>;
@@ -23,6 +24,16 @@ type BoardStore = {
   deleteTask: (taskId: string) => Promise<void>;
   moveTask: (taskId: string, newStatus: TaskSummary['status']) => Promise<void>;
 };
+
+async function loadProjectMembers(projectId: string) {
+  const membersResponse = await apiFetch(`/api/projects/${projectId}/members`);
+
+  if (!membersResponse.ok) {
+    throw new Error(await parseJsonError(membersResponse));
+  }
+
+  return (await membersResponse.json()) as ProjectMemberSummary[];
+}
 
 
 async function loadProjectTasks(projectId: string) {
@@ -50,19 +61,23 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   loading: false,
   projects: [],
   folders: [],
-  resetBoard: () => set({ error: null, loading: false, projects: [], folders: [], selectedProjectId: null, tasks: [] }),
+  resetBoard: () => set({ error: null, loading: false, projects: [], folders: [], selectedProjectId: null, tasks: [], members: [] }),
   selectedProjectId: null,
   selectProject: async (projectId) => {
     set({ error: null, loading: true, selectedProjectId: projectId });
 
     try {
-      const tasks = await loadProjectTasks(projectId);
-      set({ error: null, loading: false, tasks });
+      const [tasks, members] = await Promise.all([
+        loadProjectTasks(projectId),
+        loadProjectMembers(projectId),
+      ]);
+      set({ error: null, loading: false, tasks, members });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false, tasks: [] });
+      set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false, tasks: [], members: [] });
     }
   },
   tasks: [],
+  members: [],
   loadBoard: async () => {
     set({ error: null, loading: true });
 
@@ -78,13 +93,14 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? projects[0] ?? null;
 
       if (!selectedProject) {
-        set({ error: null, loading: false, projects: [], selectedProjectId: null, tasks: [] });
+        set({ error: null, loading: false, projects: [], selectedProjectId: null, tasks: [], members: [] });
         return;
       }
 
-      const [tasks, folders] = await Promise.all([
+      const [tasks, folders, members] = await Promise.all([
         loadProjectTasks(selectedProject.id),
         loadProjectFolders(),
+        loadProjectMembers(selectedProject.id),
       ]);
 
       set({
@@ -94,6 +110,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         folders,
         selectedProjectId: selectedProject.id,
         tasks,
+        members,
       });
     } catch (error) {
       set({
@@ -101,6 +118,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         loading: false,
         tasks: [],
         folders: [],
+        members: [],
       });
     }
   },

@@ -26,9 +26,11 @@ export type AdminPageProps = {
   onNewUserRoleChange: (value: PlatformRole) => void;
   onRefreshUsers: () => void;
   onSelectedMembershipRoleChange: (value: ProjectMembershipRole) => void;
+  onSelectedScrumRoleChange: (value: string) => void;
   onSelectedUserIdChange: (value: string) => void;
   projects: Array<{ id: string; name: string }>;
   selectedMembershipRole: ProjectMembershipRole;
+  selectedScrumRole: string;
   selectedUserId: string;
   users: Array<{ email: string; id: string; name: string; platformRole: PlatformRole; assignedProjects?: string[] }>;
   usersError: string | null;
@@ -53,9 +55,11 @@ export function AdminPage({
   onNewUserRoleChange,
   onRefreshUsers,
   onSelectedMembershipRoleChange,
+  onSelectedScrumRoleChange,
   onSelectedUserIdChange,
   projects,
   selectedMembershipRole,
+  selectedScrumRole,
   selectedUserId,
   users,
   usersError,
@@ -299,6 +303,8 @@ export function AdminPage({
         onMembershipProjectIdChange={onMembershipProjectIdChange}
         selectedMembershipRole={selectedMembershipRole}
         onSelectedMembershipRoleChange={onSelectedMembershipRoleChange}
+        selectedScrumRole={selectedScrumRole}
+        onSelectedScrumRoleChange={onSelectedScrumRoleChange}
         usersPending={usersPending}
       />
     </section>

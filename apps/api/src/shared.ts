@@ -1,4 +1,11 @@
-import type { AuthResponse, AuthenticatedUser, ProjectMembershipRole, ProjectMemberSummary } from '@holocron/contracts';
+import type {
+  AuthResponse,
+  AuthenticatedUser,
+  FolderMemberSummary,
+  ProjectMembershipRole,
+  ProjectMemberSummary,
+  ScrumRole,
+} from '@holocron/contracts';
 import { prisma } from '@holocron/db';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
@@ -37,6 +44,38 @@ export const refreshCookieName = 'holocron_refresh_token';
 export const isProduction = process.env.NODE_ENV === 'production';
 export const allowedPlatformRoles = new Set<AuthenticatedUser['platformRole']>(['ADMIN', 'MEMBER']);
 export const allowedProjectRoles = new Set<ProjectMembershipRole>(['MANAGER', 'CONTRIBUTOR', 'VIEWER']);
+export const allowedScrumRoles = new Set<ScrumRole>(['DEVELOPER', 'PRODUCT_OWNER', 'SCRUM_MASTER']);
+
+export function normalizeScrumRole(scrumRole: string | null | undefined): ScrumRole | null {
+  if (!scrumRole) return null;
+  return allowedScrumRoles.has(scrumRole as ScrumRole) ? (scrumRole as ScrumRole) : null;
+}
+
+const projectRoleRank: Record<ProjectMembershipRole, number> = {
+  VIEWER: 1,
+  CONTRIBUTOR: 2,
+  MANAGER: 3,
+};
+
+export function compareProjectRoles(left: ProjectMembershipRole | null, right: ProjectMembershipRole | null) {
+  if (!left) return right;
+  if (!right) return left;
+  return projectRoleRank[right] > projectRoleRank[left] ? right : left;
+}
+
+export function collectFolderAncestorIds(folderId: string | null, parentFolderById: Map<string, string | null>) {
+  const ancestorIds = new Set<string>();
+  const visited = new Set<string>();
+  let currentFolderId = folderId;
+
+  while (currentFolderId && !visited.has(currentFolderId)) {
+    visited.add(currentFolderId);
+    ancestorIds.add(currentFolderId);
+    currentFolderId = parentFolderById.get(currentFolderId) ?? null;
+  }
+
+  return ancestorIds;
+}
 
 export function hashPassword(password: string) {
   const salt = randomBytes(16).toString('hex');
@@ -91,6 +130,7 @@ export function buildAuthUser(user: { id: string; email: string; name: string; p
 
 export function buildProjectMemberSummary(member: {
   role: string;
+  scrumRole?: string | null;
   user: { id: string; email: string; name: string; platformRole: string };
 }) {
   const role = normalizeProjectRole(member.role);
@@ -107,7 +147,29 @@ export function buildProjectMemberSummary(member: {
     name: member.user.name,
     platformRole,
     role,
+    scrumRole: normalizeScrumRole(member.scrumRole),
   } satisfies ProjectMemberSummary;
+}
+
+export function buildFolderMemberSummary(member: {
+  role: string;
+  user: { id: string; email: string; name: string; platformRole: string };
+}) {
+  const role = normalizeProjectRole(member.role);
+  const platformRole = normalizePlatformRole(member.user.platformRole);
+  if (!role) {
+    throw new Error(`Unsupported folder role: ${member.role}`);
+  }
+  if (!platformRole) {
+    throw new Error(`Unsupported platform role: ${member.user.platformRole}`);
+  }
+  return {
+    userId: member.user.id,
+    email: member.user.email,
+    name: member.user.name,
+    platformRole,
+    role,
+  } satisfies FolderMemberSummary;
 }
 
 export function createAccessToken(user: AuthenticatedUser) {
@@ -219,7 +281,7 @@ export async function requireProjectAccess(request: FastifyRequest, reply: Fasti
   }
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { id: true },
+    select: { id: true, folderId: true },
   });
   if (!project) {
     sendError(reply, 404, 'NOT_FOUND', 'Project not found');
@@ -231,24 +293,59 @@ export async function requireProjectAccess(request: FastifyRequest, reply: Fasti
       projectId: project.id,
     };
   }
-  const membership = await prisma.projectMembership.findUnique({
-    where: {
-      projectId_userId: {
-        projectId,
+  const [directMembership, folderMemberships, folders] = await Promise.all([
+    prisma.projectMembership.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId: authUser.id,
+        },
+      },
+      select: {
+        role: true,
+      },
+    }),
+    prisma.folderMembership.findMany({
+      where: {
         userId: authUser.id,
       },
-    },
-    select: {
-      role: true,
-    },
-  });
-  if (!membership) {
+      select: {
+        folderId: true,
+        role: true,
+      },
+    }),
+    prisma.folder.findMany({
+      select: {
+        id: true,
+        parentFolderId: true,
+      },
+    }),
+  ]);
+
+  const folderMembershipRoleById = new Map<string, ProjectMembershipRole>();
+  for (const membership of folderMemberships) {
+    const role = normalizeProjectRole(membership.role);
+    if (!role) {
+      throw new Error(`Unsupported folder role: ${membership.role}`);
+    }
+    folderMembershipRoleById.set(membership.folderId, role);
+  }
+
+  const folderParentById = new Map(folders.map((folder) => [folder.id, folder.parentFolderId] as const));
+  const ancestorFolderIds = collectFolderAncestorIds(project.folderId, folderParentById);
+
+  let membershipRole = directMembership ? normalizeProjectRole(directMembership.role) : null;
+  if (directMembership && !membershipRole) {
+    throw new Error(`Unsupported project role: ${directMembership.role}`);
+  }
+
+  for (const ancestorFolderId of ancestorFolderIds) {
+    membershipRole = compareProjectRoles(membershipRole, folderMembershipRoleById.get(ancestorFolderId) ?? null);
+  }
+
+  if (!membershipRole) {
     sendError(reply, 403, 'FORBIDDEN', 'You do not have access to this project');
     return;
-  }
-  const membershipRole = normalizeProjectRole(membership.role);
-  if (!membershipRole) {
-    throw new Error(`Unsupported project role: ${membership.role}`);
   }
   return {
     membershipRole,

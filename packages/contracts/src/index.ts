@@ -32,7 +32,18 @@ export type ProjectSummary = {
   folderId?: string | null;
 };
 
+export type ScrumRole = 'DEVELOPER' | 'PRODUCT_OWNER' | 'SCRUM_MASTER';
+
 export type ProjectMemberSummary = {
+  userId: string;
+  email: string;
+  name: string;
+  platformRole: PlatformRole;
+  role: ProjectMembershipRole;
+  scrumRole: ScrumRole | null;
+};
+
+export type FolderMemberSummary = {
   userId: string;
   email: string;
   name: string;
@@ -41,6 +52,12 @@ export type ProjectMemberSummary = {
 };
 
 export type UpsertProjectMemberInput = {
+  userId: string;
+  role: ProjectMembershipRole;
+  scrumRole?: ScrumRole | null;
+};
+
+export type UpsertFolderMemberInput = {
   userId: string;
   role: ProjectMembershipRole;
 };

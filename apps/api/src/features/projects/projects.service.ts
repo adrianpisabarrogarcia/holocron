@@ -1,77 +1,148 @@
 import type {
   AuthenticatedUser,
+  FolderMemberSummary,
+  UpsertFolderMemberInput,
   ProjectMemberSummary,
   ProjectSummary,
   UpsertProjectMemberInput,
+  ScrumRole,
+  ProjectMembershipRole,
 } from '@holocron/contracts';
 import { prisma } from '@holocron/db';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   normalizeProjectRole,
+  compareProjectRoles,
+  collectFolderAncestorIds,
   requireProjectManagerAccess,
   requireProjectAccess,
   requireAdmin,
   sendError,
   allowedProjectRoles,
+  allowedScrumRoles,
   buildProjectMemberSummary,
+  buildFolderMemberSummary,
 } from '../../shared';
 
 export class ProjectsService {
   async listProjects(request: FastifyRequest): Promise<ProjectSummary[]> {
     const authUser = request.authUser as AuthenticatedUser;
-    const projects = await prisma.project.findMany({
-      where:
-        authUser.platformRole === 'ADMIN'
-          ? undefined
-          : {
-              memberships: {
-                some: {
-                  userId: authUser.id,
-                },
-              },
+    const [projects, directMemberships, folderMemberships, folders] = await Promise.all([
+      prisma.project.findMany({
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          status: true,
+          startDate: true,
+          endDate: true,
+          folderId: true,
+          _count: {
+            select: {
+              tasks: true,
             },
-      orderBy: { createdAt: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        status: true,
-        startDate: true,
-        endDate: true,
-        folderId: true,
-        memberships: {
-          where: {
-            userId: authUser.id,
           },
-          select: {
-            role: true,
+          tasks: {
+            select: {
+              status: true,
+            },
           },
         },
-        _count: {
-          select: {
-            tasks: true,
-          },
-        },
-        tasks: {
-          select: {
-            status: true,
-          },
-        },
-      },
-    });
+      }),
+      authUser.platformRole === 'ADMIN'
+        ? Promise.resolve([] as Array<{ projectId: string; role: string }>)
+        : prisma.projectMembership.findMany({
+            where: {
+              userId: authUser.id,
+            },
+            select: {
+              projectId: true,
+              role: true,
+            },
+          }),
+      authUser.platformRole === 'ADMIN'
+        ? Promise.resolve([] as Array<{ folderId: string; role: string }>)
+        : prisma.folderMembership.findMany({
+            where: {
+              userId: authUser.id,
+            },
+            select: {
+              folderId: true,
+              role: true,
+            },
+          }),
+      authUser.platformRole === 'ADMIN'
+        ? Promise.resolve([] as Array<{ id: string; parentFolderId: string | null }>)
+        : prisma.folder.findMany({
+            select: {
+              id: true,
+              parentFolderId: true,
+            },
+          }),
+    ]);
 
-    return projects.map((project) => ({
-      id: project.id,
-      name: project.name,
-      description: project.description,
-      status: project.status as ProjectSummary['status'],
-      membershipRole: project.memberships[0] ? normalizeProjectRole(project.memberships[0].role) : null,
-      taskCount: project._count.tasks,
-      completedTaskCount: project.tasks.filter((task) => task.status === 'DONE').length,
-      startDate: project.startDate ? project.startDate.toISOString() : null,
-      endDate: project.endDate ? project.endDate.toISOString() : null,
-      folderId: project.folderId,
-    }));
+    if (authUser.platformRole === 'ADMIN') {
+      return projects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        status: project.status as ProjectSummary['status'],
+        membershipRole: null,
+        taskCount: project._count.tasks,
+        completedTaskCount: project.tasks.filter((task) => task.status === 'DONE').length,
+        startDate: project.startDate ? project.startDate.toISOString() : null,
+        endDate: project.endDate ? project.endDate.toISOString() : null,
+        folderId: project.folderId,
+      }));
+    }
+
+    const folderParentById = new Map(folders.map((folder) => [folder.id, folder.parentFolderId] as const));
+    const directRoleByProjectId = new Map<string, ProjectSummary['membershipRole']>();
+    for (const membership of directMemberships) {
+      const role = normalizeProjectRole(membership.role);
+      if (!role) {
+        throw new Error(`Unsupported project role: ${membership.role}`);
+      }
+      directRoleByProjectId.set(membership.projectId, role);
+    }
+
+    const folderRoleById = new Map<string, ProjectSummary['membershipRole']>();
+    for (const membership of folderMemberships) {
+      const role = normalizeProjectRole(membership.role);
+      if (!role) {
+        throw new Error(`Unsupported folder role: ${membership.role}`);
+      }
+      folderRoleById.set(membership.folderId, role);
+    }
+
+    return projects
+      .map((project): ProjectSummary | null => {
+        const ancestorFolderIds = collectFolderAncestorIds(project.folderId, folderParentById);
+        let membershipRole = directRoleByProjectId.get(project.id) ?? null;
+
+        for (const ancestorFolderId of ancestorFolderIds) {
+          membershipRole = compareProjectRoles(membershipRole, folderRoleById.get(ancestorFolderId) ?? null);
+        }
+
+        if (!membershipRole) {
+          return null;
+        }
+
+        return {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          status: project.status as ProjectSummary['status'],
+          membershipRole,
+          taskCount: project._count.tasks,
+          completedTaskCount: project.tasks.filter((task) => task.status === 'DONE').length,
+          startDate: project.startDate ? project.startDate.toISOString() : null,
+          endDate: project.endDate ? project.endDate.toISOString() : null,
+          folderId: project.folderId,
+        } satisfies ProjectSummary;
+      })
+      .filter((project): project is ProjectSummary => project !== null);
   }
 
   async createProject(request: FastifyRequest, reply: FastifyReply): Promise<ProjectSummary | void> {
@@ -262,6 +333,7 @@ export class ProjectsService {
       orderBy: [{ role: 'asc' }, { user: { name: 'asc' } }],
       select: {
         role: true,
+        scrumRole: true,
         user: {
           select: {
             id: true,
@@ -278,7 +350,7 @@ export class ProjectsService {
 
   async addOrUpdateMember(request: FastifyRequest, reply: FastifyReply): Promise<ProjectMemberSummary | void> {
     const { projectId } = request.params as { projectId: string };
-    const { userId, role } = (request.body ?? {}) as Partial<UpsertProjectMemberInput>;
+    const { userId, role, scrumRole } = (request.body ?? {}) as Partial<UpsertProjectMemberInput>;
 
     if (!userId || !role) {
       return sendError(reply, 400, 'VALIDATION_ERROR', 'userId and role are required');
@@ -286,6 +358,10 @@ export class ProjectsService {
 
     if (!allowedProjectRoles.has(role)) {
       return sendError(reply, 400, 'VALIDATION_ERROR', 'role must be MANAGER, CONTRIBUTOR, or VIEWER');
+    }
+
+    if (scrumRole && !allowedScrumRoles.has(scrumRole as ScrumRole)) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'scrumRole must be DEVELOPER, PRODUCT_OWNER, or SCRUM_MASTER');
     }
 
     const [project, user] = await Promise.all([
@@ -321,9 +397,80 @@ export class ProjectsService {
       },
       update: {
         role,
+        scrumRole: scrumRole || null,
       },
       create: {
         projectId,
+        userId,
+        role,
+        scrumRole: scrumRole || null,
+      },
+      select: {
+        role: true,
+        scrumRole: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            platformRole: true,
+          },
+        },
+      },
+    });
+
+    reply.code(201);
+    return buildProjectMemberSummary(membership);
+  }
+
+  async addOrUpdateFolderMember(request: FastifyRequest, reply: FastifyReply): Promise<FolderMemberSummary | void> {
+    const { folderId } = request.params as { folderId: string };
+    const { userId, role } = (request.body ?? {}) as Partial<UpsertFolderMemberInput>;
+
+    if (!userId || !role) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'userId and role are required');
+    }
+
+    if (!allowedProjectRoles.has(role)) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'role must be MANAGER, CONTRIBUTOR, or VIEWER');
+    }
+
+    const [folder, user] = await Promise.all([
+      prisma.folder.findUnique({
+        where: { id: folderId },
+        select: { id: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          platformRole: true,
+        },
+      }),
+    ]);
+
+    if (!folder) {
+      return sendError(reply, 404, 'NOT_FOUND', 'Folder not found');
+    }
+
+    if (!user) {
+      return sendError(reply, 404, 'NOT_FOUND', 'User not found');
+    }
+
+    const membership = await prisma.folderMembership.upsert({
+      where: {
+        folderId_userId: {
+          folderId,
+          userId,
+        },
+      },
+      update: {
+        role,
+      },
+      create: {
+        folderId,
         userId,
         role,
       },
@@ -341,7 +488,7 @@ export class ProjectsService {
     });
 
     reply.code(201);
-    return buildProjectMemberSummary(membership);
+    return buildFolderMemberSummary(membership);
   }
 
   async listFolders(request: FastifyRequest, reply: FastifyReply): Promise<any[] | void> {

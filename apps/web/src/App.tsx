@@ -36,6 +36,7 @@ export function App() {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [membershipProjectId, setMembershipProjectId] = useState('');
   const [selectedMembershipRole, setSelectedMembershipRole] = useState<ProjectMembershipRole>('CONTRIBUTOR');
+  const [selectedScrumRole, setSelectedScrumRole] = useState<string>('');
   const [adminNotice, setAdminNotice] = useState<string | null>(null);
   
   // Theme logic
@@ -143,9 +144,10 @@ export function App() {
         projectId: membershipProjectId,
         role: selectedMembershipRole,
         userId: selectedUserId,
+        scrumRole: selectedScrumRole || null,
       });
 
-      setAdminNotice(`Asignado ${member.email} al proyecto como ${member.role}.`);
+      setAdminNotice(`Asignado ${member.email} al proyecto como ${member.role}${member.scrumRole ? ` (${member.scrumRole})` : ''}.`);
     } catch {
       throw new Error('Error al asignar miembro');
     }
@@ -305,9 +307,11 @@ export function App() {
                 onNewUserPasswordChange={setNewUserPassword}
                 onNewUserRoleChange={setNewUserRole}
                 onSelectedMembershipRoleChange={setSelectedMembershipRole}
+                onSelectedScrumRoleChange={setSelectedScrumRole}
                 onSelectedUserIdChange={setSelectedUserId}
                 projects={projects}
                 selectedMembershipRole={selectedMembershipRole}
+                selectedScrumRole={selectedScrumRole}
                 selectedUserId={selectedUserId}
                 users={users}
                 usersError={usersError}

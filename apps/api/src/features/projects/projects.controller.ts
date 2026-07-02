@@ -28,6 +28,10 @@ export class ProjectsController {
     return this.projectsService.addOrUpdateMember(request, reply);
   };
 
+  addOrUpdateFolderMember = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.projectsService.addOrUpdateFolderMember(request, reply);
+  };
+
   listFolders = async (request: FastifyRequest, reply: FastifyReply) => {
     return this.projectsService.listFolders(request, reply);
   };

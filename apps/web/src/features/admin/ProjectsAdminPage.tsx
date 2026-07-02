@@ -31,6 +31,12 @@ export function ProjectsAdminPage() {
   const [activeSubfolderParentId, setActiveSubfolderParentId] = useState<string | null>(null);
   const [subfolderName, setSubfolderName] = useState('');
 
+  // Table collapse state
+  const [collapsedAdminFolders, setCollapsedAdminFolders] = useState<Record<string, boolean>>({});
+  const toggleAdminFolder = (folderId: string) => {
+    setCollapsedAdminFolders((prev) => ({ ...prev, [folderId]: !prev[folderId] }));
+  };
+
   const openEdit = (proj: ProjectSummary) => {
     setEditId(proj.id);
     setEditName(proj.name);
@@ -114,21 +120,55 @@ export function ProjectsAdminPage() {
 
   const flatFolders = getFlattenedFolders();
 
-  // Find full path of folder for project display
-  const getFolderPathName = (folderId: string | null): string => {
-    if (!folderId) return '';
-    const path: string[] = [];
-    let currentId: string | null = folderId;
-    while (currentId) {
-      const folder = folders.find((f) => f.id === currentId);
-      if (folder) {
-        path.unshift(folder.name);
-        currentId = folder.parentFolderId;
-      } else {
-        break;
+  // Flatten folders and projects in hierarchy order for the table
+  const getHierarchicalTableItems = () => {
+    const list: Array<{
+      type: 'project' | 'folder';
+      id: string;
+      name: string;
+      parentId: string | null; // parentFolderId for folder, or folderId for project
+      depth: number;
+      project?: ProjectSummary;
+    }> = [];
+
+    const recurse = (parentId: string | null, depth: number) => {
+      // Add child folders
+      folders
+        .filter((f) => f.parentFolderId === parentId)
+        .forEach((f) => {
+          list.push({ type: 'folder', id: f.id, name: f.name, parentId: f.parentFolderId, depth });
+          recurse(f.id, depth + 1);
+        });
+
+      // Add child projects
+      projects
+        .filter((p) => p.folderId === parentId)
+        .forEach((p) => {
+          list.push({ type: 'project', id: p.id, name: p.name, parentId: p.folderId ?? null, depth, project: p });
+        });
+    };
+
+    recurse(null, 0);
+
+    // Add orphaned projects (in case any project has an invalid folderId)
+    const renderedProjectIds = list.filter((item) => item.type === 'project').map((item) => item.id);
+    projects.forEach((p) => {
+      if (!renderedProjectIds.includes(p.id)) {
+        list.push({ type: 'project', id: p.id, name: p.name, parentId: null, depth: 0, project: p });
       }
+    });
+
+    return list;
+  };
+
+  const isRowVisible = (parentId: string | null): boolean => {
+    if (!parentId) return true;
+    if (collapsedAdminFolders[parentId]) return false;
+    const parentFolder = folders.find((f) => f.id === parentId);
+    if (parentFolder) {
+      return isRowVisible(parentFolder.parentFolderId);
     }
-    return path.join(' / ');
+    return true;
   };
 
   return (
@@ -146,14 +186,14 @@ export function ProjectsAdminPage() {
         <Card>
           <CardHeader className="border-b border-slate-200/80 dark:border-slate-800/80 pb-4">
             <CardTitle>Listado de Proyectos</CardTitle>
-            <CardDescription>Administra y gestiona todos los proyectos y áreas de trabajo del sistema</CardDescription>
+            <CardDescription>Visualiza tu estructura jerárquica de proyectos. Haz clic en las carpetas para abrirlas o cerrarlas.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm text-slate-600 dark:text-slate-355">
+              <table className="min-w-full text-left text-sm text-slate-650 dark:text-slate-355">
                 <thead className="bg-slate-50/50 dark:bg-slate-900/40 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 dark:border-slate-800/80">
                   <tr>
-                    <th className="px-6 py-4">Proyecto</th>
+                    <th className="px-6 py-4">Proyecto / Carpeta</th>
                     <th className="px-6 py-4">Descripción Inicial</th>
                     <th className="px-6 py-4">Estado</th>
                     <th className="px-6 py-4 text-center">Progreso de Tareas</th>
@@ -161,35 +201,51 @@ export function ProjectsAdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60 bg-white/30 dark:bg-slate-900/10">
-                  {projects.map((proj) => {
+                  {getHierarchicalTableItems().map((item) => {
+                    if (item.parentId && !isRowVisible(item.parentId)) {
+                      return null;
+                    }
+
+                    if (item.type === 'folder') {
+                      const isCollapsed = collapsedAdminFolders[item.id];
+                      return (
+                        <tr
+                          key={'table-folder-' + item.id}
+                          className="hover:bg-slate-100/30 dark:hover:bg-slate-800/10 transition duration-150 cursor-pointer select-none bg-slate-50/40 dark:bg-slate-900/5"
+                          onClick={() => toggleAdminFolder(item.id)}
+                        >
+                          <td className="px-6 py-3.5" colSpan={5}>
+                            <div className="flex items-center gap-2.5" style={{ paddingLeft: `${item.depth * 20}px` }}>
+                              <span className="text-slate-400 dark:text-slate-500 font-bold text-[10px] w-3 flex justify-center">
+                                {isCollapsed ? '▶' : '▼'}
+                              </span>
+                              <Folder className="h-4.5 w-4.5 text-indigo-650 shrink-0" />
+                              <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs tracking-wide uppercase">{item.name}</span>
+                              <span className="text-[9px] font-bold tracking-wider uppercase text-slate-400 bg-slate-100 dark:bg-slate-800 dark:text-slate-550 px-1.5 py-0.5 rounded">
+                                Carpeta
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    const proj = item.project!;
                     const total = proj.taskCount ?? 0;
                     const completed = proj.completedTaskCount ?? 0;
                     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-                    const folderPath = getFolderPathName(proj.folderId ?? null);
 
                     return (
                       <tr key={proj.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition duration-150">
                         {/* Name & ID */}
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/30">
-                              <Folder className="h-5 w-5" />
+                          <div className="flex items-center gap-3" style={{ paddingLeft: `${item.depth * 20 + 22}px` }}>
+                            <div className="h-7 w-7 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center border border-slate-200/50 dark:border-slate-700/50 text-xs font-bold shrink-0">
+                              📄
                             </div>
                             <div>
                               <p className="font-bold text-slate-900 dark:text-white leading-snug">{proj.name}</p>
-                              <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                                <span className="text-[10px] font-mono text-slate-400">{proj.id}</span>
-                                {folderPath && (
-                                  <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30 px-1.5 py-0.5 rounded">
-                                    📁 {folderPath}
-                                  </span>
-                                )}
-                                {(proj.startDate || proj.endDate) && (
-                                  <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 px-1.5 py-0.5 rounded">
-                                    {proj.startDate ? new Date(proj.startDate).toLocaleDateString() : '?'} — {proj.endDate ? new Date(proj.endDate).toLocaleDateString() : '?'}
-                                  </span>
-                                )}
-                              </div>
+                              <span className="text-[9px] font-mono text-slate-400">{proj.id}</span>
                             </div>
                           </div>
                         </td>

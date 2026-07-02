@@ -17,10 +17,18 @@ type AssignMemberModalProps = {
   onMembershipProjectIdChange: (val: string) => void;
   selectedMembershipRole: ProjectMembershipRole;
   onSelectedMembershipRoleChange: (val: ProjectMembershipRole) => void;
+  selectedScrumRole: string;
+  onSelectedScrumRoleChange: (val: string) => void;
   usersPending: boolean;
 };
 
 const membershipRoles: ProjectMembershipRole[] = ['MANAGER', 'CONTRIBUTOR', 'VIEWER'];
+const scrumRoles = [
+  { value: '', label: 'Sin asignar (Ninguno)' },
+  { value: 'DEVELOPER', label: 'Developer (Desarrollador)' },
+  { value: 'PRODUCT_OWNER', label: 'Product Owner' },
+  { value: 'SCRUM_MASTER', label: 'Scrum Master' },
+];
 
 export function AssignMemberModal({
   isOpen,
@@ -34,6 +42,8 @@ export function AssignMemberModal({
   onMembershipProjectIdChange,
   selectedMembershipRole,
   onSelectedMembershipRoleChange,
+  selectedScrumRole,
+  onSelectedScrumRoleChange,
   usersPending,
 }: AssignMemberModalProps) {
   if (!isOpen) return null;
@@ -102,6 +112,21 @@ export function AssignMemberModal({
                 {membershipRoles.map((role) => (
                   <option key={role} value={role}>
                     {role === 'MANAGER' ? 'Gestor (Manager)' : role === 'CONTRIBUTOR' ? 'Colaborador' : 'Lector (Viewer)'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm text-slate-655 dark:text-slate-355">
+              <span className="mb-1 block font-medium">Rol Scrum / Rol de Equipo</span>
+              <select
+                className={fieldClassName}
+                disabled={usersPending}
+                onChange={(event) => onSelectedScrumRoleChange(event.target.value)}
+                value={selectedScrumRole}
+              >
+                {scrumRoles.map((sr) => (
+                  <option key={sr.value} value={sr.value}>
+                    {sr.label}
                   </option>
                 ))}
               </select>

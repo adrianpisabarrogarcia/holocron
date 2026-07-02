@@ -16,7 +16,7 @@ type BoardPageProps = {
 
 export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPageProps) {
   // Store task actions
-  const { createTask, updateTask, deleteTask, moveTask } = useBoardStore();
+  const { createTask, updateTask, deleteTask, moveTask, members } = useBoardStore();
 
   // Task creation/editing state
   const [isTaskCreateOpen, setIsTaskCreateOpen] = useState(false);
@@ -116,6 +116,64 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
               {isViewer ? 'Modo de visualización (lectura)' : 'Arrastra tareas entre columnas o haz clic en ellas para modificarlas'}
             </CardDescription>
           </div>
+
+          {/* TEAM MEMBERS LIST */}
+          {members && members.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1">Equipo:</span>
+              <div className="flex -space-x-2 hover:space-x-1 transition-all duration-300">
+                {members.map((m) => {
+                  const initials = m.name
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .substring(0, 2)
+                    .toUpperCase();
+
+                  // Styles for Scrum Role Badge
+                  let scrumBadgeColor = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+                  let scrumLabel = '';
+                  if (m.scrumRole === 'DEVELOPER') {
+                    scrumBadgeColor = 'bg-sky-100 text-sky-850 dark:bg-sky-950/45 dark:text-sky-355 border border-sky-200/40';
+                    scrumLabel = 'Developer';
+                  } else if (m.scrumRole === 'PRODUCT_OWNER') {
+                    scrumBadgeColor = 'bg-purple-100 text-purple-850 dark:bg-purple-950/45 dark:text-purple-355 border border-purple-200/40';
+                    scrumLabel = 'Product Owner';
+                  } else if (m.scrumRole === 'SCRUM_MASTER') {
+                    scrumBadgeColor = 'bg-emerald-100 text-emerald-850 dark:bg-emerald-950/45 dark:text-emerald-355 border border-emerald-200/40';
+                    scrumLabel = 'Scrum Master';
+                  }
+
+                  const permissionLabel = m.role === 'MANAGER' ? 'Gestor' : m.role === 'CONTRIBUTOR' ? 'Colaborador' : 'Lector';
+
+                  return (
+                    <div
+                      key={m.userId}
+                      className="group relative flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 ring-2 ring-white dark:ring-slate-900 transition-all duration-200 hover:z-30 hover:scale-105 cursor-help"
+                    >
+                      <span className="text-xs font-black text-slate-700 dark:text-slate-200">{initials}</span>
+
+                      {/* TOOLTIP */}
+                      <div className="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 rounded-xl bg-slate-900 dark:bg-slate-950 p-2.5 shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-250 z-50 flex flex-col gap-1 border border-slate-200 dark:border-slate-800">
+                        <p className="text-xs font-black text-white truncate">{m.name}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{m.email}</p>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          <span className="inline-flex items-center rounded-md bg-slate-800 text-slate-300 border border-slate-700/50 px-1.5 py-0.5 text-[9px] font-medium">
+                            {permissionLabel}
+                          </span>
+                          {scrumLabel && (
+                            <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold ${scrumBadgeColor}`}>
+                              {scrumLabel}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="pt-6">
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
