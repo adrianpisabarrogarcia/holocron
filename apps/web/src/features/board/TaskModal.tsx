@@ -11,8 +11,16 @@ type TaskModalProps = {
   onClose: () => void;
   task: TaskSummary | null; // Null means create mode
   initialStatus?: TaskSummary['status'];
-  onSave: (title: string, desc: string | undefined, status: TaskSummary['status'], priority: TaskSummary['priority']) => Promise<void>;
+  onSave: (
+    title: string,
+    desc: string | undefined,
+    status: TaskSummary['status'],
+    priority: TaskSummary['priority'],
+    isBlocked: boolean,
+    blockedReason: string | null
+  ) => Promise<void>;
   onDelete?: () => Promise<void>;
+  columns: string[];
 };
 
 export function TaskModal({
@@ -22,11 +30,14 @@ export function TaskModal({
   initialStatus = 'TODO',
   onSave,
   onDelete,
+  columns,
 }: TaskModalProps) {
   const [taskTitle, setTaskTitle] = useState(task?.title ?? '');
   const [taskDesc, setTaskDesc] = useState(task?.description ?? '');
   const [taskPriority, setTaskPriority] = useState<TaskSummary['priority']>(task?.priority ?? 'MEDIUM');
   const [taskStatus, setTaskStatus] = useState<TaskSummary['status']>(task?.status ?? initialStatus);
+  const [isBlocked, setIsBlocked] = useState(task?.isBlocked ?? false);
+  const [blockedReason, setBlockedReason] = useState(task?.blockedReason ?? '');
 
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -39,7 +50,14 @@ export function TaskModal({
     setError(null);
     setPending(true);
     try {
-      await onSave(taskTitle, taskDesc || undefined, taskStatus, taskPriority);
+      await onSave(
+        taskTitle,
+        taskDesc || undefined,
+        taskStatus,
+        taskPriority,
+        isBlocked,
+        isBlocked ? (blockedReason.trim() || 'Bloqueado') : null
+      );
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar la tarea');
@@ -118,15 +136,46 @@ export function TaskModal({
                 <select
                   className={fieldClassName}
                   value={taskStatus}
-                  onChange={(e) => setTaskStatus(e.target.value as TaskSummary['status'])}
+                  onChange={(e) => setTaskStatus(e.target.value)}
                 >
-                  <option value="TODO">Por Hacer</option>
-                  <option value="IN_PROGRESS">En Progreso</option>
-                  <option value="BLOCKED">Bloqueado</option>
-                  <option value="DONE">Completado</option>
+                  {columns.map((colName) => (
+                    <option key={colName} value={colName}>
+                      {colName}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
+
+            {/* Blocked checkbox and reason */}
+            <div className="bg-slate-50 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 space-y-3">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isBlocked}
+                  onChange={(e) => setIsBlocked(e.target.checked)}
+                  className="rounded border-slate-300 dark:border-slate-700 text-indigo-650 focus:ring-indigo-600 h-4.5 w-4.5 transition duration-150"
+                />
+                <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-250">
+                  Esta tarea está bloqueada
+                </span>
+              </label>
+
+              {isBlocked && (
+                <label className="block text-sm text-slate-655 dark:text-slate-355">
+                  <span className="mb-1 block text-xs font-medium text-slate-400 dark:text-slate-500">Motivo del bloqueo</span>
+                  <input
+                    type="text"
+                    className={`${fieldClassName} text-xs py-1.5`}
+                    value={blockedReason}
+                    onChange={(e) => setBlockedReason(e.target.value)}
+                    placeholder="Ej: Esperando respuesta del cliente"
+                    required
+                  />
+                </label>
+              )}
+            </div>
+
             {error && <div className="text-xs text-rose-500">{error}</div>}
             <div className="flex gap-2 justify-between pt-2">
               {task && onDelete ? (

@@ -20,6 +20,13 @@ export type AuthResponse = {
   user: AuthenticatedUser;
 };
 
+export type ProjectColumnSummary = {
+  id: string;
+  projectId: string;
+  name: string;
+  position: number;
+};
+
 export type ProjectSummary = {
   id: string;
   name: string;
@@ -31,6 +38,7 @@ export type ProjectSummary = {
   startDate?: string | null;
   endDate?: string | null;
   folderId?: string | null;
+  columns?: ProjectColumnSummary[];
 };
 
 export type ScrumRole = 'DEVELOPER' | 'PRODUCT_OWNER' | 'SCRUM_MASTER';
@@ -67,8 +75,10 @@ export type TaskSummary = {
   id: string;
   title: string;
   description: string | null;
-  status: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE';
+  status: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  isBlocked: boolean;
+  blockedReason: string | null;
 };
 
 export type FolderSummary = {

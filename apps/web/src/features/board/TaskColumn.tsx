@@ -29,6 +29,12 @@ export function TaskColumn({
   onTaskClick,
   onAddTask,
 }: TaskColumnProps) {
+  const normalizedStatus = column.status.toLowerCase().trim();
+  const isTodo = normalizedStatus === 'todo' || normalizedStatus.startsWith('por hacer');
+  const isInProgress = normalizedStatus === 'in_progress' || normalizedStatus.startsWith('en progreso');
+  const isTest = normalizedStatus === 'test' || normalizedStatus.startsWith('test') || normalizedStatus.startsWith('prueba');
+  const isDone = normalizedStatus === 'done' || normalizedStatus.startsWith('completado') || normalizedStatus.startsWith('hecho');
+
   return (
     <section
       onDragOver={(e) => onDragOver(e, column.status)}
@@ -44,12 +50,13 @@ export function TaskColumn({
     >
       <div className="mb-4 flex items-center justify-between pb-2 border-b border-slate-200/50 dark:border-slate-800/50">
         <div className="flex items-center gap-2">
-          {column.status === 'TODO' && <Clock className="h-4 w-4 text-indigo-500" />}
-          {column.status === 'IN_PROGRESS' && <Clock className="h-4 w-4 text-amber-500" />}
-          {column.status === 'BLOCKED' && <AlertTriangle className="h-4 w-4 text-rose-500" />}
-          {column.status === 'DONE' && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+          {isTodo && <Clock className="h-4 w-4 text-indigo-500" />}
+          {isInProgress && <Clock className="h-4 w-4 text-amber-500" />}
+          {isTest && <Clock className="h-4 w-4 text-blue-500" />}
+          {isDone && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+          {!isTodo && !isInProgress && !isTest && !isDone && <Clock className="h-4 w-4 text-slate-400" />}
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">
-            {statusLabel[column.status]}
+            {statusLabel[column.status] || column.status}
           </h2>
         </div>
         <div className="flex items-center gap-1.5">

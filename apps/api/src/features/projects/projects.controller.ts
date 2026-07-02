@@ -55,4 +55,8 @@ export class ProjectsController {
   listFolderMembers = async (request: FastifyRequest, reply: FastifyReply) => {
     return this.projectsService.listFolderMembers(request, reply);
   };
+
+  syncProjectColumns = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.projectsService.syncProjectColumns(request, reply);
+  };
 }

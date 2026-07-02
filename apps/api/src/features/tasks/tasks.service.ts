@@ -24,13 +24,17 @@ export class TasksService {
         description: true,
         status: true,
         priority: true,
+        isBlocked: true,
+        blockedReason: true,
       },
     });
 
     return tasks.map((task) => ({
       ...task,
-      status: task.status as TaskSummary['status'],
+      status: task.status,
       priority: task.priority as TaskSummary['priority'],
+      isBlocked: task.isBlocked,
+      blockedReason: task.blockedReason,
     }));
   }
 
@@ -45,11 +49,13 @@ export class TasksService {
       return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
     }
 
-    const { title, description, status, priority } = (request.body ?? {}) as {
+    const { title, description, status, priority, isBlocked, blockedReason } = (request.body ?? {}) as {
       title?: string;
       description?: string;
       status?: string;
       priority?: string;
+      isBlocked?: boolean;
+      blockedReason?: string | null;
     };
 
     if (!title) {
@@ -64,6 +70,8 @@ export class TasksService {
         priority: priority ?? 'MEDIUM',
         projectId,
         createdById: authUser.id,
+        isBlocked: isBlocked ?? false,
+        blockedReason: blockedReason ?? null,
       },
       select: {
         id: true,
@@ -71,6 +79,8 @@ export class TasksService {
         description: true,
         status: true,
         priority: true,
+        isBlocked: true,
+        blockedReason: true,
       },
     });
 
@@ -88,8 +98,10 @@ export class TasksService {
       id: task.id,
       title: task.title,
       description: task.description,
-      status: task.status as TaskSummary['status'],
+      status: task.status,
       priority: task.priority as TaskSummary['priority'],
+      isBlocked: task.isBlocked,
+      blockedReason: task.blockedReason,
     };
   }
 
@@ -104,11 +116,13 @@ export class TasksService {
       return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
     }
 
-    const { title, description, status, priority } = (request.body ?? {}) as {
+    const { title, description, status, priority, isBlocked, blockedReason } = (request.body ?? {}) as {
       title?: string;
       description?: string;
       status?: string;
       priority?: string;
+      isBlocked?: boolean;
+      blockedReason?: string | null;
     };
 
     const existingTask = await prisma.task.findUnique({
@@ -125,6 +139,8 @@ export class TasksService {
     if (description !== undefined) dataToUpdate.description = description;
     if (status !== undefined) dataToUpdate.status = status;
     if (priority !== undefined) dataToUpdate.priority = priority;
+    if (isBlocked !== undefined) dataToUpdate.isBlocked = isBlocked;
+    if (blockedReason !== undefined) dataToUpdate.blockedReason = blockedReason;
 
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
@@ -135,6 +151,8 @@ export class TasksService {
         description: true,
         status: true,
         priority: true,
+        isBlocked: true,
+        blockedReason: true,
       },
     });
 
@@ -154,8 +172,10 @@ export class TasksService {
       id: updatedTask.id,
       title: updatedTask.title,
       description: updatedTask.description,
-      status: updatedTask.status as TaskSummary['status'],
+      status: updatedTask.status,
       priority: updatedTask.priority as TaskSummary['priority'],
+      isBlocked: updatedTask.isBlocked,
+      blockedReason: updatedTask.blockedReason,
     };
   }
 

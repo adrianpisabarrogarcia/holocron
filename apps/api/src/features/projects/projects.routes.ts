@@ -7,6 +7,7 @@ export function registerProjectsRoutes(app: FastifyInstance, controller: Project
   app.post('/api/projects', { preHandler: authenticateRequest }, controller.createProject);
   app.patch('/api/projects/:projectId', { preHandler: authenticateRequest }, controller.updateProject);
   app.delete('/api/projects/:projectId', { preHandler: authenticateRequest }, controller.deleteProject);
+  app.put('/api/projects/:projectId/columns', { preHandler: authenticateRequest }, controller.syncProjectColumns);
 
   app.get('/api/projects/:projectId/members', { preHandler: authenticateRequest }, controller.listMembers);
   app.post('/api/projects/:projectId/members', { preHandler: requireAdmin }, controller.addOrUpdateMember);

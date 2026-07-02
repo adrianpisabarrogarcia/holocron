@@ -4,6 +4,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { useBoardStore } from '../../store/useBoardStore';
 import { TaskColumn } from './TaskColumn';
 import { TaskModal } from './TaskModal';
+import { Settings } from 'lucide-react';
+import { ManageColumnsModal } from './ManageColumnsModal';
 
 type BoardPageProps = {
   currentProject: ProjectSummary | null;
@@ -16,11 +18,12 @@ type BoardPageProps = {
 
 export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPageProps) {
   // Store task actions
-  const { createTask, updateTask, deleteTask, moveTask, members } = useBoardStore();
+  const { createTask, updateTask, deleteTask, moveTask, members, syncColumns } = useBoardStore();
 
   // Task creation/editing state
   const [isTaskCreateOpen, setIsTaskCreateOpen] = useState(false);
   const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
+  const [isManageColumnsOpen, setIsManageColumnsOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskSummary | null>(null);
   const [createInitialStatus, setCreateInitialStatus] = useState<TaskSummary['status']>('TODO');
 
@@ -41,9 +44,11 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
     title: string,
     desc: string | undefined,
     status: TaskSummary['status'],
-    priority: TaskSummary['priority']
+    priority: TaskSummary['priority'],
+    isBlocked: boolean,
+    blockedReason: string | null
   ) => {
-    await createTask(title, desc, status, priority);
+    await createTask(title, desc, status, priority, isBlocked, blockedReason);
   };
 
   const openEditTask = (task: TaskSummary) => {
@@ -56,10 +61,12 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
     title: string,
     desc: string | undefined,
     status: TaskSummary['status'],
-    priority: TaskSummary['priority']
+    priority: TaskSummary['priority'],
+    isBlocked: boolean,
+    blockedReason: string | null
   ) => {
     if (!selectedTask) return;
-    await updateTask(selectedTask.id, title, desc, status, priority);
+    await updateTask(selectedTask.id, title, desc, status, priority, isBlocked, blockedReason);
   };
 
   const handleDeleteTask = async () => {
@@ -110,8 +117,21 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-col gap-4 border-b border-slate-200/80 dark:border-slate-800/80 pb-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle>{currentProject?.name ?? 'Tablero Principal'}</CardTitle>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-3">
+              <CardTitle>{currentProject?.name ?? 'Tablero Principal'}</CardTitle>
+              {canWrite && currentProject && (
+                <button
+                  type="button"
+                  onClick={() => setIsManageColumnsOpen(true)}
+                  className="inline-flex items-center gap-1 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-650 dark:bg-indigo-950/45 dark:hover:bg-indigo-900/40 px-2 py-0.5 text-xs font-bold transition duration-150 active:scale-95 shrink-0"
+                  title="Configurar Columnas"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                  <span>Columnas</span>
+                </button>
+              )}
+            </div>
             <CardDescription>
               {isViewer ? 'Modo de visualización (lectura)' : 'Arrastra tareas entre columnas o haz clic en ellas para modificarlas'}
             </CardDescription>
@@ -176,25 +196,28 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
           )}
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {tasksByStatus.map((column) => {
-              const isLaneActive = activeLane === column.status;
-              return (
-                <TaskColumn
-                  key={column.status}
-                  column={column}
-                  isLaneActive={isLaneActive}
-                  canWrite={canWrite}
-                  onDragOver={handleDragOver}
-                  onDragEnter={handleDragEnter}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onDragStart={handleDragStart}
-                  onTaskClick={openEditTask}
-                  onAddTask={openCreateTask}
-                />
-              );
-            })}
+          <div className="overflow-x-auto pb-2">
+            <div className="flex gap-5 min-w-max">
+              {tasksByStatus.map((column) => {
+                const isLaneActive = activeLane === column.status;
+                return (
+                  <div key={column.status} className="w-72 shrink-0">
+                    <TaskColumn
+                      column={column}
+                      isLaneActive={isLaneActive}
+                      canWrite={canWrite}
+                      onDragOver={handleDragOver}
+                      onDragEnter={handleDragEnter}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onDragStart={handleDragStart}
+                      onTaskClick={openEditTask}
+                      onAddTask={openCreateTask}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -207,6 +230,7 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
           task={null}
           initialStatus={createInitialStatus}
           onSave={handleCreateTask}
+          columns={tasksByStatus.map((lane) => lane.status)}
         />
       )}
 
@@ -218,6 +242,19 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
           task={selectedTask}
           onSave={handleEditTask}
           onDelete={handleDeleteTask}
+          columns={tasksByStatus.map((lane) => lane.status)}
+        />
+      )}
+
+      {/* MANAGE COLUMNS MODAL */}
+      {isManageColumnsOpen && currentProject && (
+        <ManageColumnsModal
+          isOpen={isManageColumnsOpen}
+          onClose={() => setIsManageColumnsOpen(false)}
+          columns={currentProject.columns ?? []}
+          onSave={async (cols) => {
+            await syncColumns(currentProject.id, cols);
+          }}
         />
       )}
     </div>

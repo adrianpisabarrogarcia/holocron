@@ -19,10 +19,11 @@ type BoardStore = {
   createProject: (name: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null, folderId?: string | null) => Promise<void>;
   updateProject: (projectId: string, name?: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null, folderId?: string | null) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
-  createTask: (title: string, description?: string, status?: string, priority?: string) => Promise<void>;
-  updateTask: (taskId: string, title?: string, description?: string, status?: string, priority?: string) => Promise<void>;
+  createTask: (title: string, description?: string, status?: string, priority?: string, isBlocked?: boolean, blockedReason?: string | null) => Promise<void>;
+  updateTask: (taskId: string, title?: string, description?: string, status?: string, priority?: string, isBlocked?: boolean, blockedReason?: string | null) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   moveTask: (taskId: string, newStatus: TaskSummary['status']) => Promise<void>;
+  syncColumns: (projectId: string, columns: { id?: string; name: string; position: number }[]) => Promise<void>;
 };
 
 async function loadProjectMembers(projectId: string) {
@@ -182,7 +183,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw error;
     }
   },
-  createTask: async (title, description, status, priority) => {
+  createTask: async (title, description, status, priority, isBlocked, blockedReason) => {
     const { selectedProjectId } = get();
     if (!selectedProjectId) throw new Error('No project selected');
     set({ error: null, loading: true });
@@ -190,7 +191,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       const response = await apiFetch(`/api/projects/${selectedProjectId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, status, priority }),
+        body: JSON.stringify({ title, description, status, priority, isBlocked, blockedReason }),
       });
 
       if (!response.ok) {
@@ -203,7 +204,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw error;
     }
   },
-  updateTask: async (taskId, title, description, status, priority) => {
+  updateTask: async (taskId, title, description, status, priority, isBlocked, blockedReason) => {
     const { selectedProjectId } = get();
     if (!selectedProjectId) throw new Error('No project selected');
     set({ error: null, loading: true });
@@ -211,7 +212,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       const response = await apiFetch(`/api/projects/${selectedProjectId}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, status, priority }),
+        body: JSON.stringify({ title, description, status, priority, isBlocked, blockedReason }),
       });
 
       if (!response.ok) {
@@ -318,6 +319,25 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         folders: state.folders.filter((f) => f.id !== folderId),
         loading: false,
       }));
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false });
+      throw error;
+    }
+  },
+  syncColumns: async (projectId, columns) => {
+    set({ error: null, loading: true });
+    try {
+      const response = await apiFetch(`/api/projects/${projectId}/columns`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ columns }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseJsonError(response));
+      }
+
+      await get().loadBoard();
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false });
       throw error;

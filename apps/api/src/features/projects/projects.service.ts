@@ -4,6 +4,7 @@ import type {
   UpsertFolderMemberInput,
   ProjectMemberSummary,
   ProjectSummary,
+  ProjectColumnSummary,
   UpsertProjectMemberInput,
   ScrumRole,
   ProjectMembershipRole,
@@ -23,6 +24,29 @@ import {
   buildProjectMemberSummary,
   buildFolderMemberSummary,
 } from '../../shared';
+
+export function getProjectColumns(project: any): ProjectColumnSummary[] {
+  if (project.columns && project.columns.length > 0) {
+    return project.columns.map((c: any) => ({
+      id: c.id,
+      projectId: c.projectId,
+      name: c.name,
+      position: c.position,
+    }));
+  }
+  return [
+    { id: 'todo', projectId: project.id, name: 'Por Hacer', position: 0 },
+    { id: 'in_progress', projectId: project.id, name: 'En Progreso', position: 1 },
+    { id: 'test', projectId: project.id, name: 'Test', position: 2 },
+    { id: 'done', projectId: project.id, name: 'Completado', position: 3 },
+  ];
+}
+
+export function getCompletedTaskCount(project: any, cols: ProjectColumnSummary[]): number {
+  const lastCol = cols.reduce((max, col) => (col.position > max.position ? col : max), cols[0]);
+  if (!lastCol) return 0;
+  return project.tasks.filter((t: any) => t.status === lastCol.name).length;
+}
 
 export class ProjectsService {
   async listProjects(request: FastifyRequest): Promise<ProjectSummary[]> {
@@ -46,6 +70,17 @@ export class ProjectsService {
           tasks: {
             select: {
               status: true,
+            },
+          },
+          columns: {
+            orderBy: {
+              position: 'asc',
+            },
+            select: {
+              id: true,
+              projectId: true,
+              name: true,
+              position: true,
             },
           },
         },
@@ -83,18 +118,22 @@ export class ProjectsService {
     ]);
 
     if (authUser.platformRole === 'ADMIN') {
-      return projects.map((project) => ({
-        id: project.id,
-        name: project.name,
-        description: project.description,
-        status: project.status as ProjectSummary['status'],
-        membershipRole: null,
-        taskCount: project._count.tasks,
-        completedTaskCount: project.tasks.filter((task) => task.status === 'DONE').length,
-        startDate: project.startDate ? project.startDate.toISOString() : null,
-        endDate: project.endDate ? project.endDate.toISOString() : null,
-        folderId: project.folderId,
-      }));
+      return projects.map((project) => {
+        const cols = getProjectColumns(project);
+        return {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          status: project.status as ProjectSummary['status'],
+          membershipRole: null,
+          taskCount: project._count.tasks,
+          completedTaskCount: getCompletedTaskCount(project, cols),
+          startDate: project.startDate ? project.startDate.toISOString() : null,
+          endDate: project.endDate ? project.endDate.toISOString() : null,
+          folderId: project.folderId,
+          columns: cols,
+        };
+      });
     }
 
     const folderParentById = new Map(folders.map((folder) => [folder.id, folder.parentFolderId] as const));
@@ -129,6 +168,7 @@ export class ProjectsService {
           return null;
         }
 
+        const cols = getProjectColumns(project);
         return {
           id: project.id,
           name: project.name,
@@ -136,10 +176,11 @@ export class ProjectsService {
           status: project.status as ProjectSummary['status'],
           membershipRole,
           taskCount: project._count.tasks,
-          completedTaskCount: project.tasks.filter((task) => task.status === 'DONE').length,
+          completedTaskCount: getCompletedTaskCount(project, cols),
           startDate: project.startDate ? project.startDate.toISOString() : null,
           endDate: project.endDate ? project.endDate.toISOString() : null,
           folderId: project.folderId,
+          columns: cols,
         } satisfies ProjectSummary;
       })
       .filter((project): project is ProjectSummary => project !== null);
@@ -622,5 +663,104 @@ export class ProjectsService {
     });
 
     return folderMembers.map(buildFolderMemberSummary);
+  }
+
+  async syncProjectColumns(request: FastifyRequest, reply: FastifyReply) {
+    const { projectId } = request.params as { projectId: string };
+    const authUser = request.authUser as AuthenticatedUser;
+
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access || reply.sent) return;
+
+    if (authUser.platformRole !== 'ADMIN' && access.membershipRole !== 'MANAGER' && access.membershipRole !== 'CONTRIBUTOR') {
+      return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
+    }
+
+    const { columns } = (request.body ?? {}) as {
+      columns?: Array<{ id?: string; name: string; position: number }>;
+    };
+
+    if (!columns || !Array.isArray(columns) || columns.length === 0) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'At least one column is required');
+    }
+
+    // Sort by position
+    const sortedCols = [...columns].sort((a, b) => a.position - b.position);
+
+    // We run inside a transaction
+    await prisma.$transaction(async (tx) => {
+      // 1. Get current columns
+      const currentCols = await tx.projectColumn.findMany({
+        where: { projectId },
+      });
+
+      const currentIds = currentCols.map((c) => c.id);
+      const payloadIds = sortedCols.map((c) => c.id).filter(Boolean) as string[];
+
+      // Columns to delete
+      const idsToDelete = currentIds.filter((id) => !payloadIds.includes(id));
+      const colsToDelete = currentCols.filter((c) => idsToDelete.includes(c.id));
+
+      // First new column name (fallback status)
+      const firstColumnName = sortedCols[0].name;
+
+      // 2. If deleting columns, move tasks in those columns to the first column in the payload
+      if (colsToDelete.length > 0) {
+        const deletedNames = colsToDelete.map((c) => c.name);
+        await tx.task.updateMany({
+          where: {
+            projectId,
+            status: { in: deletedNames },
+          },
+          data: {
+            status: firstColumnName,
+          },
+        });
+
+        // Delete them
+        await tx.projectColumn.deleteMany({
+          where: {
+            id: { in: idsToDelete },
+          },
+        });
+      }
+
+      // 3. Update existing and create new
+      for (const col of sortedCols) {
+        if (col.id) {
+          // Update
+          await tx.projectColumn.update({
+            where: { id: col.id },
+            data: {
+              name: col.name,
+              position: col.position,
+            },
+          });
+        } else {
+          // Create
+          await tx.projectColumn.create({
+            data: {
+              projectId,
+              name: col.name,
+              position: col.position,
+            },
+          });
+        }
+      }
+    });
+
+    // Fetch and return the new columns
+    const updatedCols = await prisma.projectColumn.findMany({
+      where: { projectId },
+      orderBy: { position: 'asc' },
+      select: {
+        id: true,
+        projectId: true,
+        name: true,
+        position: true,
+      },
+    });
+
+    return updatedCols;
   }
 }

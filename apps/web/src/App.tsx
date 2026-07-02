@@ -76,9 +76,16 @@ export function App() {
   const currentProject = projects.find((project) => project.id === boardSelectedProjectId) ?? null;
   const projectAccessLabel = currentProject?.membershipRole ?? (user?.platformRole === 'ADMIN' ? 'ADMIN' : null);
   const isAdmin = user?.platformRole === 'ADMIN';
-  const completedTasks = tasks.filter((task) => task.status === 'DONE').length;
-  const blockedTasks = tasks.filter((task) => task.status === 'BLOCKED').length;
-  const tasksByStatus = statusOrder.map((taskStatus) => ({
+  const projectColumns = currentProject?.columns && currentProject.columns.length > 0
+    ? currentProject.columns.map((c) => c.name)
+    : ['Por Hacer', 'En Progreso', 'Test', 'Completado'];
+
+  const completedTasks = tasks.filter((task) => {
+    const lastCol = projectColumns[projectColumns.length - 1];
+    return task.status === lastCol;
+  }).length;
+  const blockedTasks = tasks.filter((task) => task.isBlocked).length;
+  const tasksByStatus = projectColumns.map((taskStatus) => ({
     status: taskStatus,
     tasks: tasks.filter((task) => task.status === taskStatus),
   }));
