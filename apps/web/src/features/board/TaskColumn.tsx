@@ -5,7 +5,7 @@ import { statusLabel } from '../../lib/constants';
 import { TaskCard } from './TaskCard';
 
 type TaskColumnProps = {
-  column: { status: TaskSummary['status']; tasks: TaskSummary[] };
+  column: { status: TaskSummary['status']; emoji?: string | null; tasks: TaskSummary[] };
   isLaneActive: boolean;
   canWrite: boolean;
   onDragOver: (e: React.DragEvent, status: TaskSummary['status']) => void;
@@ -50,11 +50,17 @@ export function TaskColumn({
     >
       <div className="mb-4 flex items-center justify-between pb-2 border-b border-slate-200/50 dark:border-slate-800/50">
         <div className="flex items-center gap-2">
-          {isTodo && <Clock className="h-4 w-4 text-indigo-500" />}
-          {isInProgress && <Clock className="h-4 w-4 text-amber-500" />}
-          {isTest && <Clock className="h-4 w-4 text-blue-500" />}
-          {isDone && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-          {!isTodo && !isInProgress && !isTest && !isDone && <Clock className="h-4 w-4 text-slate-400" />}
+          {column.emoji ? (
+            <span className="text-base shrink-0 select-none mr-0.5">{column.emoji}</span>
+          ) : (
+            <>
+              {isTodo && <Clock className="h-4 w-4 text-indigo-500" />}
+              {isInProgress && <Clock className="h-4 w-4 text-amber-500" />}
+              {isTest && <Clock className="h-4 w-4 text-blue-500" />}
+              {isDone && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+              {!isTodo && !isInProgress && !isTest && !isDone && <Clock className="h-4 w-4 text-slate-400" />}
+            </>
+          )}
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">
             {statusLabel[column.status] || column.status}
           </h2>

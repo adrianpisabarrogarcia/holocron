@@ -12,7 +12,7 @@ type BoardPageProps = {
   onProjectChange: (projectId: string) => Promise<void>;
   projects: ProjectSummary[];
   selectedProjectId: string | null;
-  tasksByStatus: Array<{ status: TaskSummary['status']; tasks: TaskSummary[] }>;
+  tasksByStatus: Array<{ status: TaskSummary['status']; emoji?: string | null; tasks: TaskSummary[] }>;
   userRole: string;
 };
 

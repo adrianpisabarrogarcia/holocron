@@ -77,17 +77,23 @@ export function App() {
   const projectAccessLabel = currentProject?.membershipRole ?? (user?.platformRole === 'ADMIN' ? 'ADMIN' : null);
   const isAdmin = user?.platformRole === 'ADMIN';
   const projectColumns = currentProject?.columns && currentProject.columns.length > 0
-    ? currentProject.columns.map((c) => c.name)
-    : ['Por Hacer', 'En Progreso', 'Test', 'Completado'];
+    ? currentProject.columns
+    : [
+        { id: 'todo', name: 'Por Hacer', emoji: '📋' },
+        { id: 'in_progress', name: 'En Progreso', emoji: '⚡' },
+        { id: 'test', name: 'Test', emoji: '🧪' },
+        { id: 'done', name: 'Completado', emoji: '✅' },
+      ];
 
   const completedTasks = tasks.filter((task) => {
     const lastCol = projectColumns[projectColumns.length - 1];
-    return task.status === lastCol;
+    return task.status === lastCol.name;
   }).length;
   const blockedTasks = tasks.filter((task) => task.isBlocked).length;
-  const tasksByStatus = projectColumns.map((taskStatus) => ({
-    status: taskStatus,
-    tasks: tasks.filter((task) => task.status === taskStatus),
+  const tasksByStatus = projectColumns.map((col) => ({
+    status: col.name,
+    emoji: col.emoji || null,
+    tasks: tasks.filter((task) => task.status === col.name),
   }));
 
   useEffect(() => {

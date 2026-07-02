@@ -23,7 +23,7 @@ type BoardStore = {
   updateTask: (taskId: string, title?: string, description?: string, status?: string, priority?: string, isBlocked?: boolean, blockedReason?: string | null) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   moveTask: (taskId: string, newStatus: TaskSummary['status']) => Promise<void>;
-  syncColumns: (projectId: string, columns: { id?: string; name: string; position: number }[]) => Promise<void>;
+  syncColumns: (projectId: string, columns: { id?: string; name: string; emoji?: string | null; position: number }[]) => Promise<void>;
 };
 
 async function loadProjectMembers(projectId: string) {

@@ -6,6 +6,7 @@ import { fieldClassName } from '../../lib/constants';
 type ColumnItem = {
   id?: string;
   name: string;
+  emoji?: string | null;
   position: number;
 };
 
@@ -28,6 +29,7 @@ export function ManageColumnsModal({
     [...initialColumns].sort((a, b) => a.position - b.position)
   );
   const [newColName, setNewColName] = useState('');
+  const [newColEmoji, setNewColEmoji] = useState('📌');
 
   if (!isOpen) return null;
 
@@ -40,10 +42,12 @@ export function ManageColumnsModal({
     }
     const newCol: ColumnItem = {
       name: newColName.trim(),
+      emoji: newColEmoji.trim() || null,
       position: columns.length,
     };
     setColumns([...columns, newCol]);
     setNewColName('');
+    setNewColEmoji('📌');
   };
 
   const handleRemoveColumn = (index: number) => {
@@ -83,6 +87,12 @@ export function ManageColumnsModal({
     setColumns(updated);
   };
 
+  const handleEmojiChange = (index: number, emoji: string) => {
+    const updated = [...columns];
+    updated[index] = { ...updated[index], emoji };
+    setColumns(updated);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (columns.length === 0) return;
@@ -100,7 +110,7 @@ export function ManageColumnsModal({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition duration-150"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition duration-150"
         >
           <X className="h-5 w-5" />
         </button>
@@ -123,7 +133,17 @@ export function ManageColumnsModal({
                 key={col.id || `temp-${index}`}
                 className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-200/50 dark:border-slate-800/50"
               >
-                {/* Inputs */}
+                {/* Emoji Input */}
+                <input
+                  type="text"
+                  maxLength={2}
+                  className={`${fieldClassName} w-12 text-center text-base py-1.5 shrink-0`}
+                  value={col.emoji || ''}
+                  onChange={(e) => handleEmojiChange(index, e.target.value)}
+                  placeholder="📌"
+                />
+
+                {/* Name Input */}
                 <input
                   type="text"
                   required
@@ -169,10 +189,18 @@ export function ManageColumnsModal({
             <div className="flex gap-2">
               <input
                 type="text"
+                maxLength={2}
+                placeholder="📌"
+                value={newColEmoji}
+                onChange={(e) => setNewColEmoji(e.target.value)}
+                className={`${fieldClassName} w-12 text-center text-base py-1.5 shrink-0`}
+              />
+              <input
+                type="text"
                 placeholder="Nueva columna..."
                 value={newColName}
                 onChange={(e) => setNewColName(e.target.value)}
-                className={`${fieldClassName} text-sm py-1.5`}
+                className={`${fieldClassName} flex-1 text-sm py-1.5`}
               />
               <Button type="button" variant="outline" size="sm" onClick={handleAddColumn}>
                 <Plus className="h-4 w-4 mr-1" />

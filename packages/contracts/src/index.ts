@@ -24,6 +24,7 @@ export type ProjectColumnSummary = {
   id: string;
   projectId: string;
   name: string;
+  emoji: string | null;
   position: number;
 };
 

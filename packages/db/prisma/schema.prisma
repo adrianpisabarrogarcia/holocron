@@ -145,6 +145,7 @@ model ProjectColumn {
   id        String   @id @default(cuid())
   projectId String
   name      String
+  emoji     String?
   position  Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

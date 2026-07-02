@@ -31,14 +31,15 @@ export function getProjectColumns(project: any): ProjectColumnSummary[] {
       id: c.id,
       projectId: c.projectId,
       name: c.name,
+      emoji: c.emoji,
       position: c.position,
     }));
   }
   return [
-    { id: 'todo', projectId: project.id, name: 'Por Hacer', position: 0 },
-    { id: 'in_progress', projectId: project.id, name: 'En Progreso', position: 1 },
-    { id: 'test', projectId: project.id, name: 'Test', position: 2 },
-    { id: 'done', projectId: project.id, name: 'Completado', position: 3 },
+    { id: 'todo', projectId: project.id, name: 'Por Hacer', emoji: '📋', position: 0 },
+    { id: 'in_progress', projectId: project.id, name: 'En Progreso', emoji: '⚡', position: 1 },
+    { id: 'test', projectId: project.id, name: 'Test', emoji: '🧪', position: 2 },
+    { id: 'done', projectId: project.id, name: 'Completado', emoji: '✅', position: 3 },
   ];
 }
 
@@ -80,6 +81,7 @@ export class ProjectsService {
               id: true,
               projectId: true,
               name: true,
+              emoji: true,
               position: true,
             },
           },
@@ -677,7 +679,7 @@ export class ProjectsService {
     }
 
     const { columns } = (request.body ?? {}) as {
-      columns?: Array<{ id?: string; name: string; position: number }>;
+      columns?: Array<{ id?: string; name: string; emoji?: string | null; position: number }>;
     };
 
     if (!columns || !Array.isArray(columns) || columns.length === 0) {
@@ -733,6 +735,7 @@ export class ProjectsService {
             where: { id: col.id },
             data: {
               name: col.name,
+              emoji: col.emoji || null,
               position: col.position,
             },
           });
@@ -742,6 +745,7 @@ export class ProjectsService {
             data: {
               projectId,
               name: col.name,
+              emoji: col.emoji || null,
               position: col.position,
             },
           });
@@ -757,6 +761,7 @@ export class ProjectsService {
         id: true,
         projectId: true,
         name: true,
+        emoji: true,
         position: true,
       },
     });
