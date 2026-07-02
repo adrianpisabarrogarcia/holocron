@@ -15,4 +15,8 @@ export function registerProjectsRoutes(app: FastifyInstance, controller: Project
   app.post('/api/folders', { preHandler: authenticateRequest }, controller.createFolder);
   app.delete('/api/folders/:folderId', { preHandler: authenticateRequest }, controller.deleteFolder);
   app.post('/api/folders/:folderId/members', { preHandler: requireAdmin }, controller.addOrUpdateFolderMember);
+  app.get('/api/folders/:folderId/members', { preHandler: requireAdmin }, controller.listFolderMembers);
+
+  app.delete('/api/projects/:projectId/members/:userId', { preHandler: requireAdmin }, controller.removeMember);
+  app.delete('/api/folders/:folderId/members/:userId', { preHandler: requireAdmin }, controller.removeFolderMember);
 }

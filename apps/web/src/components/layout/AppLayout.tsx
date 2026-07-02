@@ -14,6 +14,7 @@ import {
   Folder,
   RefreshCw,
   UserCircle,
+  Key,
 } from 'lucide-react';
 
 type AppLayoutProps = {
@@ -175,6 +176,20 @@ export function AppLayout({
                 >
                   <Folder className="h-4 w-4" />
                   <span>Gestión Proyectos</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/access"
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
+                      isActive
+                        ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-bold border-l-4 border-indigo-600 dark:border-indigo-400 pl-3'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+                    )
+                  }
+                >
+                  <Key className="h-4 w-4" />
+                  <span>Gestión Accesos</span>
                 </NavLink>
               </>
             ) : null}

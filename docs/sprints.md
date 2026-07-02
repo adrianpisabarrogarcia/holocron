@@ -190,6 +190,7 @@ Nota de avance:
 4. Se implementaron los roles Scrum/Equipo (`DEVELOPER`, `PRODUCT_OWNER`, `SCRUM_MASTER`) en la membresía del proyecto (`ProjectMembership`), con soporte en base de datos, tipos de contratos, endpoints API de asignación y visualización interactiva de avatares con tooltip en el Tablero de Tareas (`BoardPage`).
 5. Se modificó el nombre del header lateral a "Holocron Workspace" para reflejar adecuadamente el nombre oficial del espacio de trabajo.
 6. Se implementó la asignación de usuarios a carpetas completas de proyectos a diferentes niveles de jerarquía (herencia recursiva de membresía), integrándolo en la interfaz de administración mediante un selector de árbol jerárquico que muestra la estructura visual anidada de carpetas y subproyectos, y reflejando las carpetas asignadas con badges verdes en la tabla de administración de usuarios (`/admin/users`).
+7. Se diseñó y construyó el panel completo de 'Gestión Accesos' en `/admin/access` con una navegación de árbol jerárquico de carpetas y proyectos en el panel izquierdo y la visualización de los miembros directos en el derecho, permitiendo modificar roles inline, añadir nuevos miembros y revocar accesos en caliente de forma visual e intuitiva.
 
 #### Sprint 3 - Dominio de tareas
 

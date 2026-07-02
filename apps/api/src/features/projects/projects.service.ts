@@ -566,4 +566,61 @@ export class ProjectsService {
 
     return { success: true };
   }
+
+  async removeMember(request: FastifyRequest, reply: FastifyReply) {
+    const authUser = request.authUser as AuthenticatedUser;
+    if (authUser.platformRole !== 'ADMIN') {
+      return sendError(reply, 403, 'FORBIDDEN', 'Admin role is required to manage members');
+    }
+
+    const { projectId, userId } = request.params as { projectId: string; userId: string };
+
+    await prisma.projectMembership.deleteMany({
+      where: { projectId, userId },
+    });
+
+    return { success: true };
+  }
+
+  async removeFolderMember(request: FastifyRequest, reply: FastifyReply) {
+    const authUser = request.authUser as AuthenticatedUser;
+    if (authUser.platformRole !== 'ADMIN') {
+      return sendError(reply, 403, 'FORBIDDEN', 'Admin role is required to manage folder members');
+    }
+
+    const { folderId, userId } = request.params as { folderId: string; userId: string };
+
+    await prisma.folderMembership.deleteMany({
+      where: { folderId, userId },
+    });
+
+    return { success: true };
+  }
+
+  async listFolderMembers(request: FastifyRequest, reply: FastifyReply) {
+    const authUser = request.authUser as AuthenticatedUser;
+    if (authUser.platformRole !== 'ADMIN') {
+      return sendError(reply, 403, 'FORBIDDEN', 'Admin role is required');
+    }
+
+    const { folderId } = request.params as { folderId: string };
+
+    const folderMembers = await prisma.folderMembership.findMany({
+      where: { folderId },
+      orderBy: { user: { name: 'asc' } },
+      select: {
+        role: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            platformRole: true,
+          },
+        },
+      },
+    });
+
+    return folderMembers.map(buildFolderMemberSummary);
+  }
 }

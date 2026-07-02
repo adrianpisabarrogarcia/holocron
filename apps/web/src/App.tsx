@@ -20,6 +20,7 @@ import { OverviewPage } from './features/overview/OverviewPage';
 import { BoardPage } from './features/board/BoardPage';
 import { AdminPage } from './features/admin/AdminPage';
 import { ProjectsAdminPage } from './features/admin/ProjectsAdminPage';
+import { AccessAdminPage } from './features/admin/AccessAdminPage';
 import { CreateProjectCard } from './features/overview/CreateProjectCard';
 
 type RouteState = {
@@ -342,6 +343,16 @@ export function App() {
           element={
             isAdmin ? (
               <ProjectsAdminPage />
+            ) : (
+              <Navigate replace state={{ denied: 'admin' } satisfies RouteState} to="/overview" />
+            )
+          }
+        />
+        <Route
+          path="/admin/access"
+          element={
+            isAdmin ? (
+              <AccessAdminPage />
             ) : (
               <Navigate replace state={{ denied: 'admin' } satisfies RouteState} to="/overview" />
             )

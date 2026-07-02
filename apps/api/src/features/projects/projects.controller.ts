@@ -43,4 +43,16 @@ export class ProjectsController {
   deleteFolder = async (request: FastifyRequest, reply: FastifyReply) => {
     return this.projectsService.deleteFolder(request, reply);
   };
+
+  removeMember = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.projectsService.removeMember(request, reply);
+  };
+
+  removeFolderMember = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.projectsService.removeFolderMember(request, reply);
+  };
+
+  listFolderMembers = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.projectsService.listFolderMembers(request, reply);
+  };
 }
