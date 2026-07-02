@@ -18,6 +18,14 @@ type ManageColumnsModalProps = {
   pending?: boolean;
 };
 
+const EMOJIS = [
+  '📌', '📋', '⚡', '🧪', '✅', 
+  '🚀', '🔥', '🎯', '🛠️', '💡', 
+  '🎨', '📚', '🐛', '🚨', '🎉', 
+  '📅', '💬', '👀', '⭐', '🤝',
+  '💻', '⚙️', '🔍', '📈', '🔑'
+];
+
 export function ManageColumnsModal({
   isOpen,
   onClose,
@@ -30,6 +38,10 @@ export function ManageColumnsModal({
   );
   const [newColName, setNewColName] = useState('');
   const [newColEmoji, setNewColEmoji] = useState('📌');
+
+  // Popover state
+  const [activePickerIndex, setActivePickerIndex] = useState<number | null>(null);
+  const [isNewColPickerOpen, setIsNewColPickerOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -48,6 +60,7 @@ export function ManageColumnsModal({
     setColumns([...columns, newCol]);
     setNewColName('');
     setNewColEmoji('📌');
+    setIsNewColPickerOpen(false);
   };
 
   const handleRemoveColumn = (index: number) => {
@@ -110,7 +123,7 @@ export function ManageColumnsModal({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition duration-150"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 transition duration-150"
         >
           <X className="h-5 w-5" />
         </button>
@@ -133,15 +146,40 @@ export function ManageColumnsModal({
                 key={col.id || `temp-${index}`}
                 className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-200/50 dark:border-slate-800/50"
               >
-                {/* Emoji Input */}
-                <input
-                  type="text"
-                  maxLength={2}
-                  className="w-11 h-10 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-center text-lg outline-none transition focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/20 text-slate-800 dark:text-slate-100 shrink-0"
-                  value={col.emoji || ''}
-                  onChange={(e) => handleEmojiChange(index, e.target.value)}
-                  placeholder="📌"
-                />
+                {/* Emoji Picker Popover */}
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActivePickerIndex(activePickerIndex === index ? null : index);
+                      setIsNewColPickerOpen(false);
+                    }}
+                    className="w-11 h-10 rounded-xl border border-slate-200 bg-white dark:border-slate-850 dark:bg-slate-950 text-center text-lg outline-none transition hover:border-indigo-500 focus:border-indigo-500 text-slate-800 dark:text-slate-100 flex items-center justify-center"
+                    title="Elegir emoji"
+                  >
+                    {col.emoji || '📌'}
+                  </button>
+                  {activePickerIndex === index && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setActivePickerIndex(null)} />
+                      <div className="absolute left-0 mt-2 z-50 p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl grid grid-cols-5 gap-1.5 w-48 animate-in fade-in zoom-in-95 duration-100">
+                        {EMOJIS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => {
+                              handleEmojiChange(index, emoji);
+                              setActivePickerIndex(null);
+                            }}
+                            className="w-8 h-8 rounded-lg hover:bg-slate-105 dark:hover:bg-slate-800 flex items-center justify-center text-base active:scale-90 transition duration-100"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 {/* Name Input */}
                 <input
@@ -186,15 +224,42 @@ export function ManageColumnsModal({
 
           {/* ADD COLUMN SECTION */}
           <div className="border-t border-slate-100 dark:border-slate-800/80 pt-4 mb-4">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                maxLength={2}
-                placeholder="📌"
-                value={newColEmoji}
-                onChange={(e) => setNewColEmoji(e.target.value)}
-                className="w-11 h-10 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-center text-lg outline-none transition focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/20 text-slate-800 dark:text-slate-100 shrink-0"
-              />
+            <div className="flex gap-2 items-center">
+              {/* New Col Emoji Picker Popover */}
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsNewColPickerOpen(!isNewColPickerOpen);
+                    setActivePickerIndex(null);
+                  }}
+                  className="w-11 h-10 rounded-xl border border-slate-200 bg-white dark:border-slate-850 dark:bg-slate-950 text-center text-lg outline-none transition hover:border-indigo-500 focus:border-indigo-500 text-slate-800 dark:text-slate-100 flex items-center justify-center"
+                  title="Elegir emoji"
+                >
+                  {newColEmoji}
+                </button>
+                {isNewColPickerOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsNewColPickerOpen(false)} />
+                    <div className="absolute left-0 bottom-full mb-2 z-50 p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl grid grid-cols-5 gap-1.5 w-48 animate-in fade-in zoom-in-95 duration-100">
+                      {EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => {
+                            setNewColEmoji(emoji);
+                            setIsNewColPickerOpen(false);
+                          }}
+                          className="w-8 h-8 rounded-lg hover:bg-slate-105 dark:hover:bg-slate-800 flex items-center justify-center text-base active:scale-90 transition duration-100"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
               <input
                 type="text"
                 placeholder="Nueva columna..."
