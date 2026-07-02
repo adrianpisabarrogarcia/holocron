@@ -447,14 +447,14 @@ export function AccessAdminPage() {
 
                             {/* REMOVE ACCESS ACTION BUTTON */}
                             <td className="px-5 py-3 text-right">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/20 h-8 w-8 p-0 inline-flex items-center justify-center rounded-xl"
+                              <button
+                                type="button"
+                                className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/20 h-8 w-8 inline-flex items-center justify-center rounded-lg transition duration-150 active:scale-95 ml-auto"
                                 onClick={() => handleRemoveMember(m.userId, m.name)}
+                                title="Revocar acceso"
                               >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                <Trash2 className="h-4.5 w-4.5" />
+                              </button>
                             </td>
                           </tr>
                         ))}
