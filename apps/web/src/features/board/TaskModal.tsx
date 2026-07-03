@@ -229,8 +229,8 @@ export function TaskModal({
       .finally(() => setCommentsLoading(false));
   }, [task, fetchComments]);
 
-  const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddComment = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (!task || !newCommentText.trim()) return;
     setCommentPending(true);
     try {
@@ -434,7 +434,7 @@ export function TaskModal({
                     )}
 
                     {/* Comment Form */}
-                    <form onSubmit={handleAddComment} className="bg-slate-50/30 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-4 mt-6 space-y-3">
+                    <div className="bg-slate-50/30 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-4 mt-6 space-y-3">
                       <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Nuevo Comentario</span>
                       <textarea
                         value={newCommentText}
@@ -456,15 +456,16 @@ export function TaskModal({
 
                       <div className="flex justify-end">
                         <Button
-                          type="submit"
+                          type="button"
                           variant="primary"
+                          onClick={() => handleAddComment()}
                           disabled={commentPending || !newCommentText.trim()}
                           className="text-xs font-bold py-1.5 px-4 h-8.5 rounded-xl transition active:scale-95 shadow-md shadow-indigo-600/10"
                         >
                           {commentPending ? 'Enviando...' : 'Enviar Comentario'}
                         </Button>
                       </div>
-                    </form>
+                    </div>
                   </div>
                 )}
               </div>
