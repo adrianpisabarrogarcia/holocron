@@ -163,7 +163,7 @@ export function RichTextEditor({ value, onChange, placeholder = 'Escribe aquí l
       )}
 
       {/* EDITABLE CONTAINER */}
-      <div className="relative min-h-[120px] max-h-[420px] overflow-y-auto p-3 text-sm">
+      <div className="relative min-h-[300px] max-h-[420px] overflow-y-auto p-3 text-sm">
         <div
           ref={editorRef}
           contentEditable
@@ -174,7 +174,7 @@ export function RichTextEditor({ value, onChange, placeholder = 'Escribe aquí l
             setIsFocused(false);
             handleInput();
           }}
-          className="outline-none min-h-[100px] prose prose-slate dark:prose-invert prose-sm max-w-none text-slate-800 dark:text-slate-100"
+          className="outline-none min-h-[280px] prose prose-slate dark:prose-invert prose-sm max-w-none text-slate-800 dark:text-slate-100"
         />
         {!isFocused && (!value || value === '<br>' || value === '<div><br></div>') && (
           <div className="absolute top-3 left-3 text-slate-400 pointer-events-none select-none text-sm">

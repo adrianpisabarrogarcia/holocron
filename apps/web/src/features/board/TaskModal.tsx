@@ -156,12 +156,12 @@ export function TaskModal({
           </CardHeader>
         </div>
         {/* Scrollable body */}
-        <CardContent className="p-0 overflow-y-auto flex-1">
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-[1fr_260px] divide-x divide-slate-100 dark:divide-slate-800">
+        <CardContent className="p-0 overflow-hidden flex flex-col flex-1">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+            <div className="grid grid-cols-[1fr_260px] divide-x divide-slate-100 dark:divide-slate-800 flex-1 min-h-0 overflow-hidden">
 
               {/* ── Left column: title + description + attachments ── */}
-              <div className="flex flex-col gap-4 p-6">
+              <div className="flex flex-col gap-4 p-6 overflow-y-auto max-h-[73vh] flex-1">
                 <label className="block text-sm text-slate-650 dark:text-slate-355">
                   <span className="mb-1 block font-medium">Título</span>
                   <input
@@ -195,7 +195,7 @@ export function TaskModal({
               </div>
 
               {/* ── Right column: metadata ── */}
-              <div className="flex flex-col gap-4 p-6">
+              <div className="flex flex-col gap-4 p-6 overflow-y-auto max-h-[73vh]">
                 <label className="block text-sm text-slate-650 dark:text-slate-355">
                   <span className="mb-1 block font-medium">Prioridad</span>
                   <select
