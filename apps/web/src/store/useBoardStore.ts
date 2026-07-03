@@ -32,6 +32,8 @@ type BoardStore = {
   deleteSprint: (sprintId: string) => Promise<void>;
   fetchComments: (taskId: string) => Promise<CommentSummary[]>;
   createComment: (taskId: string, content: string) => Promise<CommentSummary>;
+  updateComment: (taskId: string, commentId: string, content: string) => Promise<CommentSummary>;
+  deleteComment: (taskId: string, commentId: string) => Promise<void>;
 };
 
 async function loadProjectMembers(projectId: string) {
@@ -496,5 +498,28 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw new Error(await parseJsonError(response));
     }
     return (await response.json()) as CommentSummary;
+  },
+  updateComment: async (taskId, commentId, content) => {
+    const { selectedProjectId } = get();
+    if (!selectedProjectId) throw new Error('No project selected');
+    const response = await apiFetch(`/api/projects/${selectedProjectId}/tasks/${taskId}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    if (!response.ok) {
+      throw new Error(await parseJsonError(response));
+    }
+    return (await response.json()) as CommentSummary;
+  },
+  deleteComment: async (taskId, commentId) => {
+    const { selectedProjectId } = get();
+    if (!selectedProjectId) throw new Error('No project selected');
+    const response = await apiFetch(`/api/projects/${selectedProjectId}/tasks/${taskId}/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw new Error(await parseJsonError(response));
+    }
   },
 }));

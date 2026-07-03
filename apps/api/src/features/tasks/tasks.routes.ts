@@ -11,4 +11,6 @@ export function registerTasksRoutes(app: FastifyInstance, controller: TasksContr
   app.delete('/api/tasks/upload/:filename', { preHandler: authenticateRequest }, controller.deleteUpload);
   app.get('/api/projects/:projectId/tasks/:taskId/comments', { preHandler: authenticateRequest }, controller.listComments);
   app.post('/api/projects/:projectId/tasks/:taskId/comments', { preHandler: authenticateRequest }, controller.createComment);
+  app.patch('/api/projects/:projectId/tasks/:taskId/comments/:commentId', { preHandler: authenticateRequest }, controller.updateComment);
+  app.delete('/api/projects/:projectId/tasks/:taskId/comments/:commentId', { preHandler: authenticateRequest }, controller.deleteComment);
 }

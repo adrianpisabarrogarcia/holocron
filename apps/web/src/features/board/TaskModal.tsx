@@ -11,6 +11,7 @@ import { RichTextEditor } from './RichTextEditor';
 import { AttachmentsSection, type Attachment } from './AttachmentsSection';
 
 import { useBoardStore } from '../../store/useBoardStore';
+import { useAuthStore } from '../../store/useAuthStore';
 
 // --- Attachment serialization helpers ---
 const ATT_MARKER = 'data-holocron-attachments';
@@ -120,7 +121,8 @@ export function TaskModal({
     [task?.description]
   );
 
-  const { members, sprints, updateTask, fetchComments, createComment } = useBoardStore();
+  const { members, sprints, updateTask, fetchComments, createComment, updateComment, deleteComment } = useBoardStore();
+  const { user } = useAuthStore();
 
   const [taskTitle, setTaskTitle] = useState(task?.title ?? '');
   const [taskDesc, setTaskDesc] = useState(initialHtml);
@@ -229,9 +231,19 @@ export function TaskModal({
       .finally(() => setCommentsLoading(false));
   }, [task, fetchComments]);
 
+  // Edit comment states
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
+  const [editingCommentAttachments, setEditingCommentAttachments] = useState<Attachment[]>([]);
+
+  const isEmptyHtml = (html: string) => {
+    if (!html) return true;
+    return html.replace(/<[^>]*>/g, '').trim() === '';
+  };
+
   const handleAddComment = async (e?: React.FormEvent | React.MouseEvent) => {
     if (e) e.preventDefault();
-    if (!task || !newCommentText.trim()) return;
+    if (!task || isEmptyHtml(newCommentText)) return;
     setCommentPending(true);
     try {
       const content = newCommentText.trim() + serializeAttachments(commentAttachments);
@@ -241,6 +253,37 @@ export function TaskModal({
       setCommentAttachments([]);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error al guardar el comentario');
+    } finally {
+      setCommentPending(false);
+    }
+  };
+
+  const handleUpdateComment = async (commentId: string) => {
+    if (!task || isEmptyHtml(editingCommentText)) return;
+    setCommentPending(true);
+    try {
+      const content = editingCommentText.trim() + serializeAttachments(editingCommentAttachments);
+      const updated = await updateComment(task.id, commentId, content);
+      setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
+      setEditingCommentId(null);
+      setEditingCommentText('');
+      setEditingCommentAttachments([]);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al actualizar el comentario');
+    } finally {
+      setCommentPending(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!task) return;
+    if (!confirm('¿Estás seguro de que quieres eliminar este comentario?')) return;
+    setCommentPending(true);
+    try {
+      await deleteComment(task.id, commentId);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al eliminar el comentario');
     } finally {
       setCommentPending(false);
     }
@@ -406,9 +449,76 @@ export function TaskModal({
                                     })}
                                   </span>
                                 </div>
-                                <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed text-xs break-words">
-                                  {cleanHtml}
-                                </p>
+                                {editingCommentId === c.id ? (
+                                  <div className="space-y-3 mt-1.5">
+                                    <RichTextEditor
+                                      value={editingCommentText}
+                                      onChange={setEditingCommentText}
+                                    />
+                                    <div className="rounded-xl border border-slate-200/60 dark:border-slate-800/80 bg-white dark:bg-slate-900/30 p-2.5">
+                                      <span className="text-[10px] font-bold text-slate-450 dark:text-slate-555 uppercase tracking-wider block mb-2">Modificar adjuntos</span>
+                                      <AttachmentsSection
+                                        attachments={editingCommentAttachments}
+                                        onChange={setEditingCommentAttachments}
+                                      />
+                                    </div>
+                                    <div className="flex gap-2 justify-end">
+                                      <Button
+                                        type="button"
+                                        variant="secondary"
+                                        onClick={() => {
+                                          setEditingCommentId(null);
+                                          setEditingCommentText('');
+                                          setEditingCommentAttachments([]);
+                                        }}
+                                        className="text-xs py-1 px-3 h-8.5 rounded-xl font-bold"
+                                      >
+                                        Cancelar
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="primary"
+                                        onClick={() => handleUpdateComment(c.id)}
+                                        disabled={commentPending || isEmptyHtml(editingCommentText)}
+                                        className="text-xs py-1 px-3 h-8.5 rounded-xl font-bold"
+                                      >
+                                        {commentPending ? 'Guardando...' : 'Guardar'}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div 
+                                      className="text-slate-750 dark:text-slate-300 leading-relaxed text-xs break-words prose dark:prose-invert prose-xs max-w-none prose-p:my-0"
+                                      dangerouslySetInnerHTML={{ __html: cleanHtml || 'Sin contenido.' }}
+                                    />
+
+                                    {/* Edit / Delete action buttons */}
+                                    {c.userId === user?.id && (
+                                      <div className="flex items-center gap-2 pt-2 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setEditingCommentId(c.id);
+                                            setEditingCommentText(cleanHtml);
+                                            setEditingCommentAttachments(commentAtts);
+                                          }}
+                                          className="hover:text-indigo-600 transition"
+                                        >
+                                          Editar
+                                        </button>
+                                        <span>•</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteComment(c.id)}
+                                          className="hover:text-rose-500 transition"
+                                        >
+                                          Eliminar
+                                        </button>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
 
                                 {/* Comment files */}
                                 {commentAtts && commentAtts.length > 0 && (
@@ -436,13 +546,10 @@ export function TaskModal({
                     {/* Comment Form */}
                     <div className="bg-slate-50/30 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-4 mt-6 space-y-3">
                       <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Nuevo Comentario</span>
-                      <textarea
+                      <RichTextEditor
                         value={newCommentText}
-                        onChange={(e) => setNewCommentText(e.target.value)}
+                        onChange={setNewCommentText}
                         placeholder="Escribe un comentario o aclaración sobre la tarea..."
-                        className={`${fieldClassName} text-xs py-2 px-3 min-h-[80px] resize-y`}
-                        required
-                        disabled={commentPending}
                       />
 
                       {/* Attachments inside Comment */}
@@ -459,7 +566,7 @@ export function TaskModal({
                           type="button"
                           variant="primary"
                           onClick={() => handleAddComment()}
-                          disabled={commentPending || !newCommentText.trim()}
+                          disabled={commentPending || isEmptyHtml(newCommentText)}
                           className="text-xs font-bold py-1.5 px-4 h-8.5 rounded-xl transition active:scale-95 shadow-md shadow-indigo-600/10"
                         >
                           {commentPending ? 'Enviando...' : 'Enviar Comentario'}

@@ -35,4 +35,12 @@ export class TasksController {
   createComment = async (request: FastifyRequest, reply: FastifyReply) => {
     return this.tasksService.createComment(request, reply);
   };
+
+  updateComment = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.tasksService.updateComment(request, reply);
+  };
+
+  deleteComment = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.tasksService.deleteComment(request, reply);
+  };
 }

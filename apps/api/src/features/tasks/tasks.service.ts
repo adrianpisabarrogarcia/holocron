@@ -479,4 +479,75 @@ export class TasksService {
       user: comment.user,
     };
   }
+
+  async updateComment(request: FastifyRequest, reply: FastifyReply): Promise<CommentSummary | void> {
+    const { projectId, commentId } = request.params as { projectId: string; commentId: string };
+    const authUser = request.authUser as AuthenticatedUser;
+
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access || reply.sent) return;
+
+    const { content } = request.body as { content: string };
+    if (!content || !content.trim()) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'Comment content cannot be empty');
+    }
+
+    const existing = await prisma.comment.findUnique({
+      where: { id: commentId }
+    });
+
+    if (!existing) {
+      return sendError(reply, 404, 'NOT_FOUND', 'Comment not found');
+    }
+
+    if (existing.userId !== authUser.id && authUser.platformRole !== 'ADMIN') {
+      return sendError(reply, 403, 'FORBIDDEN', 'You can only edit your own comments');
+    }
+
+    const updated = await prisma.comment.update({
+      where: { id: commentId },
+      data: { content: content.trim() },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true }
+        }
+      }
+    });
+
+    return {
+      id: updated.id,
+      taskId: updated.taskId,
+      userId: updated.userId,
+      content: updated.content,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+      user: updated.user,
+    };
+  }
+
+  async deleteComment(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const { projectId, commentId } = request.params as { projectId: string; commentId: string };
+    const authUser = request.authUser as AuthenticatedUser;
+
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access || reply.sent) return;
+
+    const existing = await prisma.comment.findUnique({
+      where: { id: commentId }
+    });
+
+    if (!existing) {
+      return sendError(reply, 404, 'NOT_FOUND', 'Comment not found');
+    }
+
+    if (existing.userId !== authUser.id && authUser.platformRole !== 'ADMIN') {
+      return sendError(reply, 403, 'FORBIDDEN', 'You can only delete your own comments');
+    }
+
+    await prisma.comment.delete({
+      where: { id: commentId }
+    });
+
+    return reply.status(204).send();
+  }
 }
