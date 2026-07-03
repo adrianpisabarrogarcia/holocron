@@ -1,4 +1,5 @@
 import { FormEvent, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useEscapeKey } from '../../lib/useEscapeKey';
 import type { TaskSummary } from '@holocron/contracts';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
@@ -135,8 +136,8 @@ export function TaskModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-sm p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-sm p-4 w-screen h-screen">
       <div className="w-full max-w-5xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92vh] outline-none">
         <button
           onClick={onClose}
@@ -350,6 +351,7 @@ export function TaskModal({
           </form>
         </CardContent>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useEscapeKey } from '../../lib/useEscapeKey';
 import { Plus, Trash2, ArrowUp, ArrowDown, X, Settings } from 'lucide-react';
 import { Button } from '../../components/ui/button';
@@ -122,8 +123,8 @@ export function ManageColumnsModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 w-screen h-screen">
       <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh] outline-none">
         <button
           type="button"
@@ -293,6 +294,7 @@ export function ManageColumnsModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
