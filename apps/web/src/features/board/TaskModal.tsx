@@ -177,7 +177,7 @@ export function TaskModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-sm p-4 w-screen h-screen">
-      <div className="w-full max-w-5xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92vh] outline-none">
+      <div className="w-full max-w-6xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92vh] outline-none">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 z-10"
@@ -198,7 +198,7 @@ export function TaskModal({
         {/* Scrollable body */}
         <CardContent className="p-0 overflow-hidden flex flex-col flex-1">
           <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-            <div className="grid grid-cols-[1fr_260px] divide-x divide-slate-100 dark:divide-slate-800 flex-1 min-h-0 overflow-hidden">
+            <div className="grid grid-cols-[1fr_380px] divide-x divide-slate-100 dark:divide-slate-800 flex-1 min-h-0 overflow-hidden">
 
               {/* ── Left column: title + description + attachments ── */}
               <div className="flex flex-col gap-4 p-6 overflow-y-auto max-h-[73vh] flex-1">
