@@ -51,6 +51,32 @@ export function formatHoursToReadable(hours: number): string {
   return parts.join(' ');
 }
 
+export function parseHoursToInputs(totalHours: number | null | undefined) {
+  if (totalHours === null || totalHours === undefined || totalHours <= 0) {
+    return { hours: '', minutes: '', seconds: '' };
+  }
+  const totalSeconds = Math.round(totalHours * 3600);
+  const hours = Math.floor(totalSeconds / 3600);
+  const remSeconds = totalSeconds % 3600;
+  const minutes = Math.floor(remSeconds / 60);
+  const seconds = remSeconds % 60;
+
+  return {
+    hours: hours > 0 ? String(hours) : '',
+    minutes: minutes > 0 ? String(minutes) : '',
+    seconds: seconds > 0 ? String(seconds) : ''
+  };
+}
+
+export function convertInputsToHours(h: string, m: string, s: string): number {
+  const hoursVal = Number(h) || 0;
+  const minsVal = Number(m) || 0;
+  const secsVal = Number(s) || 0;
+
+  const totalSeconds = (hoursVal * 3600) + (minsVal * 60) + secsVal;
+  return Number((totalSeconds / 3600).toFixed(5));
+}
+
 // ----------------------------------------
 
 type TaskModalProps = {
@@ -115,6 +141,58 @@ export function TaskModal({
   const [timeSpent, setTimeSpent] = useState(task?.timeSpent ?? 0);
   const [timerStartedAt, setTimerStartedAt] = useState<string | null>(task?.timerStartedAt ?? null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Estimación broken down inputs
+  const initialEst = useMemo(() => parseHoursToInputs(task?.estimatedHours), [task?.estimatedHours]);
+  const [estHours, setEstHours] = useState(initialEst.hours);
+  const [estMins, setEstMins] = useState(initialEst.minutes);
+  const [estSecs, setEstSecs] = useState(initialEst.seconds);
+
+  // Invertido broken down inputs
+  const initialSpent = useMemo(() => parseHoursToInputs(task?.timeSpent), [task?.timeSpent]);
+  const [spentHours, setSpentHours] = useState(initialSpent.hours);
+  const [spentMins, setSpentMins] = useState(initialSpent.minutes);
+  const [spentSecs, setSpentSecs] = useState(initialSpent.seconds);
+
+  // Update inputs whenever timeSpent changes (e.g. from timer stops)
+  useEffect(() => {
+    const parsed = parseHoursToInputs(timeSpent);
+    setSpentHours(parsed.hours);
+    setSpentMins(parsed.minutes);
+    setSpentSecs(parsed.seconds);
+  }, [timeSpent]);
+
+  const handleEstHoursChange = (val: string) => {
+    setEstHours(val);
+    const decimal = convertInputsToHours(val, estMins, estSecs);
+    setEstimatedHours(decimal > 0 ? String(decimal) : '');
+  };
+  const handleEstMinsChange = (val: string) => {
+    setEstMins(val);
+    const decimal = convertInputsToHours(estHours, val, estSecs);
+    setEstimatedHours(decimal > 0 ? String(decimal) : '');
+  };
+  const handleEstSecsChange = (val: string) => {
+    setEstSecs(val);
+    const decimal = convertInputsToHours(estHours, estMins, val);
+    setEstimatedHours(decimal > 0 ? String(decimal) : '');
+  };
+
+  const handleSpentHoursChange = (val: string) => {
+    setSpentHours(val);
+    const decimal = convertInputsToHours(val, spentMins, spentSecs);
+    setTimeSpent(decimal);
+  };
+  const handleSpentMinsChange = (val: string) => {
+    setSpentMins(val);
+    const decimal = convertInputsToHours(spentHours, val, spentSecs);
+    setTimeSpent(decimal);
+  };
+  const handleSpentSecsChange = (val: string) => {
+    setSpentSecs(val);
+    const decimal = convertInputsToHours(spentHours, spentMins, val);
+    setTimeSpent(decimal);
+  };
 
   // Ticking effect for active timer
   useEffect(() => {
@@ -321,30 +399,93 @@ export function TaskModal({
                     </label>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 items-end">
-                    <label className="block text-sm text-slate-650 dark:text-slate-355">
-                      <span className="mb-1 block font-medium">Estimado (Horas)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        placeholder="Ej. 8"
-                        className={fieldClassName}
-                        value={estimatedHours}
-                        onChange={(e) => setEstimatedHours(e.target.value)}
-                      />
-                    </label>
+                  <div className="space-y-3">
+                    {/* Estimado Row */}
+                    <div>
+                      <span className="mb-1.5 block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tiempo Estimado</span>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            className={`${fieldClassName} pr-7 text-center`}
+                            value={estHours}
+                            onChange={(e) => handleEstHoursChange(e.target.value)}
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400 select-none">h</span>
+                        </div>
+                        
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            placeholder="0"
+                            className={`${fieldClassName} pr-7 text-center`}
+                            value={estMins}
+                            onChange={(e) => handleEstMinsChange(e.target.value)}
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400 select-none">m</span>
+                        </div>
 
-                    <div className="block text-sm text-slate-650 dark:text-slate-355">
-                      <span className="mb-1 block font-medium">Invertido (Horas)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        className={fieldClassName}
-                        value={timeSpent}
-                        onChange={(e) => setTimeSpent(Number(e.target.value))}
-                      />
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            placeholder="0"
+                            className={`${fieldClassName} pr-7 text-center`}
+                            value={estSecs}
+                            onChange={(e) => handleEstSecsChange(e.target.value)}
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400 select-none">s</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Invertido Row */}
+                    <div>
+                      <span className="mb-1.5 block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tiempo Invertido</span>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            className={`${fieldClassName} pr-7 text-center`}
+                            value={spentHours}
+                            onChange={(e) => handleSpentHoursChange(e.target.value)}
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400 select-none">h</span>
+                        </div>
+
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            placeholder="0"
+                            className={`${fieldClassName} pr-7 text-center`}
+                            value={spentMins}
+                            onChange={(e) => handleSpentMinsChange(e.target.value)}
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400 select-none">m</span>
+                        </div>
+
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            placeholder="0"
+                            className={`${fieldClassName} pr-7 text-center`}
+                            value={spentSecs}
+                            onChange={(e) => handleSpentSecsChange(e.target.value)}
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400 select-none">s</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
