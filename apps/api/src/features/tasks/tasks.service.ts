@@ -30,6 +30,12 @@ export class TasksService {
         priority: true,
         isBlocked: true,
         blockedReason: true,
+        owners: {
+          select: { id: true, name: true, email: true }
+        },
+        assignees: {
+          select: { id: true, name: true, email: true }
+        }
       },
     });
 
@@ -39,6 +45,8 @@ export class TasksService {
       priority: task.priority as TaskSummary['priority'],
       isBlocked: task.isBlocked,
       blockedReason: task.blockedReason,
+      owners: task.owners,
+      assignees: task.assignees,
     }));
   }
 
@@ -53,13 +61,15 @@ export class TasksService {
       return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
     }
 
-    const { title, description, status, priority, isBlocked, blockedReason } = (request.body ?? {}) as {
+    const { title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds } = (request.body ?? {}) as {
       title?: string;
       description?: string;
       status?: string;
       priority?: string;
       isBlocked?: boolean;
       blockedReason?: string | null;
+      ownerIds?: string[];
+      assigneeIds?: string[];
     };
 
     if (!title) {
@@ -76,6 +86,12 @@ export class TasksService {
         createdById: authUser.id,
         isBlocked: isBlocked ?? false,
         blockedReason: blockedReason ?? null,
+        owners: {
+          connect: (ownerIds ?? []).map(id => ({ id }))
+        },
+        assignees: {
+          connect: (assigneeIds ?? []).map(id => ({ id }))
+        }
       },
       select: {
         id: true,
@@ -85,6 +101,12 @@ export class TasksService {
         priority: true,
         isBlocked: true,
         blockedReason: true,
+        owners: {
+          select: { id: true, name: true, email: true }
+        },
+        assignees: {
+          select: { id: true, name: true, email: true }
+        }
       },
     });
 
@@ -106,6 +128,8 @@ export class TasksService {
       priority: task.priority as TaskSummary['priority'],
       isBlocked: task.isBlocked,
       blockedReason: task.blockedReason,
+      owners: task.owners,
+      assignees: task.assignees,
     };
   }
 
@@ -120,13 +144,15 @@ export class TasksService {
       return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
     }
 
-    const { title, description, status, priority, isBlocked, blockedReason } = (request.body ?? {}) as {
+    const { title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds } = (request.body ?? {}) as {
       title?: string;
       description?: string;
       status?: string;
       priority?: string;
       isBlocked?: boolean;
       blockedReason?: string | null;
+      ownerIds?: string[];
+      assigneeIds?: string[];
     };
 
     const existingTask = await prisma.task.findUnique({
@@ -145,6 +171,16 @@ export class TasksService {
     if (priority !== undefined) dataToUpdate.priority = priority;
     if (isBlocked !== undefined) dataToUpdate.isBlocked = isBlocked;
     if (blockedReason !== undefined) dataToUpdate.blockedReason = blockedReason;
+    if (ownerIds !== undefined) {
+      dataToUpdate.owners = {
+        set: ownerIds.map(id => ({ id }))
+      };
+    }
+    if (assigneeIds !== undefined) {
+      dataToUpdate.assignees = {
+        set: assigneeIds.map(id => ({ id }))
+      };
+    }
 
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
@@ -157,6 +193,12 @@ export class TasksService {
         priority: true,
         isBlocked: true,
         blockedReason: true,
+        owners: {
+          select: { id: true, name: true, email: true }
+        },
+        assignees: {
+          select: { id: true, name: true, email: true }
+        }
       },
     });
 
@@ -180,6 +222,8 @@ export class TasksService {
       priority: updatedTask.priority as TaskSummary['priority'],
       isBlocked: updatedTask.isBlocked,
       blockedReason: updatedTask.blockedReason,
+      owners: updatedTask.owners,
+      assignees: updatedTask.assignees,
     };
   }
 

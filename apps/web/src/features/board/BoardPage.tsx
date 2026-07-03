@@ -65,9 +65,11 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
     status: TaskSummary['status'],
     priority: TaskSummary['priority'],
     isBlocked: boolean,
-    blockedReason: string | null
+    blockedReason: string | null,
+    ownerIds?: string[],
+    assigneeIds?: string[]
   ) => {
-    await createTask(title, desc, status, priority, isBlocked, blockedReason);
+    await createTask(title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds);
   };
 
   const openEditTask = (task: TaskSummary) => {
@@ -95,10 +97,12 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
     status: TaskSummary['status'],
     priority: TaskSummary['priority'],
     isBlocked: boolean,
-    blockedReason: string | null
+    blockedReason: string | null,
+    ownerIds?: string[],
+    assigneeIds?: string[]
   ) => {
     if (!selectedTask) return;
-    await updateTask(selectedTask.id, title, desc, status, priority, isBlocked, blockedReason);
+    await updateTask(selectedTask.id, title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds);
   };
 
   const handleDeleteTask = async () => {

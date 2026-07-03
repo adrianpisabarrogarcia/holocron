@@ -72,6 +72,12 @@ export type UpsertFolderMemberInput = {
   role: ProjectMembershipRole;
 };
 
+export type UserMiniSummary = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 export type TaskSummary = {
   id: string;
   title: string;
@@ -80,6 +86,8 @@ export type TaskSummary = {
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   isBlocked: boolean;
   blockedReason: string | null;
+  owners: UserMiniSummary[];
+  assignees: UserMiniSummary[];
 };
 
 export type FolderSummary = {

@@ -8,6 +8,8 @@ import { fieldClassName } from '../../lib/constants';
 import { RichTextEditor } from './RichTextEditor';
 import { AttachmentsSection, type Attachment } from './AttachmentsSection';
 
+import { useBoardStore } from '../../store/useBoardStore';
+
 // --- Attachment serialization helpers ---
 const ATT_MARKER = 'data-holocron-attachments';
 
@@ -46,7 +48,9 @@ type TaskModalProps = {
     status: TaskSummary['status'],
     priority: TaskSummary['priority'],
     isBlocked: boolean,
-    blockedReason: string | null
+    blockedReason: string | null,
+    ownerIds?: string[],
+    assigneeIds?: string[]
   ) => Promise<void>;
   onDelete?: () => Promise<void>;
   columns: string[];
@@ -66,6 +70,8 @@ export function TaskModal({
     [task?.description]
   );
 
+  const { members } = useBoardStore();
+
   const [taskTitle, setTaskTitle] = useState(task?.title ?? '');
   const [taskDesc, setTaskDesc] = useState(initialHtml);
   const [attachments, setAttachments] = useState<Attachment[]>(initialAtts);
@@ -73,6 +79,9 @@ export function TaskModal({
   const [taskStatus, setTaskStatus] = useState<TaskSummary['status']>(task?.status ?? initialStatus);
   const [isBlocked, setIsBlocked] = useState(task?.isBlocked ?? false);
   const [blockedReason, setBlockedReason] = useState(task?.blockedReason ?? '');
+
+  const [selectedOwners, setSelectedOwners] = useState<string[]>(task?.owners?.map(o => o.id) ?? []);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>(task?.assignees?.map(a => a.id) ?? []);
 
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -88,7 +97,6 @@ export function TaskModal({
 
   if (!isOpen) return null;
 
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim()) return;
@@ -102,7 +110,9 @@ export function TaskModal({
         taskStatus,
         taskPriority,
         isBlocked,
-        isBlocked ? (blockedReason.trim() || 'Bloqueado') : null
+        isBlocked ? (blockedReason.trim() || 'Bloqueado') : null,
+        selectedOwners,
+        selectedAssignees
       );
       onClose();
     } catch (err) {
@@ -214,6 +224,66 @@ export function TaskModal({
                     ))}
                   </select>
                 </label>
+
+                {/* Owners (Propietarios) selection */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Propietarios (Owners)</span>
+                  <div className="max-h-24 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-2 bg-slate-50/50 dark:bg-slate-900/30 space-y-1.5">
+                    {members.map((m) => {
+                      const isChecked = selectedOwners.includes(m.userId);
+                      return (
+                        <label key={m.userId} className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-705 dark:text-slate-295">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedOwners([...selectedOwners, m.userId]);
+                              } else {
+                                setSelectedOwners(selectedOwners.filter(id => id !== m.userId));
+                              }
+                            }}
+                            className="rounded border-slate-300 dark:border-slate-750 text-indigo-650 focus:ring-indigo-600 h-3.5 w-3.5 transition"
+                          />
+                          <span className="truncate">{m.name}</span>
+                        </label>
+                      );
+                    })}
+                    {members.length === 0 && (
+                      <span className="text-[10px] text-slate-400 italic">Sin miembros</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Assignees (Asignados) selection */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Asignados (Assignees)</span>
+                  <div className="max-h-24 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-2 bg-slate-50/50 dark:bg-slate-900/30 space-y-1.5">
+                    {members.map((m) => {
+                      const isChecked = selectedAssignees.includes(m.userId);
+                      return (
+                        <label key={m.userId} className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-705 dark:text-slate-295">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedAssignees([...selectedAssignees, m.userId]);
+                              } else {
+                                setSelectedAssignees(selectedAssignees.filter(id => id !== m.userId));
+                              }
+                            }}
+                            className="rounded border-slate-300 dark:border-slate-750 text-indigo-650 focus:ring-indigo-600 h-3.5 w-3.5 transition"
+                          />
+                          <span className="truncate">{m.name}</span>
+                        </label>
+                      );
+                    })}
+                    {members.length === 0 && (
+                      <span className="text-[10px] text-slate-400 italic">Sin miembros</span>
+                    )}
+                  </div>
+                </div>
 
                 {/* Blocked checkbox and reason */}
                 <div className="bg-slate-50 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 space-y-3">

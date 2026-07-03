@@ -53,6 +53,53 @@ export function TaskCard({ task, canWrite, onDragStart, onClick }: TaskCardProps
           <span className="break-words">Bloqueada: {task.blockedReason || 'Sin motivo especificado'}</span>
         </div>
       )}
+
+      {/* Owners and Assignees Row */}
+      {((task.owners && task.owners.length > 0) || (task.assignees && task.assignees.length > 0)) && (
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/60 flex flex-wrap items-center justify-between gap-3 text-[10px]">
+          {/* Owners section */}
+          {task.owners && task.owners.length > 0 ? (
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Owners:</span>
+              <div className="flex -space-x-1.5 overflow-hidden">
+                {task.owners.map((o) => {
+                  const initials = o.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                  return (
+                    <div
+                      key={o.id}
+                      className="h-5 w-5 rounded-full bg-amber-50 dark:bg-amber-950/45 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 flex items-center justify-center font-extrabold text-[8px] tracking-tighter"
+                      title={`Owner: ${o.name}`}
+                    >
+                      {initials}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : <div />}
+
+          {/* Assignees section */}
+          {task.assignees && task.assignees.length > 0 ? (
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Asignados:</span>
+              <div className="flex -space-x-1.5 overflow-hidden">
+                {task.assignees.map((a) => {
+                  const initials = a.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                  return (
+                    <div
+                      key={a.id}
+                      className="h-5 w-5 rounded-full bg-indigo-50 dark:bg-indigo-950/45 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/40 flex items-center justify-center font-extrabold text-[8px] tracking-tighter"
+                      title={`Asignado: ${a.name}`}
+                    >
+                      {initials}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
     </article>
   );
 }
