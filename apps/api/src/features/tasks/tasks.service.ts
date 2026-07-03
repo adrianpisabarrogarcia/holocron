@@ -9,7 +9,7 @@ import {
   sendError,
   uploadsDir,
 } from '../../shared';
-
+import { EmailService } from '../email/email.service';
 export class TasksService {
   async listTasks(request: FastifyRequest, reply: FastifyReply): Promise<TaskSummary[] | void> {
     const { projectId } = request.params as { projectId: string };
@@ -164,6 +164,10 @@ export class TasksService {
       },
     });
 
+    EmailService.sendTaskCreatedEmail(task, authUser).catch(err => {
+      console.error('[EMAIL ERROR] Failed to send task created email:', err);
+    });
+
     reply.code(201);
     return {
       id: task.id,
@@ -229,7 +233,10 @@ export class TasksService {
 
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId },
-      select: { status: true },
+      select: {
+        status: true,
+        assignees: { select: { id: true } }
+      },
     });
 
     if (!existingTask) {
@@ -286,6 +293,16 @@ export class TasksService {
         }
       },
     });
+
+    if (assigneeIds !== undefined && existingTask) {
+      const originalAssigneeIds = existingTask.assignees.map(a => a.id);
+      const newAssignees = updatedTask.assignees.filter(a => !originalAssigneeIds.includes(a.id));
+      for (const a of newAssignees) {
+        EmailService.sendTaskAssignedEmail(updatedTask.title, a, authUser).catch(err => {
+          console.error('[EMAIL ERROR] Failed to send task assigned email:', err);
+        });
+      }
+    }
 
     if (status && status !== existingTask.status) {
       await prisma.taskStateHistory.create({

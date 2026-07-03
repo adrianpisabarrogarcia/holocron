@@ -2,7 +2,7 @@ import type { SprintSummary, AuthenticatedUser } from '@holocron/contracts';
 import { prisma } from '@holocron/db';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { requireProjectAccess, sendError } from '../../shared';
-
+import { EmailService } from '../email/email.service';
 export class SprintsService {
   async listSprints(request: FastifyRequest, reply: FastifyReply): Promise<SprintSummary[] | void> {
     const { projectId } = request.params as { projectId: string };
@@ -112,6 +112,12 @@ export class SprintsService {
       where: { id: sprintId },
       data: dataToUpdate,
     });
+
+    if (existing.status !== 'CLOSED' && updated.status === 'CLOSED') {
+      EmailService.sendSprintClosedEmail(updated.name, updated.projectId, authUser).catch(err => {
+        console.error('[EMAIL ERROR] Failed to send sprint closed email:', err);
+      });
+    }
 
     return {
       id: updated.id,
