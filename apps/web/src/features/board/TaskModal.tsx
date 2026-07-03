@@ -43,6 +43,7 @@ type TaskModalProps = {
   onClose: () => void;
   task: TaskSummary | null; // Null means create mode
   initialStatus?: TaskSummary['status'];
+  initialSprintId?: string | null;
   onSave: (
     title: string,
     desc: string | undefined,
@@ -63,6 +64,7 @@ export function TaskModal({
   onClose,
   task,
   initialStatus = 'TODO',
+  initialSprintId = null,
   onSave,
   onDelete,
   columns,
@@ -84,7 +86,7 @@ export function TaskModal({
 
   const [selectedOwners, setSelectedOwners] = useState<string[]>(task?.owners?.map(o => o.id) ?? []);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>(task?.assignees?.map(a => a.id) ?? []);
-  const [sprintId, setSprintId] = useState<string | null>(task?.sprintId ?? null);
+  const [sprintId, setSprintId] = useState<string | null>(task?.sprintId ?? initialSprintId ?? null);
 
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);

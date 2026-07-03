@@ -5,7 +5,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { useBoardStore } from '../../store/useBoardStore';
 import { TaskColumn } from './TaskColumn';
 import { TaskModal } from './TaskModal';
-import { Settings } from 'lucide-react';
+import { useAuthStore } from '../../store/useAuthStore';
+import { Settings, Search, SlidersHorizontal, Filter, X } from 'lucide-react';
 import { ManageColumnsModal } from './ManageColumnsModal';
 
 type BoardPageProps = {
@@ -20,6 +21,7 @@ type BoardPageProps = {
 export function BoardPage({ currentProject, userRole }: BoardPageProps) {
   // Store task actions
   const { tasks, sprints, createTask, updateTask, deleteTask, moveTask, members, syncColumns } = useBoardStore();
+  const { user } = useAuthStore();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const taskParam = searchParams.get('task');
@@ -32,6 +34,12 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
   const [createInitialStatus, setCreateInitialStatus] = useState<TaskSummary['status']>('TODO');
   const [sprintFilter, setSprintFilter] = useState<string>('active');
 
+  // Visualization filters states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [memberFilter, setMemberFilter] = useState<string>('all');
+  const [blockedFilter, setBlockedFilter] = useState<string>('all');
+
   // Drag and drop visual highlight state
   const [activeLane, setActiveLane] = useState<TaskSummary['status'] | null>(null);
 
@@ -40,16 +48,50 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
   const canWrite = !isViewer || userRole === 'ADMIN';
 
   const activeSprint = sprints.find(s => s.status === 'ACTIVE');
+  const currentSprintIdForNewTask = 
+    sprintFilter === 'active' ? (activeSprint?.id ?? null) :
+    sprintFilter === 'backlog' ? null :
+    sprintFilter === 'all' ? null :
+    sprintFilter;
+
   const filteredTasks = tasks.filter(task => {
+    // 1. Sprint filter
     if (sprintFilter === 'active') {
-      return activeSprint ? task.sprintId === activeSprint.id : true;
+      if (activeSprint && task.sprintId !== activeSprint.id) return false;
+      if (!activeSprint && task.sprintId) return false;
     } else if (sprintFilter === 'backlog') {
-      return !task.sprintId;
-    } else if (sprintFilter === 'all') {
-      return true;
-    } else {
-      return task.sprintId === sprintFilter;
+      if (task.sprintId) return false;
+    } else if (sprintFilter !== 'all') {
+      if (task.sprintId !== sprintFilter) return false;
     }
+
+    // 2. Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = task.title.toLowerCase().includes(q);
+      const matchDesc = task.description?.toLowerCase().includes(q) || false;
+      if (!matchTitle && !matchDesc) return false;
+    }
+
+    // 3. Priority filter
+    if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false;
+
+    // 4. Member filter (Owners or Assignees)
+    if (memberFilter === 'mine') {
+      const isOwner = task.owners?.some(o => o.id === user?.id);
+      const isAssignee = task.assignees?.some(a => a.id === user?.id);
+      if (!isOwner && !isAssignee) return false;
+    } else if (memberFilter !== 'all') {
+      const isOwner = task.owners?.some(o => o.id === memberFilter);
+      const isAssignee = task.assignees?.some(a => a.id === memberFilter);
+      if (!isOwner && !isAssignee) return false;
+    }
+
+    // 5. Blocked filter
+    if (blockedFilter === 'blocked' && !task.isBlocked) return false;
+    if (blockedFilter === 'unblocked' && task.isBlocked) return false;
+
+    return true;
   });
 
   const columnsList = currentProject?.columns ?? [];
@@ -292,6 +334,99 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
           )}
         </CardHeader>
         <CardContent className="pt-6">
+          {/* VISUALIZATION FILTERS BAR */}
+          <div className="mb-6 flex flex-wrap items-center gap-4 bg-slate-50/50 dark:bg-slate-900/35 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800/80">
+            <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold uppercase tracking-wider shrink-0 mr-2">
+              <SlidersHorizontal className="h-4 w-4 text-indigo-500" />
+              <span>Filtros:</span>
+            </div>
+
+            {/* Text Search Input */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar tareas por título o descripción..."
+                className="w-full pl-9 pr-8 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-indigo-500 transition duration-150"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-655 dark:hover:text-slate-350"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Member Filter Select */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-medium shrink-0">Persona:</span>
+              <select
+                value={memberFilter}
+                onChange={(e) => setMemberFilter(e.target.value)}
+                className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-indigo-500 transition cursor-pointer"
+              >
+                <option value="all" className="dark:bg-slate-900">Todas las personas</option>
+                <option value="mine" className="dark:bg-slate-900">Asignadas a mí (o soy Owner)</option>
+                {members.map((m) => (
+                  <option key={m.userId} value={m.userId} className="dark:bg-slate-900">
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Priority Filter Select */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-medium shrink-0">Prioridad:</span>
+              <select
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+                className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-indigo-500 transition cursor-pointer"
+              >
+                <option value="all" className="dark:bg-slate-900">Todas las prioridades</option>
+                <option value="LOW" className="dark:bg-slate-900">Baja</option>
+                <option value="MEDIUM" className="dark:bg-slate-900">Media</option>
+                <option value="HIGH" className="dark:bg-slate-900">Alta</option>
+                <option value="URGENT" className="dark:bg-slate-900">Urgente</option>
+              </select>
+            </div>
+
+            {/* Blocked Filter Select */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-medium shrink-0">Bloqueo:</span>
+              <select
+                value={blockedFilter}
+                onChange={(e) => setBlockedFilter(e.target.value)}
+                className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-indigo-500 transition cursor-pointer"
+              >
+                <option value="all" className="dark:bg-slate-900">Cualquiera</option>
+                <option value="blocked" className="dark:bg-slate-900">Bloqueadas</option>
+                <option value="unblocked" className="dark:bg-slate-900">Sin bloquear</option>
+              </select>
+            </div>
+
+            {/* Clear filters button */}
+            {(searchQuery || priorityFilter !== 'all' || memberFilter !== 'all' || blockedFilter !== 'all') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setPriorityFilter('all');
+                  setMemberFilter('all');
+                  setBlockedFilter('all');
+                }}
+                className="text-xs font-bold text-rose-500 hover:text-rose-600 transition flex items-center gap-1 pl-2"
+              >
+                <span>Limpiar filtros</span>
+              </button>
+            )}
+          </div>
+
           <div className="overflow-x-auto pb-2">
             <div className="flex gap-5 min-w-max">
               {localTasksByStatus.map((column) => {
@@ -325,6 +460,7 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
           onClose={() => setIsTaskCreateOpen(false)}
           task={null}
           initialStatus={createInitialStatus}
+          initialSprintId={currentSprintIdForNewTask}
           onSave={handleCreateTask}
           columns={localTasksByStatus.map((lane) => lane.status)}
         />

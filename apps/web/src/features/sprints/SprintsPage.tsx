@@ -22,7 +22,8 @@ import {
   ArrowDown,
   User,
   AlertTriangle,
-  Clock
+  Clock,
+  GripVertical
 } from 'lucide-react';
 
 type SprintsPageProps = {
@@ -53,6 +54,9 @@ export function SprintsPage({
     loadBoard 
   } = useBoardStore();
 
+  const projectColumns = currentProject?.columns?.map((c) => c.name) ?? ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
+  const defaultInitialStatus = projectColumns[0] || 'TODO';
+
   const [searchParams, setSearchParams] = useSearchParams();
   
   // Search parameters linking for Task Detail Modal
@@ -74,6 +78,7 @@ export function SprintsPage({
 
   // Active state for drag & drop
   const [activeSprintDragId, setActiveSprintDragId] = useState<string | null | 'backlog'>(null);
+  const [activeSprintHoverId, setActiveSprintHoverId] = useState<string | null>(null);
   const [collapsedSprints, setCollapsedSprints] = useState<Record<string, boolean>>({});
 
   const canWrite = userRole === 'ADMIN' || currentProject?.membershipRole === 'MANAGER' || currentProject?.membershipRole === 'CONTRIBUTOR';
@@ -240,18 +245,17 @@ export function SprintsPage({
     const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (targetIndex < 0 || targetIndex >= sprints.length) return;
 
-    const currentSprint = sprints[currentIndex];
-    const targetSprint = sprints[targetIndex];
+    // Normalize positions by mapping index in array to fix any initial duplicate 0 values
+    const newOrder = [...sprints];
+    const [moved] = newOrder.splice(currentIndex, 1);
+    newOrder.splice(targetIndex, 0, moved);
 
-    // Swap positions
-    const currentPos = currentSprint.position;
-    const targetPos = targetSprint.position;
-
-    // Call updateSprint for both
-    await Promise.all([
-      updateSprint(currentSprint.id, undefined, undefined, undefined, undefined, targetPos),
-      updateSprint(targetSprint.id, undefined, undefined, undefined, undefined, currentPos),
-    ]);
+    // Update all sprint positions sequentially based on new array order
+    await Promise.all(
+      newOrder.map((s, index) => 
+        updateSprint(s.id, undefined, undefined, undefined, undefined, index)
+      )
+    );
   };
 
   // Drag & Drop
@@ -259,21 +263,54 @@ export function SprintsPage({
     e.dataTransfer.setData('text/plain', taskId);
   };
 
+  const handleSprintDragStart = (e: React.DragEvent, sprintId: string) => {
+    e.dataTransfer.setData('text/sprint-id', sprintId);
+  };
+
   const handleDragOver = (e: React.DragEvent, targetId: string | null | 'backlog') => {
     e.preventDefault();
-    setActiveSprintDragId(targetId);
+    if (e.dataTransfer.types.includes('text/sprint-id')) {
+      if (typeof targetId === 'string' && targetId !== 'backlog') {
+        setActiveSprintHoverId(targetId);
+      }
+    } else {
+      setActiveSprintDragId(targetId);
+    }
   };
 
   const handleDragLeave = () => {
     setActiveSprintDragId(null);
+    setActiveSprintHoverId(null);
   };
 
   const handleDrop = async (e: React.DragEvent, targetSprintId: string | null) => {
     e.preventDefault();
     setActiveSprintDragId(null);
-    const taskId = e.dataTransfer.getData('text/plain');
-    if (taskId) {
-      await updateTask(taskId, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, targetSprintId);
+    setActiveSprintHoverId(null);
+
+    if (e.dataTransfer.types.includes('text/sprint-id')) {
+      if (!targetSprintId) return;
+      const sourceSprintId = e.dataTransfer.getData('text/sprint-id');
+      if (!sourceSprintId || sourceSprintId === targetSprintId) return;
+
+      const sourceIndex = sprints.findIndex((s) => s.id === sourceSprintId);
+      const targetIndex = sprints.findIndex((s) => s.id === targetSprintId);
+      if (sourceIndex === -1 || targetIndex === -1) return;
+
+      const newOrder = [...sprints];
+      const [moved] = newOrder.splice(sourceIndex, 1);
+      newOrder.splice(targetIndex, 0, moved);
+
+      await Promise.all(
+        newOrder.map((s, index) => 
+          updateSprint(s.id, undefined, undefined, undefined, undefined, index)
+        )
+      );
+    } else {
+      const taskId = e.dataTransfer.getData('text/plain');
+      if (taskId) {
+        await updateTask(taskId, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, targetSprintId);
+      }
     }
   };
 
@@ -350,9 +387,12 @@ export function SprintsPage({
               return (
                 <Card 
                   key={sprint.id} 
+                  draggable={canWrite}
+                  onDragStart={(e) => handleSprintDragStart(e, sprint.id)}
                   className={cn(
                     "transition duration-200 border-slate-200 dark:border-slate-800/80 overflow-hidden",
                     isDragActive && "ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/10",
+                    activeSprintHoverId === sprint.id && "ring-2 ring-indigo-550 border-indigo-550 bg-indigo-50/10 dark:bg-indigo-950/10",
                     sprint.status === 'ACTIVE' && "border-indigo-500/40 shadow-md shadow-indigo-500/5 bg-indigo-500/[0.01]"
                   )}
                   onDragOver={(e) => handleDragOver(e, sprint.id)}
@@ -361,6 +401,11 @@ export function SprintsPage({
                 >
                   <CardHeader className="p-4 flex flex-row items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/50">
                     <div className="flex items-center gap-3">
+                      {canWrite && (
+                        <div className="text-slate-300 dark:text-slate-700 cursor-grab active:cursor-grabbing shrink-0" title="Arrastrar para ordenar sprint">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                      )}
                       <button 
                         onClick={() => toggleCollapse(sprint.id)}
                         className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-250 transition"
@@ -421,6 +466,20 @@ export function SprintsPage({
                           className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:text-emerald-400 dark:hover:bg-emerald-500/20 text-xs px-2.5 h-7.5"
                         >
                           <CheckCircle2 className="h-3 w-3 mr-1" /> Completar
+                        </Button>
+                      )}
+
+                      {sprint.status !== 'COMPLETED' && (
+                        <Button 
+                          onClick={() => {
+                            setCreateInitialSprintId(sprint.id);
+                            setIsTaskCreateOpen(true);
+                          }}
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-7.5 text-indigo-600 dark:text-indigo-400 text-xs px-2"
+                        >
+                          + Tarea
                         </Button>
                       )}
 
@@ -743,9 +802,10 @@ export function SprintsPage({
           isOpen={isTaskCreateOpen}
           onClose={() => setIsTaskCreateOpen(false)}
           task={null}
-          initialStatus="TODO"
+          initialStatus={defaultInitialStatus}
+          initialSprintId={createInitialSprintId}
           onSave={handleCreateTask}
-          columns={['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE']}
+          columns={projectColumns}
         />
       )}
 
@@ -757,7 +817,7 @@ export function SprintsPage({
           task={selectedTask}
           onSave={handleEditTask}
           onDelete={handleDeleteTask}
-          columns={['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE']}
+          columns={projectColumns}
         />
       )}
     </div>
