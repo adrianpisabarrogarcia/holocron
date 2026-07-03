@@ -31,6 +31,11 @@ export class TasksService {
         isBlocked: true,
         blockedReason: true,
         sprintId: true,
+        startDate: true,
+        endDate: true,
+        estimatedHours: true,
+        timeSpent: true,
+        timerStartedAt: true,
         owners: {
           select: { id: true, name: true, email: true }
         },
@@ -49,6 +54,11 @@ export class TasksService {
       owners: task.owners,
       assignees: task.assignees,
       sprintId: task.sprintId,
+      startDate: task.startDate ? task.startDate.toISOString() : null,
+      endDate: task.endDate ? task.endDate.toISOString() : null,
+      estimatedHours: task.estimatedHours,
+      timeSpent: task.timeSpent,
+      timerStartedAt: task.timerStartedAt ? task.timerStartedAt.toISOString() : null,
     }));
   }
 
@@ -63,7 +73,22 @@ export class TasksService {
       return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
     }
 
-    const { title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId } = (request.body ?? {}) as {
+    const {
+      title,
+      description,
+      status,
+      priority,
+      isBlocked,
+      blockedReason,
+      ownerIds,
+      assigneeIds,
+      sprintId,
+      startDate,
+      endDate,
+      estimatedHours,
+      timeSpent,
+      timerStartedAt
+    } = (request.body ?? {}) as {
       title?: string;
       description?: string;
       status?: string;
@@ -73,6 +98,11 @@ export class TasksService {
       ownerIds?: string[];
       assigneeIds?: string[];
       sprintId?: string | null;
+      startDate?: string | null;
+      endDate?: string | null;
+      estimatedHours?: number | null;
+      timeSpent?: number;
+      timerStartedAt?: string | null;
     };
 
     if (!title) {
@@ -90,6 +120,11 @@ export class TasksService {
         isBlocked: isBlocked ?? false,
         blockedReason: blockedReason ?? null,
         sprintId: sprintId ?? null,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        estimatedHours: estimatedHours !== undefined && estimatedHours !== null ? Number(estimatedHours) : null,
+        timeSpent: timeSpent !== undefined ? Number(timeSpent) : 0,
+        timerStartedAt: timerStartedAt ? new Date(timerStartedAt) : null,
         owners: {
           connect: (ownerIds ?? []).map(id => ({ id }))
         },
@@ -106,6 +141,11 @@ export class TasksService {
         isBlocked: true,
         blockedReason: true,
         sprintId: true,
+        startDate: true,
+        endDate: true,
+        estimatedHours: true,
+        timeSpent: true,
+        timerStartedAt: true,
         owners: {
           select: { id: true, name: true, email: true }
         },
@@ -136,6 +176,11 @@ export class TasksService {
       owners: task.owners,
       assignees: task.assignees,
       sprintId: task.sprintId,
+      startDate: task.startDate ? task.startDate.toISOString() : null,
+      endDate: task.endDate ? task.endDate.toISOString() : null,
+      estimatedHours: task.estimatedHours,
+      timeSpent: task.timeSpent,
+      timerStartedAt: task.timerStartedAt ? task.timerStartedAt.toISOString() : null,
     };
   }
 
@@ -150,7 +195,22 @@ export class TasksService {
       return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
     }
 
-    const { title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId } = (request.body ?? {}) as {
+    const {
+      title,
+      description,
+      status,
+      priority,
+      isBlocked,
+      blockedReason,
+      ownerIds,
+      assigneeIds,
+      sprintId,
+      startDate,
+      endDate,
+      estimatedHours,
+      timeSpent,
+      timerStartedAt
+    } = (request.body ?? {}) as {
       title?: string;
       description?: string;
       status?: string;
@@ -160,6 +220,11 @@ export class TasksService {
       ownerIds?: string[];
       assigneeIds?: string[];
       sprintId?: string | null;
+      startDate?: string | null;
+      endDate?: string | null;
+      estimatedHours?: number | null;
+      timeSpent?: number;
+      timerStartedAt?: string | null;
     };
 
     const existingTask = await prisma.task.findUnique({
@@ -179,6 +244,12 @@ export class TasksService {
     if (isBlocked !== undefined) dataToUpdate.isBlocked = isBlocked;
     if (blockedReason !== undefined) dataToUpdate.blockedReason = blockedReason;
     if (sprintId !== undefined) dataToUpdate.sprintId = sprintId;
+    if (startDate !== undefined) dataToUpdate.startDate = startDate ? new Date(startDate) : null;
+    if (endDate !== undefined) dataToUpdate.endDate = endDate ? new Date(endDate) : null;
+    if (estimatedHours !== undefined) dataToUpdate.estimatedHours = estimatedHours !== null ? Number(estimatedHours) : null;
+    if (timeSpent !== undefined) dataToUpdate.timeSpent = Number(timeSpent);
+    if (timerStartedAt !== undefined) dataToUpdate.timerStartedAt = timerStartedAt ? new Date(timerStartedAt) : null;
+
     if (ownerIds !== undefined) {
       dataToUpdate.owners = {
         set: ownerIds.map(id => ({ id }))
@@ -202,6 +273,11 @@ export class TasksService {
         isBlocked: true,
         blockedReason: true,
         sprintId: true,
+        startDate: true,
+        endDate: true,
+        estimatedHours: true,
+        timeSpent: true,
+        timerStartedAt: true,
         owners: {
           select: { id: true, name: true, email: true }
         },
@@ -234,6 +310,11 @@ export class TasksService {
       owners: updatedTask.owners,
       assignees: updatedTask.assignees,
       sprintId: updatedTask.sprintId,
+      startDate: updatedTask.startDate ? updatedTask.startDate.toISOString() : null,
+      endDate: updatedTask.endDate ? updatedTask.endDate.toISOString() : null,
+      estimatedHours: updatedTask.estimatedHours,
+      timeSpent: updatedTask.timeSpent,
+      timerStartedAt: updatedTask.timerStartedAt ? updatedTask.timerStartedAt.toISOString() : null,
     };
   }
 

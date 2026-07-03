@@ -79,24 +79,29 @@ model ProjectMembership {
 }
 
 model Task {
-  id            String             @id @default(cuid())
-  title         String
-  description   String?
-  status        String             @default("TODO")
-  priority      String             @default("MEDIUM")
-  projectId     String
-  sprintId      String?
-  createdById   String
-  isBlocked     Boolean            @default(false)
-  blockedReason String?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  project       Project            @relation(fields: [projectId], references: [id])
-  sprint        Sprint?            @relation(fields: [sprintId], references: [id], onDelete: SetNull)
-  owners        User[]             @relation("TaskOwners")
-  assignees     User[]             @relation("TaskAssignees")
-  createdBy     User               @relation("TaskCreator", fields: [createdById], references: [id])
-  stateHistory  TaskStateHistory[]
+  id             String             @id @default(cuid())
+  title          String
+  description    String?
+  status         String             @default("TODO")
+  priority       String             @default("MEDIUM")
+  projectId      String
+  sprintId       String?
+  createdById    String
+  isBlocked      Boolean            @default(false)
+  blockedReason  String?
+  startDate      DateTime?
+  endDate        DateTime?
+  estimatedHours Float?
+  timeSpent      Float              @default(0)
+  timerStartedAt DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  project        Project            @relation(fields: [projectId], references: [id])
+  sprint         Sprint?            @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  owners         User[]             @relation("TaskOwners")
+  assignees      User[]             @relation("TaskAssignees")
+  createdBy      User               @relation("TaskCreator", fields: [createdById], references: [id])
+  stateHistory   TaskStateHistory[]
 
   @@index([projectId])
   @@index([createdById])

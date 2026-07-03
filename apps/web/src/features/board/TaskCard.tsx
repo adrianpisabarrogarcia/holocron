@@ -47,6 +47,36 @@ export function TaskCard({ task, canWrite, onDragStart, onClick }: TaskCardProps
         {plainDescription || 'Sin descripción añadida.'}
       </p>
 
+      {/* Time Tracking & Dates Summary */}
+      {(task.startDate || task.endDate || task.estimatedHours || task.timeSpent > 0 || task.timerStartedAt) && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+          {/* Dates */}
+          {task.startDate || task.endDate ? (
+            <div className="flex items-center gap-1">
+              <span>📅</span>
+              <span>
+                {task.startDate ? new Date(task.startDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) : ''}
+                {task.startDate && task.endDate ? ' - ' : ''}
+                {task.endDate ? new Date(task.endDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) : ''}
+              </span>
+            </div>
+          ) : <div />}
+
+          {/* Time Tracking Progress */}
+          {(task.estimatedHours || task.timeSpent > 0 || task.timerStartedAt) && (
+            <div className="flex items-center gap-1.5 ml-auto shrink-0 bg-slate-50 dark:bg-slate-950 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-800/80">
+              {task.timerStartedAt && (
+                <span className="flex h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse mr-0.5" />
+              )}
+              <span>⏱️</span>
+              <span className={cn(task.timerStartedAt && "text-red-500 font-extrabold")}>
+                {task.timeSpent}h{task.estimatedHours ? ` / ${task.estimatedHours}h` : ''}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {task.isBlocked && (
         <div className="mt-3 flex items-start gap-1.5 rounded-lg bg-rose-50/50 dark:bg-rose-950/30 p-2 text-[10px] font-bold text-rose-700 dark:text-rose-450 border border-rose-100/50 dark:border-rose-900/35">
           <span className="shrink-0">⚠️</span>

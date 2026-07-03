@@ -99,6 +99,11 @@ export type TaskSummary = {
   owners: UserMiniSummary[];
   assignees: UserMiniSummary[];
   sprintId: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  estimatedHours: number | null;
+  timeSpent: number;
+  timerStartedAt: string | null;
 };
 
 export type FolderSummary = {

@@ -1,11 +1,12 @@
-import { FormEvent, useState, useMemo } from 'react';
+import { FormEvent, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useEscapeKey } from '../../lib/useEscapeKey';
 import type { TaskSummary } from '@holocron/contracts';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { ListTodo, Trash2, X, Link, Check } from 'lucide-react';
+import { ListTodo, Trash2, X, Link, Check, Play, Pause, Square, Clock } from 'lucide-react';
 import { fieldClassName } from '../../lib/constants';
+import { cn } from '../../lib/cn';
 import { RichTextEditor } from './RichTextEditor';
 import { AttachmentsSection, type Attachment } from './AttachmentsSection';
 
@@ -53,7 +54,12 @@ type TaskModalProps = {
     blockedReason: string | null,
     ownerIds?: string[],
     assigneeIds?: string[],
-    sprintId?: string | null
+    sprintId?: string | null,
+    startDate?: string | null,
+    endDate?: string | null,
+    estimatedHours?: number | null,
+    timeSpent?: number,
+    timerStartedAt?: string | null
   ) => Promise<void>;
   onDelete?: () => Promise<void>;
   columns: string[];
@@ -74,7 +80,7 @@ export function TaskModal({
     [task?.description]
   );
 
-  const { members, sprints } = useBoardStore();
+  const { members, sprints, updateTask } = useBoardStore();
 
   const [taskTitle, setTaskTitle] = useState(task?.title ?? '');
   const [taskDesc, setTaskDesc] = useState(initialHtml);
@@ -87,6 +93,29 @@ export function TaskModal({
   const [selectedOwners, setSelectedOwners] = useState<string[]>(task?.owners?.map(o => o.id) ?? []);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>(task?.assignees?.map(a => a.id) ?? []);
   const [sprintId, setSprintId] = useState<string | null>(task?.sprintId ?? initialSprintId ?? null);
+
+  // Time tracking & scheduling states
+  const [startDate, setStartDate] = useState(task?.startDate ? task.startDate.split('T')[0] : '');
+  const [endDate, setEndDate] = useState(task?.endDate ? task.endDate.split('T')[0] : '');
+  const [estimatedHours, setEstimatedHours] = useState(task?.estimatedHours !== null && task?.estimatedHours !== undefined ? String(task.estimatedHours) : '');
+  const [timeSpent, setTimeSpent] = useState(task?.timeSpent ?? 0);
+  const [timerStartedAt, setTimerStartedAt] = useState<string | null>(task?.timerStartedAt ?? null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Ticking effect for active timer
+  useEffect(() => {
+    if (!timerStartedAt) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - new Date(timerStartedAt).getTime()) / 1000);
+      setElapsedSeconds(elapsed > 0 ? elapsed : 0);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timerStartedAt]);
 
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -118,7 +147,12 @@ export function TaskModal({
         isBlocked ? (blockedReason.trim() || 'Bloqueado') : null,
         selectedOwners,
         selectedAssignees,
-        sprintId
+        sprintId,
+        startDate || null,
+        endDate || null,
+        estimatedHours ? Number(estimatedHours) : null,
+        timeSpent,
+        timerStartedAt
       );
       onClose();
     } catch (err) {
@@ -246,6 +280,151 @@ export function TaskModal({
                     ))}
                   </select>
                 </label>
+
+                {/* FECHAS DE INICIO Y FIN, ESTIMACIÓN Y TRACKING */}
+                <div className="border-t border-slate-200/60 dark:border-slate-800/80 pt-4 mt-4 space-y-4">
+                  <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Planificación y Tiempos</h4>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block text-sm text-slate-650 dark:text-slate-355">
+                      <span className="mb-1 block font-medium">Fecha Inicio</span>
+                      <input
+                        type="date"
+                        className={fieldClassName}
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                      />
+                    </label>
+                    
+                    <label className="block text-sm text-slate-650 dark:text-slate-355">
+                      <span className="mb-1 block font-medium">Fecha Fin</span>
+                      <input
+                        type="date"
+                        className={fieldClassName}
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 items-end">
+                    <label className="block text-sm text-slate-650 dark:text-slate-355">
+                      <span className="mb-1 block font-medium">Estimado (Horas)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        placeholder="Ej. 8"
+                        className={fieldClassName}
+                        value={estimatedHours}
+                        onChange={(e) => setEstimatedHours(e.target.value)}
+                      />
+                    </label>
+
+                    <div className="block text-sm text-slate-650 dark:text-slate-355">
+                      <span className="mb-1 block font-medium">Invertido (Horas)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        className={fieldClassName}
+                        value={timeSpent}
+                        onChange={(e) => setTimeSpent(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  {/* TIMER SECTION (Only in edit mode / task exists) */}
+                  {task && (
+                    <div className="bg-slate-50/50 dark:bg-slate-900/35 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-4 flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Clock className={cn("h-4 w-4 text-slate-400", timerStartedAt && "text-indigo-500 animate-pulse")} />
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Cronómetro de Tarea</span>
+                        </div>
+
+                        {timerStartedAt ? (
+                          <span className="text-xs font-bold text-red-500 bg-red-50 dark:bg-red-950/30 px-2 py-0.5 rounded-lg border border-red-200/50 dark:border-red-900/40 animate-pulse">
+                            {new Date(elapsedSeconds * 1000).toISOString().substr(11, 8)} corriendo
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-slate-450 dark:text-slate-550">
+                            Inactivo
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {!timerStartedAt ? (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              const now = new Date().toISOString();
+                              setTimerStartedAt(now);
+                              // Auto-update timer in background
+                              updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, now);
+                            }}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white flex-1 text-xs py-1.5 h-8.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
+                          >
+                            <Play className="h-3.5 w-3.5 fill-white" /> Iniciar Tracking
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                const seconds = elapsedSeconds;
+                                const additionalHours = Number((seconds / 3600).toFixed(3));
+                                const newTimeSpent = Number((timeSpent + additionalHours).toFixed(2));
+                                setTimeSpent(newTimeSpent);
+                                setTimerStartedAt(null);
+                                setElapsedSeconds(0);
+                                updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, newTimeSpent, null);
+                              }}
+                              variant="outline"
+                              className="border-indigo-200 hover:bg-indigo-50 dark:border-indigo-900/45 dark:hover:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 text-xs py-1.5 h-8.5 rounded-xl font-bold flex-1 flex items-center justify-center gap-1.5 transition active:scale-95"
+                            >
+                              <Pause className="h-3.5 w-3.5 fill-current" /> Pausar y Guardar
+                            </Button>
+
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                if (confirm("¿Estás seguro de que quieres detener el cronómetro sin guardar el tiempo transcurrido?")) {
+                                  setTimerStartedAt(null);
+                                  setElapsedSeconds(0);
+                                  updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, null);
+                                }
+                              }}
+                              className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 text-xs py-1.5 px-3 h-8.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
+                            >
+                              <Square className="h-3.5 w-3.5 fill-current text-slate-500" /> Cancelar
+                            </Button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Estimation Progress Bar */}
+                      {estimatedHours && Number(estimatedHours) > 0 && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] font-bold text-slate-450 dark:text-slate-550">
+                            <span>Progreso: {Math.round((timeSpent / Number(estimatedHours)) * 105)}%</span>
+                            <span>{timeSpent}h / {estimatedHours}h</span>
+                          </div>
+                          <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div 
+                              className={cn(
+                                "h-full rounded-full transition-all duration-300", 
+                                timeSpent > Number(estimatedHours) ? "bg-rose-500" : "bg-indigo-500"
+                              )} 
+                              style={{ width: `${Math.min(100, (timeSpent / Number(estimatedHours)) * 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Owners (Propietarios) selection */}
                 <div className="flex flex-col gap-1.5">

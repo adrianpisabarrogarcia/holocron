@@ -131,9 +131,14 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
     blockedReason: string | null,
     ownerIds?: string[],
     assigneeIds?: string[],
-    sprintId?: string | null
+    sprintId?: string | null,
+    startDate?: string | null,
+    endDate?: string | null,
+    estimatedHours?: number | null,
+    timeSpent?: number,
+    timerStartedAt?: string | null
   ) => {
-    await createTask(title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId);
+    await createTask(title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt);
   };
 
   const openEditTask = (task: TaskSummary) => {
@@ -164,10 +169,15 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
     blockedReason: string | null,
     ownerIds?: string[],
     assigneeIds?: string[],
-    sprintId?: string | null
+    sprintId?: string | null,
+    startDate?: string | null,
+    endDate?: string | null,
+    estimatedHours?: number | null,
+    timeSpent?: number,
+    timerStartedAt?: string | null
   ) => {
     if (!selectedTask) return;
-    await updateTask(selectedTask.id, title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId);
+    await updateTask(selectedTask.id, title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt);
   };
 
   const handleDeleteTask = async () => {
