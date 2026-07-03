@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useSearchParams } from 'react-router-dom';
 import type { PlatformRole, ProjectMembershipRole } from '@holocron/contracts';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
@@ -39,6 +39,9 @@ export function App() {
   const [selectedMembershipRole, setSelectedMembershipRole] = useState<ProjectMembershipRole>('CONTRIBUTOR');
   const [selectedScrumRole, setSelectedScrumRole] = useState<string>('');
   const [adminNotice, setAdminNotice] = useState<string | null>(null);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const projectParam = searchParams.get('project');
   
   // Theme logic
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -102,9 +105,25 @@ export function App() {
 
   useEffect(() => {
     if (status === 'authenticated') {
+      if (projectParam) {
+        useBoardStore.setState({ selectedProjectId: projectParam });
+      }
       void loadBoard();
     }
   }, [loadBoard, status]);
+
+  useEffect(() => {
+    if (status === 'authenticated' && boardSelectedProjectId && boardSelectedProjectId !== projectParam) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('project', boardSelectedProjectId);
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }, [status, boardSelectedProjectId, projectParam, setSearchParams]);
 
   useEffect(() => {
     if (status === 'authenticated' && isAdmin) {

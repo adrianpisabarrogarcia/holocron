@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { ProjectSummary, TaskSummary } from '@holocron/contracts';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { useBoardStore } from '../../store/useBoardStore';
@@ -20,6 +21,9 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
   // Store task actions
   const { createTask, updateTask, deleteTask, moveTask, members, syncColumns } = useBoardStore();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const taskParam = searchParams.get('task');
+
   // Task creation/editing state
   const [isTaskCreateOpen, setIsTaskCreateOpen] = useState(false);
   const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
@@ -33,6 +37,21 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
   // Write permissions check
   const isViewer = currentProject?.membershipRole === 'VIEWER';
   const canWrite = !isViewer || userRole === 'ADMIN';
+
+  // Sync open task modal with URL task query parameter
+  useEffect(() => {
+    if (taskParam && tasksByStatus) {
+      const allTasks = tasksByStatus.flatMap((lane) => lane.tasks);
+      const foundTask = allTasks.find((t) => t.id === taskParam);
+      if (foundTask) {
+        setSelectedTask(foundTask);
+        setIsTaskEditOpen(true);
+      }
+    } else {
+      setIsTaskEditOpen(false);
+      setSelectedTask(null);
+    }
+  }, [taskParam, tasksByStatus]);
 
   const openCreateTask = (status: TaskSummary['status']) => {
     if (!canWrite) return;
@@ -53,8 +72,21 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
 
   const openEditTask = (task: TaskSummary) => {
     if (!canWrite) return;
-    setSelectedTask(task);
-    setIsTaskEditOpen(true);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('task', task.id);
+      return next;
+    });
+  };
+
+  const closeEditTask = () => {
+    setIsTaskEditOpen(false);
+    setSelectedTask(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('task');
+      return next;
+    });
   };
 
   const handleEditTask = async (
@@ -257,7 +289,7 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
       {isTaskEditOpen && selectedTask && (
         <TaskModal
           isOpen={isTaskEditOpen}
-          onClose={() => setIsTaskEditOpen(false)}
+          onClose={closeEditTask}
           task={selectedTask}
           onSave={handleEditTask}
           onDelete={handleDeleteTask}

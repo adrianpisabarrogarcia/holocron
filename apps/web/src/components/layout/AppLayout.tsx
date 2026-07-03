@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import type { ProjectSummary, AuthenticatedUser } from '@holocron/contracts';
 import { Button } from '../ui/button';
@@ -15,6 +15,8 @@ import {
   RefreshCw,
   UserCircle,
   Key,
+  Link,
+  Check,
 } from 'lucide-react';
 
 type AppLayoutProps = {
@@ -47,6 +49,13 @@ export function AppLayout({
   loadBoard,
 }: AppLayoutProps) {
   const { folders } = useBoardStore();
+  const [projectCopied, setProjectCopied] = useState(false);
+
+  const handleCopyProjectLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setProjectCopied(true);
+    setTimeout(() => setProjectCopied(false), 2000);
+  };
 
   const getHierarchicalProjects = () => {
     const list: Array<{
@@ -276,6 +285,18 @@ export function AppLayout({
                     </option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  onClick={handleCopyProjectLink}
+                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-650 transition shrink-0 ml-1 flex items-center justify-center"
+                  title="Copiar enlace de esta vista"
+                >
+                  {projectCopied ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                    <Link className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 hover:text-indigo-650 dark:hover:text-indigo-400" />
+                  )}
+                </button>
               </div>
             )}
           </div>

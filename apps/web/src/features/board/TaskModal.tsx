@@ -3,7 +3,7 @@ import { useEscapeKey } from '../../lib/useEscapeKey';
 import type { TaskSummary } from '@holocron/contracts';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { ListTodo, Trash2, X } from 'lucide-react';
+import { ListTodo, Trash2, X, Link, Check } from 'lucide-react';
 import { fieldClassName } from '../../lib/constants';
 import { RichTextEditor } from './RichTextEditor';
 import { AttachmentsSection, type Attachment } from './AttachmentsSection';
@@ -76,6 +76,13 @@ export function TaskModal({
 
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEscapeKey(onClose, isOpen);
 
@@ -241,12 +248,25 @@ export function TaskModal({
 
             {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 justify-between shrink-0 bg-white dark:bg-slate-900 rounded-b-2xl">
-              {task && onDelete ? (
-                <Button type="button" variant="danger" className="text-white" onClick={handleDelete} disabled={pending}>
-                  <Trash2 className="h-4 w-4" />
-                  <span>Eliminar</span>
-                </Button>
-              ) : <div />}
+              <div className="flex items-center gap-2">
+                {task && onDelete && (
+                  <Button type="button" variant="danger" className="text-white" onClick={handleDelete} disabled={pending}>
+                    <Trash2 className="h-4 w-4" />
+                    <span>Eliminar</span>
+                  </Button>
+                )}
+                {task && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCopyLink}
+                    className="text-slate-650 dark:text-slate-355 flex items-center gap-1.5"
+                  >
+                    {copied ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 animate-in zoom-in-50 duration-150" /> : <Link className="h-4 w-4" />}
+                    <span>{copied ? '¡Copiado!' : 'Copiar enlace'}</span>
+                  </Button>
+                )}
+              </div>
               <div className="flex items-center gap-3">
                 {error && <span className="text-xs text-rose-500 font-medium">{error}</span>}
                 <Button type="button" variant="outline" onClick={onClose}>
