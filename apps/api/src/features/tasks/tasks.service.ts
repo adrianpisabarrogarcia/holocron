@@ -1,4 +1,4 @@
-import type { AuthenticatedUser, TaskSummary } from '@holocron/contracts';
+import type { AuthenticatedUser, TaskSummary, CommentSummary } from '@holocron/contracts';
 import { prisma } from '@holocron/db';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
@@ -415,5 +415,68 @@ export class TasksService {
     } catch (error) {
       return sendError(reply, 500, 'DELETE_ERROR', error instanceof Error ? error.message : 'Failed to delete file');
     }
+  }
+
+  async listComments(request: FastifyRequest, reply: FastifyReply): Promise<CommentSummary[] | void> {
+    const { projectId, taskId } = request.params as { projectId: string; taskId: string };
+
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access || reply.sent) return;
+
+    const comments = await prisma.comment.findMany({
+      where: { taskId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true }
+        }
+      }
+    });
+
+    return comments.map((c) => ({
+      id: c.id,
+      taskId: c.taskId,
+      userId: c.userId,
+      content: c.content,
+      createdAt: c.createdAt.toISOString(),
+      updatedAt: c.updatedAt.toISOString(),
+      user: c.user,
+    }));
+  }
+
+  async createComment(request: FastifyRequest, reply: FastifyReply): Promise<CommentSummary | void> {
+    const { projectId, taskId } = request.params as { projectId: string; taskId: string };
+    const authUser = request.authUser as AuthenticatedUser;
+
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access || reply.sent) return;
+
+    const { content } = request.body as { content: string };
+    if (!content || !content.trim()) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'Comment content cannot be empty');
+    }
+
+    const comment = await prisma.comment.create({
+      data: {
+        taskId,
+        userId: authUser.id,
+        content: content.trim(),
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true }
+        }
+      }
+    });
+
+    return {
+      id: comment.id,
+      taskId: comment.taskId,
+      userId: comment.userId,
+      content: comment.content,
+      createdAt: comment.createdAt.toISOString(),
+      updatedAt: comment.updatedAt.toISOString(),
+      user: comment.user,
+    };
   }
 }

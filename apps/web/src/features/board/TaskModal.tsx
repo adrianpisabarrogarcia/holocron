@@ -1,7 +1,7 @@
 import { FormEvent, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useEscapeKey } from '../../lib/useEscapeKey';
-import type { TaskSummary } from '@holocron/contracts';
+import type { TaskSummary, CommentSummary } from '@holocron/contracts';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { ListTodo, Trash2, X, Link, Check, Play, Pause, Square, Clock } from 'lucide-react';
@@ -120,7 +120,7 @@ export function TaskModal({
     [task?.description]
   );
 
-  const { members, sprints, updateTask } = useBoardStore();
+  const { members, sprints, updateTask, fetchComments, createComment } = useBoardStore();
 
   const [taskTitle, setTaskTitle] = useState(task?.title ?? '');
   const [taskDesc, setTaskDesc] = useState(initialHtml);
@@ -208,6 +208,43 @@ export function TaskModal({
 
     return () => clearInterval(interval);
   }, [timerStartedAt]);
+
+  // Comments states
+  const [comments, setComments] = useState<CommentSummary[]>([]);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [commentAttachments, setCommentAttachments] = useState<Attachment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentPending, setCommentPending] = useState(false);
+
+  // Fetch task comments
+  useEffect(() => {
+    if (!task) {
+      setComments([]);
+      return;
+    }
+    setCommentsLoading(true);
+    fetchComments(task.id)
+      .then(setComments)
+      .catch((err) => console.error('Error fetching comments:', err))
+      .finally(() => setCommentsLoading(false));
+  }, [task, fetchComments]);
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!task || !newCommentText.trim()) return;
+    setCommentPending(true);
+    try {
+      const content = newCommentText.trim() + serializeAttachments(commentAttachments);
+      const newComment = await createComment(task.id, content);
+      setComments((prev) => [...prev, newComment]);
+      setNewCommentText('');
+      setCommentAttachments([]);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al guardar el comentario');
+    } finally {
+      setCommentPending(false);
+    }
+  };
 
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -324,6 +361,112 @@ export function TaskModal({
                     onChange={setAttachments}
                   />
                 </div>
+
+                {/* Task Comments Section */}
+                {task && (
+                  <div className="border-t border-slate-100 dark:border-slate-800/80 pt-6 mt-2 space-y-4">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      <span>Comentarios</span>
+                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs px-2 py-0.5 rounded-full font-black">
+                        {comments.length}
+                      </span>
+                    </h3>
+
+                    {/* Comments Thread */}
+                    {commentsLoading ? (
+                      <div className="text-xs text-slate-400 dark:text-slate-500 py-4 animate-pulse">
+                        Cargando comentarios...
+                      </div>
+                    ) : comments.length === 0 ? (
+                      <div className="text-xs text-slate-400 dark:text-slate-500 italic py-4 bg-slate-50/30 dark:bg-slate-900/10 rounded-xl border border-dashed border-slate-200/50 dark:border-slate-800/50 text-center">
+                        Aún no hay comentarios en esta tarea. ¡Añade el primero!
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {comments.map((c) => {
+                          const { cleanHtml, attachments: commentAtts } = parseAttachments(c.content);
+                          const initials = c.user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+                          return (
+                            <div key={c.id} className="flex gap-3 items-start text-sm">
+                              {/* Avatar */}
+                              <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center font-bold text-xs shrink-0 select-none">
+                                {initials}
+                              </div>
+
+                              {/* Comment Content */}
+                              <div className="flex-1 bg-slate-50/50 dark:bg-slate-900/25 border border-slate-150/60 dark:border-slate-800/80 rounded-2xl p-3.5 space-y-1.5 min-w-0 shadow-sm">
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                  <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">{c.user.name}</span>
+                                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                    {new Date(c.createdAt).toLocaleString(undefined, {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </span>
+                                </div>
+                                <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed text-xs break-words">
+                                  {cleanHtml}
+                                </p>
+
+                                {/* Comment files */}
+                                {commentAtts && commentAtts.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/40">
+                                    {commentAtts.map((att, idx) => (
+                                      <a
+                                        key={idx}
+                                        href={att.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1 text-[10px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/80 font-bold transition shadow-sm"
+                                      >
+                                        📎 {att.filename}
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Comment Form */}
+                    <form onSubmit={handleAddComment} className="bg-slate-50/30 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-4 mt-6 space-y-3">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Nuevo Comentario</span>
+                      <textarea
+                        value={newCommentText}
+                        onChange={(e) => setNewCommentText(e.target.value)}
+                        placeholder="Escribe un comentario o aclaración sobre la tarea..."
+                        className={`${fieldClassName} text-xs py-2 px-3 min-h-[80px] resize-y`}
+                        required
+                        disabled={commentPending}
+                      />
+
+                      {/* Attachments inside Comment */}
+                      <div className="rounded-xl border border-slate-200/60 dark:border-slate-800/80 bg-white dark:bg-slate-900/30 p-2.5">
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">Adjuntar archivos al comentario</span>
+                        <AttachmentsSection
+                          attachments={commentAttachments}
+                          onChange={setCommentAttachments}
+                        />
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="submit"
+                          variant="primary"
+                          disabled={commentPending || !newCommentText.trim()}
+                          className="text-xs font-bold py-1.5 px-4 h-8.5 rounded-xl transition active:scale-95 shadow-md shadow-indigo-600/10"
+                        >
+                          {commentPending ? 'Enviando...' : 'Enviar Comentario'}
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </div>
 
               {/* ── Right column: metadata ── */}

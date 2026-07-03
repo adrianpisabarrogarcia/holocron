@@ -112,3 +112,13 @@ export type FolderSummary = {
   parentFolderId: string | null;
   createdAt: string;
 };
+
+export type CommentSummary = {
+  id: string;
+  taskId: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  user: UserMiniSummary;
+};

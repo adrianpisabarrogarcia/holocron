@@ -1,4 +1,4 @@
-import type { ProjectSummary, TaskSummary, FolderSummary, ProjectMemberSummary, SprintSummary } from '@holocron/contracts';
+import type { ProjectSummary, TaskSummary, FolderSummary, ProjectMemberSummary, SprintSummary, CommentSummary } from '@holocron/contracts';
 import { create } from 'zustand';
 import { apiFetch, parseJsonError } from '../lib/api';
 
@@ -30,6 +30,8 @@ type BoardStore = {
   createSprint: (name: string, startDate?: string | null, endDate?: string | null) => Promise<void>;
   updateSprint: (sprintId: string, name?: string, startDate?: string | null, endDate?: string | null, status?: SprintSummary['status'], position?: number) => Promise<void>;
   deleteSprint: (sprintId: string) => Promise<void>;
+  fetchComments: (taskId: string) => Promise<CommentSummary[]>;
+  createComment: (taskId: string, content: string) => Promise<CommentSummary>;
 };
 
 async function loadProjectMembers(projectId: string) {
@@ -472,5 +474,27 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false });
       throw error;
     }
+  },
+  fetchComments: async (taskId) => {
+    const { selectedProjectId } = get();
+    if (!selectedProjectId) throw new Error('No project selected');
+    const response = await apiFetch(`/api/projects/${selectedProjectId}/tasks/${taskId}/comments`);
+    if (!response.ok) {
+      throw new Error(await parseJsonError(response));
+    }
+    return (await response.json()) as CommentSummary[];
+  },
+  createComment: async (taskId, content) => {
+    const { selectedProjectId } = get();
+    if (!selectedProjectId) throw new Error('No project selected');
+    const response = await apiFetch(`/api/projects/${selectedProjectId}/tasks/${taskId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    if (!response.ok) {
+      throw new Error(await parseJsonError(response));
+    }
+    return (await response.json()) as CommentSummary;
   },
 }));

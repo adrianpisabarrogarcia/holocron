@@ -27,4 +27,12 @@ export class TasksController {
   deleteUpload = async (request: FastifyRequest, reply: FastifyReply) => {
     return this.tasksService.deleteUpload(request, reply);
   };
+
+  listComments = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.tasksService.listComments(request, reply);
+  };
+
+  createComment = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.tasksService.createComment(request, reply);
+  };
 }
