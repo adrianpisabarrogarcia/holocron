@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import type { PlatformRole } from '@holocron/contracts';
+import type { PlatformRole, AuthenticatedUser } from '@holocron/contracts';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/cn';
@@ -8,6 +8,7 @@ import { CreateUserModal } from '../users/CreateUserModal';
 import { EditUserModal } from '../users/EditUserModal';
 import { ProjectsAdminPage } from './ProjectsAdminPage';
 import { RefreshCw, UserPlus, Download, Pencil, Trash2 } from 'lucide-react';
+import { getApiUrl } from '../../lib/api';
 
 export type AdminPageProps = {
   adminNotice: string | null;
@@ -22,7 +23,7 @@ export type AdminPageProps = {
   onNewUserPasswordChange: (value: string) => void;
   onNewUserRoleChange: (value: PlatformRole) => void;
   onRefreshUsers: () => void;
-  users: Array<{ email: string; id: string; name: string; platformRole: PlatformRole; assignedProjects?: string[]; assignedFolders?: string[] }>;
+  users: Array<AuthenticatedUser>;
   usersError: string | null;
   usersLoading: boolean;
   usersPending: boolean;
@@ -62,6 +63,7 @@ export function AdminPage({
   const [editUserEmail, setEditUserEmail] = useState('');
   const [editUserPassword, setEditUserPassword] = useState('');
   const [editUserRole, setEditUserRole] = useState<PlatformRole>('MEMBER');
+  const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(null);
 
   const onEditUserClick = (member: any) => {
     setEditUserId(member.id);
@@ -69,6 +71,7 @@ export function AdminPage({
     setEditUserEmail(member.email);
     setEditUserPassword('');
     setEditUserRole(member.platformRole);
+    setEditUserAvatarUrl(member.avatarUrl || null);
     setIsEditModalOpen(true);
   };
 
@@ -79,6 +82,7 @@ export function AdminPage({
         name: editUserName,
         email: editUserEmail,
         platformRole: editUserRole,
+        avatarUrl: editUserAvatarUrl,
       };
       if (editUserPassword) {
         payload.password = editUserPassword;
@@ -217,8 +221,16 @@ export function AdminPage({
                       {/* Avatar & Name */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 font-extrabold text-xs flex items-center justify-center border border-indigo-100 dark:border-indigo-900/30">
-                            {initials}
+                          <div className="h-9 w-9 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 font-extrabold text-xs flex items-center justify-center border border-indigo-100 dark:border-indigo-900/30 overflow-hidden shrink-0">
+                            {member.avatarUrl ? (
+                              <img
+                                src={getApiUrl(member.avatarUrl)}
+                                alt={member.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              initials
+                            )}
                           </div>
                           <div>
                             <p className="font-bold text-slate-900 dark:text-slate-100 leading-snug">{member.name}</p>
@@ -342,6 +354,8 @@ export function AdminPage({
         onPasswordChange={setEditUserPassword}
         role={editUserRole}
         onRoleChange={setEditUserRole}
+        avatarUrl={editUserAvatarUrl}
+        onAvatarUrlChange={setEditUserAvatarUrl}
         pending={usersPending}
       />
     </section>

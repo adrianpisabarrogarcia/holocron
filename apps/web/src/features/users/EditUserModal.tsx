@@ -1,11 +1,14 @@
-import { FormEvent } from 'react';
+import { FormEvent, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useEscapeKey } from '../../lib/useEscapeKey';
 import type { PlatformRole } from '@holocron/contracts';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { UserCog, X } from 'lucide-react';
+import { UserCog, X, UserCircle, Camera, Loader2 } from 'lucide-react';
 import { fieldClassName } from '../../lib/constants';
+import { useBoardStore } from '../../store/useBoardStore';
+import { getApiUrl } from '../../lib/api';
+import { compressImageToWebp } from '../board/AttachmentsSection';
 
 type EditUserModalProps = {
   isOpen: boolean;
@@ -19,6 +22,8 @@ type EditUserModalProps = {
   onPasswordChange: (val: string) => void;
   role: PlatformRole;
   onRoleChange: (val: PlatformRole) => void;
+  avatarUrl: string | null;
+  onAvatarUrlChange: (val: string | null) => void;
   pending: boolean;
 };
 
@@ -36,8 +41,37 @@ export function EditUserModal({
   onPasswordChange,
   role,
   onRoleChange,
+  avatarUrl,
+  onAvatarUrlChange,
   pending,
 }: EditUserModalProps) {
+  const { uploadFile } = useBoardStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarUploading(true);
+    try {
+      if (file.type.startsWith('image/')) {
+        const base64Data = await compressImageToWebp(file, 200);
+        const dotIdx = file.name.lastIndexOf('.');
+        const filename = (dotIdx !== -1 ? file.name.substring(0, dotIdx) : file.name) + '.webp';
+        
+        const { url } = await uploadFile(filename, base64Data);
+        onAvatarUrlChange(url);
+      } else {
+        alert("Por favor selecciona una imagen válida.");
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al subir la foto');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   useEscapeKey(onClose, isOpen);
   if (!isOpen) return null;
 
@@ -60,6 +94,43 @@ export function EditUserModal({
         </CardHeader>
         <CardContent className="p-0">
           <form className="space-y-4" onSubmit={onSubmit}>
+            {/* Avatar Section */}
+            <div className="flex flex-col items-center gap-2 pb-4 border-b border-slate-100 dark:border-slate-800/40">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+              <div className="relative group h-20 w-20 rounded-full overflow-hidden border-2 border-indigo-100 dark:border-indigo-900 bg-slate-50 dark:bg-slate-955 flex items-center justify-center shadow-md shrink-0">
+                {avatarUploading ? (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 text-white animate-spin" />
+                  </div>
+                ) : avatarUrl ? (
+                  <img
+                    src={getApiUrl(avatarUrl)}
+                    alt={name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserCircle className="h-12 w-12 text-slate-400" />
+                )}
+                
+                <button
+                  type="button"
+                  disabled={avatarUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-[10px] text-white font-bold gap-1 cursor-pointer"
+                >
+                  <Camera className="h-4 w-4" />
+                  <span>CAMBIAR</span>
+                </button>
+              </div>
+              <span className="text-[10px] text-slate-450 dark:text-slate-550 font-bold uppercase tracking-wider">Foto de Perfil</span>
+            </div>
+
             <label className="block text-sm text-slate-655 dark:text-slate-355">
               <span className="mb-1 block font-medium">Nombre completo</span>
               <input className={fieldClassName} onChange={(event) => onNameChange(event.target.value)} required type="text" value={name} placeholder="Ej: Adrian Garcia" />
