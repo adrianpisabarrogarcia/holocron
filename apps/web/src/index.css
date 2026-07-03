@@ -35,4 +35,65 @@
     linear-gradient(90deg, rgba(99, 102, 241, 0.02) 1px, transparent 1px);
 }
 
+/* Custom rich text / prose styles for previewing and editing content */
+.prose {
+  line-height: 1.625;
+}
+.prose p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+.prose ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+.prose ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+.prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+.prose blockquote {
+  border-left: 4px solid #6366f1 !important;
+  padding-left: 1rem !important;
+  margin: 0.75em 0 !important;
+  font-style: italic;
+  color: #4b5563;
+}
+.dark .prose blockquote {
+  color: #9ca3af;
+  border-left-color: #818cf8 !important;
+}
+.prose pre {
+  background-color: #f3f4f6;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-family: monospace;
+  font-size: 0.875em;
+  overflow-x: auto;
+  margin: 0.75em 0;
+}
+.dark .prose pre {
+  background-color: #111827;
+}
+.prose code {
+  font-family: monospace;
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+.dark .prose code {
+  background-color: #111827;
+}
+.prose h1 { font-size: 1.5em; font-weight: bold; margin-top: 0.8em; margin-bottom: 0.4em; }
+.prose h2 { font-size: 1.25em; font-weight: bold; margin-top: 0.8em; margin-bottom: 0.4em; }
+.prose h3 { font-size: 1.1em; font-weight: bold; margin-top: 0.8em; margin-bottom: 0.4em; }
+
 
