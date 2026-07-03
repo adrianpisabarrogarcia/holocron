@@ -37,10 +37,10 @@ export class TasksService {
         timeSpent: true,
         timerStartedAt: true,
         owners: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true, avatarUrl: true }
         },
         assignees: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true, avatarUrl: true }
         }
       },
     });
@@ -147,10 +147,10 @@ export class TasksService {
         timeSpent: true,
         timerStartedAt: true,
         owners: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true, avatarUrl: true }
         },
         assignees: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true, avatarUrl: true }
         }
       },
     });
@@ -279,10 +279,10 @@ export class TasksService {
         timeSpent: true,
         timerStartedAt: true,
         owners: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true, avatarUrl: true }
         },
         assignees: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true, avatarUrl: true }
         }
       },
     });
@@ -428,7 +428,7 @@ export class TasksService {
       orderBy: { createdAt: 'asc' },
       include: {
         user: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true, avatarUrl: true }
         }
       }
     });
@@ -464,7 +464,7 @@ export class TasksService {
       },
       include: {
         user: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true, avatarUrl: true }
         }
       }
     });
@@ -509,7 +509,7 @@ export class TasksService {
       data: { content: content.trim() },
       include: {
         user: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true, avatarUrl: true }
         }
       }
     });

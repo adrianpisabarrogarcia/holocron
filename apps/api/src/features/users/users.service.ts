@@ -17,6 +17,7 @@ export class UsersService {
         email: true,
         name: true,
         platformRole: true,
+        avatarUrl: true,
         memberships: {
           select: {
             project: {
@@ -78,6 +79,7 @@ export class UsersService {
           email: true,
           name: true,
           platformRole: true,
+          avatarUrl: true,
         },
       });
 
@@ -94,11 +96,12 @@ export class UsersService {
 
   async updateUser(request: FastifyRequest, reply: FastifyReply): Promise<AuthenticatedUser | void> {
     const { userId } = request.params as { userId: string };
-    const { email, name, password, platformRole } = (request.body ?? {}) as {
+    const { email, name, password, platformRole, avatarUrl } = (request.body ?? {}) as {
       email?: string;
       name?: string;
       password?: string;
       platformRole?: AuthenticatedUser['platformRole'];
+      avatarUrl?: string | null;
     };
 
     const user = await prisma.user.findUnique({
@@ -118,6 +121,7 @@ export class UsersService {
     if (name) data.name = name;
     if (password) data.passwordHash = hashPassword(password);
     if (platformRole) data.platformRole = platformRole;
+    if (avatarUrl !== undefined) data.avatarUrl = avatarUrl;
 
     try {
       const updatedUser = await prisma.user.update({
@@ -128,6 +132,7 @@ export class UsersService {
           email: true,
           name: true,
           platformRole: true,
+          avatarUrl: true,
         },
       });
 

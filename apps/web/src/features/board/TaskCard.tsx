@@ -1,6 +1,7 @@
 import type { TaskSummary } from '@holocron/contracts';
 import { cn } from '../../lib/cn';
 import { priorityTone } from '../../lib/constants';
+import { getApiUrl } from '../../lib/api';
 
 type TaskCardProps = {
   task: TaskSummary;
@@ -111,9 +112,17 @@ export function TaskCard({ task, canWrite, onDragStart, onClick }: TaskCardProps
                   return (
                     <div key={o.id} className="relative group shrink-0">
                       <div
-                        className="h-5 w-5 rounded-full bg-amber-50 dark:bg-amber-950/45 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 flex items-center justify-center font-extrabold text-[8px] tracking-tighter cursor-help"
+                        className="h-5 w-5 rounded-full bg-amber-50 dark:bg-amber-950/45 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 flex items-center justify-center font-extrabold text-[8px] tracking-tighter cursor-help overflow-hidden shrink-0"
                       >
-                        {initials}
+                        {o.avatarUrl ? (
+                          <img
+                            src={getApiUrl(o.avatarUrl)}
+                            alt={o.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          initials
+                        )}
                       </div>
                       <div className="pointer-events-none absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 rounded bg-slate-900 dark:bg-slate-950 text-white text-[9px] font-semibold px-2 py-0.5 whitespace-nowrap shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 border border-slate-700/50">
                         {o.name} (Owner)
@@ -135,9 +144,17 @@ export function TaskCard({ task, canWrite, onDragStart, onClick }: TaskCardProps
                   return (
                     <div key={a.id} className="relative group shrink-0">
                       <div
-                        className="h-5 w-5 rounded-full bg-indigo-50 dark:bg-indigo-950/45 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/40 flex items-center justify-center font-extrabold text-[8px] tracking-tighter cursor-help"
+                        className="h-5 w-5 rounded-full bg-indigo-50 dark:bg-indigo-950/45 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/40 flex items-center justify-center font-extrabold text-[8px] tracking-tighter cursor-help overflow-hidden shrink-0"
                       >
-                        {initials}
+                        {a.avatarUrl ? (
+                          <img
+                            src={getApiUrl(a.avatarUrl)}
+                            alt={a.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          initials
+                        )}
                       </div>
                       <div className="pointer-events-none absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 rounded bg-slate-900 dark:bg-slate-950 text-white text-[9px] font-semibold px-2 py-0.5 whitespace-nowrap shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 border border-slate-700/50">
                         {a.name}

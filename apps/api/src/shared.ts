@@ -115,7 +115,7 @@ export function normalizeProjectRole(role: string): ProjectMembershipRole | null
   return allowedProjectRoles.has(role as ProjectMembershipRole) ? (role as ProjectMembershipRole) : null;
 }
 
-export function buildAuthUser(user: { id: string; email: string; name: string; platformRole: string }) {
+export function buildAuthUser(user: { id: string; email: string; name: string; platformRole: string; avatarUrl?: string | null }) {
   const platformRole = normalizePlatformRole(user.platformRole);
   if (!platformRole) {
     throw new Error(`Unsupported platform role: ${user.platformRole}`);
@@ -125,13 +125,14 @@ export function buildAuthUser(user: { id: string; email: string; name: string; p
     email: user.email,
     name: user.name,
     platformRole,
+    avatarUrl: user.avatarUrl || null,
   } satisfies AuthenticatedUser;
 }
 
 export function buildProjectMemberSummary(member: {
   role: string;
   scrumRole?: string | null;
-  user: { id: string; email: string; name: string; platformRole: string };
+  user: { id: string; email: string; name: string; platformRole: string; avatarUrl?: string | null };
 }) {
   const role = normalizeProjectRole(member.role);
   const platformRole = normalizePlatformRole(member.user.platformRole);
@@ -148,12 +149,13 @@ export function buildProjectMemberSummary(member: {
     platformRole,
     role,
     scrumRole: normalizeScrumRole(member.scrumRole),
+    avatarUrl: member.user.avatarUrl || null,
   } satisfies ProjectMemberSummary;
 }
 
 export function buildFolderMemberSummary(member: {
   role: string;
-  user: { id: string; email: string; name: string; platformRole: string };
+  user: { id: string; email: string; name: string; platformRole: string; avatarUrl?: string | null };
 }) {
   const role = normalizeProjectRole(member.role);
   const platformRole = normalizePlatformRole(member.user.platformRole);
@@ -169,6 +171,7 @@ export function buildFolderMemberSummary(member: {
     name: member.user.name,
     platformRole,
     role,
+    avatarUrl: member.user.avatarUrl || null,
   } satisfies FolderMemberSummary;
 }
 
@@ -214,6 +217,7 @@ export async function buildAuthResponse(userId: string) {
       name: true,
       platformRole: true,
       isActive: true,
+      avatarUrl: true,
     },
   });
 
@@ -254,6 +258,7 @@ export async function authenticateRequest(request: FastifyRequest, reply: Fastif
       name: true,
       platformRole: true,
       isActive: true,
+      avatarUrl: true,
     },
   });
   if (!user || !user.isActive) {

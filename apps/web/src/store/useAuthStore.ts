@@ -24,6 +24,7 @@ type AuthStore = {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<string | null>;
+  updateProfile: (name?: string, avatarUrl?: string | null) => Promise<void>;
 };
 
 let bootstrapPromise: Promise<void> | null = null;
@@ -114,6 +115,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
 
     return refreshPromise;
+  },
+  updateProfile: async (name, avatarUrl) => {
+    const response = await apiFetch('/auth/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, avatarUrl }),
+    });
+    if (!response.ok) {
+      throw new Error(await parseJsonError(response));
+    }
+    const updatedUser = (await response.json()) as AuthenticatedUser;
+    set({ user: updatedUser });
   },
 }));
 

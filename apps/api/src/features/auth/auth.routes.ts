@@ -7,4 +7,5 @@ export function registerAuthRoutes(app: FastifyInstance, controller: AuthControl
   app.post('/auth/refresh', controller.refresh);
   app.post('/auth/logout', controller.logout);
   app.get('/auth/me', { preHandler: authenticateRequest }, controller.me);
+  app.patch('/auth/profile', { preHandler: authenticateRequest }, controller.updateProfile);
 }

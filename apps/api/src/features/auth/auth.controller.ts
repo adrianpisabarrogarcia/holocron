@@ -19,4 +19,8 @@ export class AuthController {
   me = async (request: FastifyRequest) => {
     return request.authUser;
   };
+
+  updateProfile = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.authService.updateProfile(request, reply);
+  };
 }

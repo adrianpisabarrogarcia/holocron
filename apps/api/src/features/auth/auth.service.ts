@@ -36,6 +36,7 @@ export class AuthService {
         passwordHash: true,
         platformRole: true,
         isActive: true,
+        avatarUrl: true,
       },
     });
 
@@ -168,5 +169,28 @@ export class AuthService {
 
     clearRefreshCookie(reply);
     return { success: true };
+  }
+
+  async updateProfile(request: FastifyRequest, reply: FastifyReply): Promise<AuthenticatedUser | void> {
+    const authUser = request.authUser as AuthenticatedUser;
+    const { name, avatarUrl } = (request.body ?? {}) as { name?: string; avatarUrl?: string | null };
+
+    const data: any = {};
+    if (name) data.name = name;
+    if (avatarUrl !== undefined) data.avatarUrl = avatarUrl;
+
+    const updated = await prisma.user.update({
+      where: { id: authUser.id },
+      data,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        platformRole: true,
+        avatarUrl: true,
+      }
+    });
+
+    return buildAuthUser(updated);
   }
 }

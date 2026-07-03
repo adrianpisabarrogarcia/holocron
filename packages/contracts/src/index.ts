@@ -11,6 +11,7 @@ export type AuthenticatedUser = {
   email: string;
   name: string;
   platformRole: PlatformRole;
+  avatarUrl?: string | null;
   assignedProjects?: string[];
   assignedFolders?: string[];
 };
@@ -51,6 +52,7 @@ export type ProjectMemberSummary = {
   platformRole: PlatformRole;
   role: ProjectMembershipRole;
   scrumRole: ScrumRole | null;
+  avatarUrl?: string | null;
 };
 
 export type FolderMemberSummary = {
@@ -59,6 +61,7 @@ export type FolderMemberSummary = {
   name: string;
   platformRole: PlatformRole;
   role: ProjectMembershipRole;
+  avatarUrl?: string | null;
 };
 
 export type UpsertProjectMemberInput = {
@@ -76,6 +79,7 @@ export type UserMiniSummary = {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
 };
 
 export type SprintSummary = {

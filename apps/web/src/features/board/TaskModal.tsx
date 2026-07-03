@@ -12,6 +12,7 @@ import { AttachmentsSection, type Attachment } from './AttachmentsSection';
 
 import { useBoardStore } from '../../store/useBoardStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { getApiUrl } from '../../lib/api';
 
 // --- Attachment serialization helpers ---
 const ATT_MARKER = 'data-holocron-attachments';
@@ -448,8 +449,16 @@ export function TaskModal({
                           return (
                             <div key={c.id} className="flex gap-3 items-start text-sm">
                               {/* Avatar */}
-                              <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center font-bold text-xs shrink-0 select-none">
-                                {initials}
+                              <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center font-bold text-xs shrink-0 select-none overflow-hidden">
+                                {c.user.avatarUrl ? (
+                                  <img
+                                    src={getApiUrl(c.user.avatarUrl)}
+                                    alt={c.user.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  initials
+                                )}
                               </div>
 
                               {/* Comment Content */}

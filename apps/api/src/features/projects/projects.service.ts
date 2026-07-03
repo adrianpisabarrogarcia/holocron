@@ -383,6 +383,7 @@ export class ProjectsService {
             email: true,
             name: true,
             platformRole: true,
+            avatarUrl: true,
           },
         },
       },

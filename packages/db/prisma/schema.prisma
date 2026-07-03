@@ -14,6 +14,7 @@ model User {
   passwordHash     String             @default("")
   platformRole     String             @default("MEMBER")
   isActive         Boolean            @default(true)
+  avatarUrl        String?
   lastLoginAt      DateTime?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
