@@ -78,6 +78,15 @@ export type UserMiniSummary = {
   email: string;
 };
 
+export type SprintSummary = {
+  id: string;
+  name: string;
+  startDate: string | null;
+  endDate: string | null;
+  status: 'PLANNING' | 'ACTIVE' | 'COMPLETED';
+  projectId: string;
+};
+
 export type TaskSummary = {
   id: string;
   title: string;
@@ -88,6 +97,7 @@ export type TaskSummary = {
   blockedReason: string | null;
   owners: UserMiniSummary[];
   assignees: UserMiniSummary[];
+  sprintId: string | null;
 };
 
 export type FolderSummary = {

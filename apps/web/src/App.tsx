@@ -18,6 +18,7 @@ import { statusOrder, fieldClassName } from './lib/constants';
 import { AppLayout } from './components/layout/AppLayout';
 import { OverviewPage } from './features/overview/OverviewPage';
 import { BoardPage } from './features/board/BoardPage';
+import { SprintsPage } from './features/sprints/SprintsPage';
 import { AdminPage } from './features/admin/AdminPage';
 import { ProjectsAdminPage } from './features/admin/ProjectsAdminPage';
 import { AccessAdminPage } from './features/admin/AccessAdminPage';
@@ -321,6 +322,18 @@ export function App() {
               projects={projects}
               selectedProjectId={boardSelectedProjectId}
               tasksByStatus={tasksByStatus}
+              userRole={user.platformRole}
+            />
+          }
+        />
+        <Route
+          path="/sprints"
+          element={
+            <SprintsPage
+              currentProject={currentProject}
+              onProjectChange={handleProjectChange}
+              projects={projects}
+              selectedProjectId={boardSelectedProjectId}
               userRole={user.platformRole}
             />
           }

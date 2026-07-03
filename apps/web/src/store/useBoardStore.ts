@@ -1,4 +1,4 @@
-import type { ProjectSummary, TaskSummary, FolderSummary, ProjectMemberSummary } from '@holocron/contracts';
+import type { ProjectSummary, TaskSummary, FolderSummary, ProjectMemberSummary, SprintSummary } from '@holocron/contracts';
 import { create } from 'zustand';
 import { apiFetch, parseJsonError } from '../lib/api';
 
@@ -12,6 +12,7 @@ type BoardStore = {
   selectProject: (projectId: string) => Promise<void>;
   tasks: TaskSummary[];
   members: ProjectMemberSummary[];
+  sprints: SprintSummary[];
   loadBoard: () => Promise<void>;
   loadFolders: () => Promise<void>;
   createFolder: (name: string, parentFolderId?: string | null) => Promise<void>;
@@ -19,13 +20,16 @@ type BoardStore = {
   createProject: (name: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null, folderId?: string | null) => Promise<void>;
   updateProject: (projectId: string, name?: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null, folderId?: string | null) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
-  createTask: (title: string, description?: string, status?: string, priority?: string, isBlocked?: boolean, blockedReason?: string | null, ownerIds?: string[], assigneeIds?: string[]) => Promise<void>;
-  updateTask: (taskId: string, title?: string, description?: string, status?: string, priority?: string, isBlocked?: boolean, blockedReason?: string | null, ownerIds?: string[], assigneeIds?: string[]) => Promise<void>;
+  createTask: (title: string, description?: string, status?: string, priority?: string, isBlocked?: boolean, blockedReason?: string | null, ownerIds?: string[], assigneeIds?: string[], sprintId?: string | null) => Promise<void>;
+  updateTask: (taskId: string, title?: string, description?: string, status?: string, priority?: string, isBlocked?: boolean, blockedReason?: string | null, ownerIds?: string[], assigneeIds?: string[], sprintId?: string | null) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   moveTask: (taskId: string, newStatus: TaskSummary['status']) => Promise<void>;
   syncColumns: (projectId: string, columns: { id?: string; name: string; emoji?: string | null; position: number }[]) => Promise<void>;
   uploadFile: (filename: string, base64Data: string) => Promise<{ url: string; filename: string }>;
   deleteUpload: (filename: string) => Promise<void>;
+  createSprint: (name: string, startDate?: string | null, endDate?: string | null) => Promise<void>;
+  updateSprint: (sprintId: string, name?: string, startDate?: string | null, endDate?: string | null, status?: SprintSummary['status']) => Promise<void>;
+  deleteSprint: (sprintId: string) => Promise<void>;
 };
 
 async function loadProjectMembers(projectId: string) {
@@ -49,6 +53,16 @@ async function loadProjectTasks(projectId: string) {
   return (await tasksResponse.json()) as TaskSummary[];
 }
 
+async function loadProjectSprints(projectId: string) {
+  const sprintsResponse = await apiFetch(`/api/projects/${projectId}/sprints`);
+
+  if (!sprintsResponse.ok) {
+    throw new Error(await parseJsonError(sprintsResponse));
+  }
+
+  return (await sprintsResponse.json()) as SprintSummary[];
+}
+
 async function loadProjectFolders() {
   const foldersResponse = await apiFetch('/api/folders');
 
@@ -64,23 +78,25 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   loading: false,
   projects: [],
   folders: [],
-  resetBoard: () => set({ error: null, loading: false, projects: [], folders: [], selectedProjectId: null, tasks: [], members: [] }),
+  resetBoard: () => set({ error: null, loading: false, projects: [], folders: [], selectedProjectId: null, tasks: [], members: [], sprints: [] }),
   selectedProjectId: null,
   selectProject: async (projectId) => {
     set({ error: null, loading: true, selectedProjectId: projectId });
 
     try {
-      const [tasks, members] = await Promise.all([
+      const [tasks, members, sprints] = await Promise.all([
         loadProjectTasks(projectId),
         loadProjectMembers(projectId),
+        loadProjectSprints(projectId),
       ]);
-      set({ error: null, loading: false, tasks, members });
+      set({ error: null, loading: false, tasks, members, sprints });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false, tasks: [], members: [] });
+      set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false, tasks: [], members: [], sprints: [] });
     }
   },
   tasks: [],
   members: [],
+  sprints: [],
   loadBoard: async () => {
     set({ error: null, loading: true });
 
@@ -96,14 +112,15 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? projects[0] ?? null;
 
       if (!selectedProject) {
-        set({ error: null, loading: false, projects: [], selectedProjectId: null, tasks: [], members: [] });
+        set({ error: null, loading: false, projects: [], selectedProjectId: null, tasks: [], members: [], sprints: [] });
         return;
       }
 
-      const [tasks, folders, members] = await Promise.all([
+      const [tasks, folders, members, sprints] = await Promise.all([
         loadProjectTasks(selectedProject.id),
         loadProjectFolders(),
         loadProjectMembers(selectedProject.id),
+        loadProjectSprints(selectedProject.id),
       ]);
 
       set({
@@ -114,6 +131,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         selectedProjectId: selectedProject.id,
         tasks,
         members,
+        sprints,
       });
     } catch (error) {
       set({
@@ -362,6 +380,67 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     });
     if (!response.ok) {
       throw new Error(await parseJsonError(response));
+    }
+  },
+  createSprint: async (name, startDate, endDate) => {
+    const { selectedProjectId } = get();
+    if (!selectedProjectId) throw new Error('No project selected');
+    set({ error: null, loading: true });
+    try {
+      const response = await apiFetch(`/api/projects/${selectedProjectId}/sprints`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, startDate, endDate }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseJsonError(response));
+      }
+
+      await get().loadBoard();
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false });
+      throw error;
+    }
+  },
+  updateSprint: async (sprintId, name, startDate, endDate, status) => {
+    const { selectedProjectId } = get();
+    if (!selectedProjectId) throw new Error('No project selected');
+    set({ error: null, loading: true });
+    try {
+      const response = await apiFetch(`/api/projects/${selectedProjectId}/sprints/${sprintId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, startDate, endDate, status }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseJsonError(response));
+      }
+
+      await get().loadBoard();
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false });
+      throw error;
+    }
+  },
+  deleteSprint: async (sprintId) => {
+    const { selectedProjectId } = get();
+    if (!selectedProjectId) throw new Error('No project selected');
+    set({ error: null, loading: true });
+    try {
+      const response = await apiFetch(`/api/projects/${selectedProjectId}/sprints/${sprintId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseJsonError(response));
+      }
+
+      await get().loadBoard();
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false });
+      throw error;
     }
   },
 }));

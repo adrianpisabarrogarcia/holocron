@@ -13,13 +13,13 @@ type BoardPageProps = {
   onProjectChange: (projectId: string) => Promise<void>;
   projects: ProjectSummary[];
   selectedProjectId: string | null;
-  tasksByStatus: Array<{ status: TaskSummary['status']; emoji?: string | null; tasks: TaskSummary[] }>;
+  tasksByStatus?: Array<{ status: TaskSummary['status']; emoji?: string | null; tasks: TaskSummary[] }>;
   userRole: string;
 };
 
-export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPageProps) {
+export function BoardPage({ currentProject, userRole }: BoardPageProps) {
   // Store task actions
-  const { createTask, updateTask, deleteTask, moveTask, members, syncColumns } = useBoardStore();
+  const { tasks, sprints, createTask, updateTask, deleteTask, moveTask, members, syncColumns } = useBoardStore();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const taskParam = searchParams.get('task');
@@ -30,6 +30,7 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
   const [isManageColumnsOpen, setIsManageColumnsOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskSummary | null>(null);
   const [createInitialStatus, setCreateInitialStatus] = useState<TaskSummary['status']>('TODO');
+  const [sprintFilter, setSprintFilter] = useState<string>('active');
 
   // Drag and drop visual highlight state
   const [activeLane, setActiveLane] = useState<TaskSummary['status'] | null>(null);
@@ -38,10 +39,30 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
   const isViewer = currentProject?.membershipRole === 'VIEWER';
   const canWrite = !isViewer || userRole === 'ADMIN';
 
+  const activeSprint = sprints.find(s => s.status === 'ACTIVE');
+  const filteredTasks = tasks.filter(task => {
+    if (sprintFilter === 'active') {
+      return activeSprint ? task.sprintId === activeSprint.id : true;
+    } else if (sprintFilter === 'backlog') {
+      return !task.sprintId;
+    } else if (sprintFilter === 'all') {
+      return true;
+    } else {
+      return task.sprintId === sprintFilter;
+    }
+  });
+
+  const columnsList = currentProject?.columns ?? [];
+  const localTasksByStatus = columnsList.map(col => ({
+    status: col.name,
+    emoji: col.emoji || null,
+    tasks: filteredTasks.filter(t => t.status === col.name),
+  }));
+
   // Sync open task modal with URL task query parameter
   useEffect(() => {
-    if (taskParam && tasksByStatus) {
-      const allTasks = tasksByStatus.flatMap((lane) => lane.tasks);
+    if (taskParam && localTasksByStatus) {
+      const allTasks = localTasksByStatus.flatMap((lane) => lane.tasks);
       const foundTask = allTasks.find((t) => t.id === taskParam);
       if (foundTask) {
         setSelectedTask(foundTask);
@@ -51,7 +72,7 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
       setIsTaskEditOpen(false);
       setSelectedTask(null);
     }
-  }, [taskParam, tasksByStatus]);
+  }, [taskParam, tasks, sprintFilter]);
 
   const openCreateTask = (status: TaskSummary['status']) => {
     if (!canWrite) return;
@@ -67,9 +88,10 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
     isBlocked: boolean,
     blockedReason: string | null,
     ownerIds?: string[],
-    assigneeIds?: string[]
+    assigneeIds?: string[],
+    sprintId?: string | null
   ) => {
-    await createTask(title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds);
+    await createTask(title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId);
   };
 
   const openEditTask = (task: TaskSummary) => {
@@ -99,10 +121,11 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
     isBlocked: boolean,
     blockedReason: string | null,
     ownerIds?: string[],
-    assigneeIds?: string[]
+    assigneeIds?: string[],
+    sprintId?: string | null
   ) => {
     if (!selectedTask) return;
-    await updateTask(selectedTask.id, title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds);
+    await updateTask(selectedTask.id, title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId);
   };
 
   const handleDeleteTask = async () => {
@@ -171,6 +194,24 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
             <CardDescription>
               {isViewer ? 'Modo de visualización (lectura)' : 'Arrastra tareas entre columnas o haz clic en ellas para modificarlas'}
             </CardDescription>
+
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs font-semibold text-slate-500">Filtrar por Sprint:</span>
+              <select
+                className="bg-transparent text-xs font-bold text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 outline-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition"
+                value={sprintFilter}
+                onChange={(e) => setSprintFilter(e.target.value)}
+              >
+                <option value="active" className="dark:bg-slate-900">Sprint Activo</option>
+                <option value="backlog" className="dark:bg-slate-900">Backlog general (Sin Sprint)</option>
+                <option value="all" className="dark:bg-slate-900">Ver Todo</option>
+                {sprints.map((s) => (
+                  <option key={s.id} value={s.id} className="dark:bg-slate-900">
+                    {s.name} ({s.status === 'ACTIVE' ? 'Activo' : s.status === 'COMPLETED' ? 'Completado' : 'Planificación'})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* TEAM MEMBERS LIST */}
@@ -253,7 +294,7 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
         <CardContent className="pt-6">
           <div className="overflow-x-auto pb-2">
             <div className="flex gap-5 min-w-max">
-              {tasksByStatus.map((column) => {
+              {localTasksByStatus.map((column) => {
                 const isLaneActive = activeLane === column.status;
                 return (
                   <div key={column.status} className="w-72 shrink-0">
@@ -285,7 +326,7 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
           task={null}
           initialStatus={createInitialStatus}
           onSave={handleCreateTask}
-          columns={tasksByStatus.map((lane) => lane.status)}
+          columns={localTasksByStatus.map((lane) => lane.status)}
         />
       )}
 
@@ -297,7 +338,7 @@ export function BoardPage({ currentProject, tasksByStatus, userRole }: BoardPage
           task={selectedTask}
           onSave={handleEditTask}
           onDelete={handleDeleteTask}
-          columns={tasksByStatus.map((lane) => lane.status)}
+          columns={localTasksByStatus.map((lane) => lane.status)}
         />
       )}
 

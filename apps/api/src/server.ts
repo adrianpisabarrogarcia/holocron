@@ -18,6 +18,10 @@ import { registerProjectsRoutes } from './features/projects/projects.routes';
 import { ProjectsController } from './features/projects/projects.controller';
 import { ProjectsService } from './features/projects/projects.service';
 
+import { registerSprintsRoutes } from './features/sprints/sprints.routes';
+import { SprintsController } from './features/sprints/sprints.controller';
+import { SprintsService } from './features/sprints/sprints.service';
+
 import { registerTasksRoutes } from './features/tasks/tasks.routes';
 import { TasksController } from './features/tasks/tasks.controller';
 import { TasksService } from './features/tasks/tasks.service';
@@ -76,6 +80,10 @@ registerProjectsRoutes(app, projectsController);
 const tasksService = new TasksService();
 const tasksController = new TasksController(tasksService);
 registerTasksRoutes(app, tasksController);
+
+const sprintsService = new SprintsService();
+const sprintsController = new SprintsController(sprintsService);
+registerSprintsRoutes(app, sprintsController);
 
 const usersService = new UsersService();
 const usersController = new UsersController(usersService);

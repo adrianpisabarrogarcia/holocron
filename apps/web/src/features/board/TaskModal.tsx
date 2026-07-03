@@ -51,7 +51,8 @@ type TaskModalProps = {
     isBlocked: boolean,
     blockedReason: string | null,
     ownerIds?: string[],
-    assigneeIds?: string[]
+    assigneeIds?: string[],
+    sprintId?: string | null
   ) => Promise<void>;
   onDelete?: () => Promise<void>;
   columns: string[];
@@ -71,7 +72,7 @@ export function TaskModal({
     [task?.description]
   );
 
-  const { members } = useBoardStore();
+  const { members, sprints } = useBoardStore();
 
   const [taskTitle, setTaskTitle] = useState(task?.title ?? '');
   const [taskDesc, setTaskDesc] = useState(initialHtml);
@@ -83,6 +84,7 @@ export function TaskModal({
 
   const [selectedOwners, setSelectedOwners] = useState<string[]>(task?.owners?.map(o => o.id) ?? []);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>(task?.assignees?.map(a => a.id) ?? []);
+  const [sprintId, setSprintId] = useState<string | null>(task?.sprintId ?? null);
 
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -113,7 +115,8 @@ export function TaskModal({
         isBlocked,
         isBlocked ? (blockedReason.trim() || 'Bloqueado') : null,
         selectedOwners,
-        selectedAssignees
+        selectedAssignees,
+        sprintId
       );
       onClose();
     } catch (err) {
@@ -221,6 +224,22 @@ export function TaskModal({
                     {columns.map((colName) => (
                       <option key={colName} value={colName}>
                         {colName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block text-sm text-slate-650 dark:text-slate-355">
+                  <span className="mb-1 block font-medium">Sprint</span>
+                  <select
+                    className={fieldClassName}
+                    value={sprintId ?? ''}
+                    onChange={(e) => setSprintId(e.target.value || null)}
+                  >
+                    <option value="">Backlog general (Sin Sprint)</option>
+                    {sprints.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.status === 'ACTIVE' ? 'Activo' : s.status === 'COMPLETED' ? 'Completado' : 'Planificación'})
                       </option>
                     ))}
                   </select>

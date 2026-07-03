@@ -30,6 +30,7 @@ export class TasksService {
         priority: true,
         isBlocked: true,
         blockedReason: true,
+        sprintId: true,
         owners: {
           select: { id: true, name: true, email: true }
         },
@@ -47,6 +48,7 @@ export class TasksService {
       blockedReason: task.blockedReason,
       owners: task.owners,
       assignees: task.assignees,
+      sprintId: task.sprintId,
     }));
   }
 
@@ -61,7 +63,7 @@ export class TasksService {
       return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
     }
 
-    const { title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds } = (request.body ?? {}) as {
+    const { title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId } = (request.body ?? {}) as {
       title?: string;
       description?: string;
       status?: string;
@@ -70,6 +72,7 @@ export class TasksService {
       blockedReason?: string | null;
       ownerIds?: string[];
       assigneeIds?: string[];
+      sprintId?: string | null;
     };
 
     if (!title) {
@@ -86,6 +89,7 @@ export class TasksService {
         createdById: authUser.id,
         isBlocked: isBlocked ?? false,
         blockedReason: blockedReason ?? null,
+        sprintId: sprintId ?? null,
         owners: {
           connect: (ownerIds ?? []).map(id => ({ id }))
         },
@@ -101,6 +105,7 @@ export class TasksService {
         priority: true,
         isBlocked: true,
         blockedReason: true,
+        sprintId: true,
         owners: {
           select: { id: true, name: true, email: true }
         },
@@ -130,6 +135,7 @@ export class TasksService {
       blockedReason: task.blockedReason,
       owners: task.owners,
       assignees: task.assignees,
+      sprintId: task.sprintId,
     };
   }
 
@@ -144,7 +150,7 @@ export class TasksService {
       return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
     }
 
-    const { title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds } = (request.body ?? {}) as {
+    const { title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId } = (request.body ?? {}) as {
       title?: string;
       description?: string;
       status?: string;
@@ -153,6 +159,7 @@ export class TasksService {
       blockedReason?: string | null;
       ownerIds?: string[];
       assigneeIds?: string[];
+      sprintId?: string | null;
     };
 
     const existingTask = await prisma.task.findUnique({
@@ -171,6 +178,7 @@ export class TasksService {
     if (priority !== undefined) dataToUpdate.priority = priority;
     if (isBlocked !== undefined) dataToUpdate.isBlocked = isBlocked;
     if (blockedReason !== undefined) dataToUpdate.blockedReason = blockedReason;
+    if (sprintId !== undefined) dataToUpdate.sprintId = sprintId;
     if (ownerIds !== undefined) {
       dataToUpdate.owners = {
         set: ownerIds.map(id => ({ id }))
@@ -193,6 +201,7 @@ export class TasksService {
         priority: true,
         isBlocked: true,
         blockedReason: true,
+        sprintId: true,
         owners: {
           select: { id: true, name: true, email: true }
         },
@@ -224,6 +233,7 @@ export class TasksService {
       blockedReason: updatedTask.blockedReason,
       owners: updatedTask.owners,
       assignees: updatedTask.assignees,
+      sprintId: updatedTask.sprintId,
     };
   }
 
