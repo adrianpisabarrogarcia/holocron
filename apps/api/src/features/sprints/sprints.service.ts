@@ -12,7 +12,7 @@ export class SprintsService {
 
     const sprints = await prisma.sprint.findMany({
       where: { projectId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
     });
 
     return sprints.map((s) => ({
@@ -22,6 +22,7 @@ export class SprintsService {
       endDate: s.endDate ? s.endDate.toISOString() : null,
       status: s.status as SprintSummary['status'],
       projectId: s.projectId,
+      position: s.position,
     }));
   }
 
@@ -46,12 +47,17 @@ export class SprintsService {
       return sendError(reply, 400, 'VALIDATION_ERROR', 'Sprint name is required');
     }
 
+    const count = await prisma.sprint.count({
+      where: { projectId },
+    });
+
     const sprint = await prisma.sprint.create({
       data: {
         name,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
         status: 'PLANNING',
+        position: count,
         projectId,
       },
     });
@@ -64,6 +70,7 @@ export class SprintsService {
       endDate: sprint.endDate ? sprint.endDate.toISOString() : null,
       status: sprint.status as SprintSummary['status'],
       projectId: sprint.projectId,
+      position: sprint.position,
     };
   }
 
@@ -78,11 +85,12 @@ export class SprintsService {
       return sendError(reply, 403, 'FORBIDDEN', 'Write access is required for this project');
     }
 
-    const { name, startDate, endDate, status } = (request.body ?? {}) as {
+    const { name, startDate, endDate, status, position } = (request.body ?? {}) as {
       name?: string;
       startDate?: string | null;
       endDate?: string | null;
       status?: SprintSummary['status'];
+      position?: number;
     };
 
     const existing = await prisma.sprint.findUnique({
@@ -98,6 +106,7 @@ export class SprintsService {
     if (startDate !== undefined) dataToUpdate.startDate = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) dataToUpdate.endDate = endDate ? new Date(endDate) : null;
     if (status !== undefined) dataToUpdate.status = status;
+    if (position !== undefined) dataToUpdate.position = position;
 
     const updated = await prisma.sprint.update({
       where: { id: sprintId },
@@ -111,6 +120,7 @@ export class SprintsService {
       endDate: updated.endDate ? updated.endDate.toISOString() : null,
       status: updated.status as SprintSummary['status'],
       projectId: updated.projectId,
+      position: updated.position,
     };
   }
 

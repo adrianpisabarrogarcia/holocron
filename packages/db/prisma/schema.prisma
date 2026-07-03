@@ -164,6 +164,7 @@ model Sprint {
   startDate   DateTime?
   endDate     DateTime?
   status      String    @default("PLANNING") // PLANNING, ACTIVE, COMPLETED
+  position    Int       @default(0)
   projectId   String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

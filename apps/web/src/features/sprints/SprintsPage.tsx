@@ -18,6 +18,8 @@ import {
   ChevronDown, 
   ChevronRight, 
   ArrowRight,
+  ArrowUp,
+  ArrowDown,
   User,
   AlertTriangle,
   Clock
@@ -231,6 +233,27 @@ export function SprintsPage({
     }
   };
 
+  const handleMoveSprint = async (sprintId: string, direction: 'up' | 'down') => {
+    const currentIndex = sprints.findIndex((s) => s.id === sprintId);
+    if (currentIndex === -1) return;
+    
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= sprints.length) return;
+
+    const currentSprint = sprints[currentIndex];
+    const targetSprint = sprints[targetIndex];
+
+    // Swap positions
+    const currentPos = currentSprint.position;
+    const targetPos = targetSprint.position;
+
+    // Call updateSprint for both
+    await Promise.all([
+      updateSprint(currentSprint.id, undefined, undefined, undefined, undefined, targetPos),
+      updateSprint(targetSprint.id, undefined, undefined, undefined, undefined, currentPos),
+    ]);
+  };
+
   // Drag & Drop
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData('text/plain', taskId);
@@ -316,7 +339,7 @@ export function SprintsPage({
               </CardDescription>
             </Card>
           ) : (
-            sprints.map((sprint) => {
+            sprints.map((sprint, index) => {
               const sprintTasks = tasksBySprint(sprint.id);
               const isCollapsed = collapsedSprints[sprint.id] || false;
               const isDragActive = activeSprintDragId === sprint.id;
@@ -400,6 +423,28 @@ export function SprintsPage({
                           <CheckCircle2 className="h-3 w-3 mr-1" /> Completar
                         </Button>
                       )}
+
+                       <Button 
+                        onClick={() => handleMoveSprint(sprint.id, 'up')}
+                        disabled={index === 0}
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-7.5 w-7.5 p-0 text-slate-400 hover:text-indigo-650 dark:hover:text-indigo-400 disabled:opacity-30 flex items-center justify-center"
+                        title="Mover Arriba"
+                      >
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </Button>
+
+                      <Button 
+                        onClick={() => handleMoveSprint(sprint.id, 'down')}
+                        disabled={index === sprints.length - 1}
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-7.5 w-7.5 p-0 text-slate-400 hover:text-indigo-650 dark:hover:text-indigo-400 disabled:opacity-30 flex items-center justify-center"
+                        title="Mover Abajo"
+                      >
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </Button>
 
                        <Button 
                         onClick={() => handleOpenEditSprint(sprint)}

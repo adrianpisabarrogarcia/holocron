@@ -85,6 +85,7 @@ export type SprintSummary = {
   endDate: string | null;
   status: 'PLANNING' | 'ACTIVE' | 'COMPLETED';
   projectId: string;
+  position: number;
 };
 
 export type TaskSummary = {

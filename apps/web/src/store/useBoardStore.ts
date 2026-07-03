@@ -28,7 +28,7 @@ type BoardStore = {
   uploadFile: (filename: string, base64Data: string) => Promise<{ url: string; filename: string }>;
   deleteUpload: (filename: string) => Promise<void>;
   createSprint: (name: string, startDate?: string | null, endDate?: string | null) => Promise<void>;
-  updateSprint: (sprintId: string, name?: string, startDate?: string | null, endDate?: string | null, status?: SprintSummary['status']) => Promise<void>;
+  updateSprint: (sprintId: string, name?: string, startDate?: string | null, endDate?: string | null, status?: SprintSummary['status'], position?: number) => Promise<void>;
   deleteSprint: (sprintId: string) => Promise<void>;
 };
 
@@ -203,7 +203,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw error;
     }
   },
-  createTask: async (title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds) => {
+  createTask: async (title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId) => {
     const { selectedProjectId } = get();
     if (!selectedProjectId) throw new Error('No project selected');
     set({ error: null, loading: true });
@@ -211,7 +211,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       const response = await apiFetch(`/api/projects/${selectedProjectId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds }),
+        body: JSON.stringify({ title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId }),
       });
 
       if (!response.ok) {
@@ -224,7 +224,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw error;
     }
   },
-  updateTask: async (taskId, title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds) => {
+  updateTask: async (taskId, title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId) => {
     const { selectedProjectId } = get();
     if (!selectedProjectId) throw new Error('No project selected');
     set({ error: null, loading: true });
@@ -232,7 +232,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       const response = await apiFetch(`/api/projects/${selectedProjectId}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds }),
+        body: JSON.stringify({ title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId }),
       });
 
       if (!response.ok) {
@@ -403,7 +403,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw error;
     }
   },
-  updateSprint: async (sprintId, name, startDate, endDate, status) => {
+  updateSprint: async (sprintId, name, startDate, endDate, status, position) => {
     const { selectedProjectId } = get();
     if (!selectedProjectId) throw new Error('No project selected');
     set({ error: null, loading: true });
@@ -411,7 +411,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       const response = await apiFetch(`/api/projects/${selectedProjectId}/sprints/${sprintId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, startDate, endDate, status }),
+        body: JSON.stringify({ name, startDate, endDate, status, position }),
       });
 
       if (!response.ok) {
