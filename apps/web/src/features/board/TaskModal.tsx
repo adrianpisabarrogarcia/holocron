@@ -36,6 +36,20 @@ function parseAttachments(html: string): { cleanHtml: string; attachments: Attac
     return { cleanHtml: html, attachments: [] };
   }
 }
+export function formatHoursToReadable(hours: number): string {
+  if (hours <= 0) return '0s';
+  const totalSeconds = Math.round(hours * 3600);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+
+  const parts = [];
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0) parts.push(`${m}m`);
+  if (s > 0 || parts.length === 0) parts.push(`${s}s`);
+
+  return parts.join(' ');
+}
 
 // ----------------------------------------
 
@@ -384,8 +398,8 @@ export function TaskModal({
                               variant="primary"
                               onClick={() => {
                                 const seconds = elapsedSeconds;
-                                const additionalHours = Number((seconds / 3600).toFixed(3));
-                                const newTimeSpent = Number((timeSpent + additionalHours).toFixed(2));
+                                const additionalHours = Number((seconds / 3600).toFixed(5));
+                                const newTimeSpent = Number((timeSpent + additionalHours).toFixed(5));
                                 setTimeSpent(newTimeSpent);
                                 setTimerStartedAt(null);
                                 setElapsedSeconds(0);
@@ -419,7 +433,7 @@ export function TaskModal({
                         <div className="space-y-1">
                           <div className="flex justify-between text-[10px] font-bold text-slate-450 dark:text-slate-550">
                             <span>Progreso: {Math.round((timeSpent / Number(estimatedHours)) * 100)}%</span>
-                            <span>{timeSpent}h / {estimatedHours}h</span>
+                            <span>{formatHoursToReadable(timeSpent)} / {estimatedHours}h</span>
                           </div>
                           <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
                             <div 

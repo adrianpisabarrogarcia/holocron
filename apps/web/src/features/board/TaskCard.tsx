@@ -18,6 +18,20 @@ function stripHtml(html: string | null | undefined): string {
     return html.replace(/<[^>]*>/g, '');
   }
 }
+export function formatHoursToReadable(hours: number): string {
+  if (hours <= 0) return '0s';
+  const totalSeconds = Math.round(hours * 3600);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+
+  const parts = [];
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0) parts.push(`${m}m`);
+  if (s > 0 || parts.length === 0) parts.push(`${s}s`);
+
+  return parts.join(' ');
+}
 
 export function TaskCard({ task, canWrite, onDragStart, onClick }: TaskCardProps) {
   const plainDescription = stripHtml(task.description);
@@ -70,7 +84,7 @@ export function TaskCard({ task, canWrite, onDragStart, onClick }: TaskCardProps
               )}
               <span>⏱️</span>
               <span className={cn(task.timerStartedAt && "text-red-500 font-extrabold")}>
-                {task.timeSpent}h{task.estimatedHours ? ` / ${task.estimatedHours}h` : ''}
+                {formatHoursToReadable(task.timeSpent)}{task.estimatedHours ? ` / ${task.estimatedHours}h` : ''}
               </span>
             </div>
           )}
