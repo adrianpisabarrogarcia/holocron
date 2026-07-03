@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
