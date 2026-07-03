@@ -96,4 +96,20 @@
 .prose h2 { font-size: 1.25em; font-weight: bold; margin-top: 0.8em; margin-bottom: 0.4em; }
 .prose h3 { font-size: 1.1em; font-weight: bold; margin-top: 0.8em; margin-bottom: 0.4em; }
 
+.prose a {
+  color: #4f46e5 !important;
+  text-decoration: underline !important;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+.prose a:hover {
+  color: #4338ca !important;
+}
+.dark .prose a {
+  color: #818cf8 !important;
+}
+.dark .prose a:hover {
+  color: #a5b4fc !important;
+}
+
 

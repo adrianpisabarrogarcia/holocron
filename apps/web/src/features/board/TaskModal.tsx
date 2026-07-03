@@ -289,6 +289,22 @@ export function TaskModal({
     }
   };
 
+  const handleProseClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'IMG') {
+      const src = (target as HTMLImageElement).src;
+      if (src) {
+        window.open(src, '_blank');
+        return;
+      }
+    }
+    const anchor = target.closest('a');
+    if (anchor && anchor.href) {
+      e.preventDefault();
+      window.open(anchor.href, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -493,8 +509,9 @@ export function TaskModal({
                                 ) : (
                                   <>
                                     <div 
-                                      className="text-slate-750 dark:text-slate-300 leading-relaxed text-xs break-words prose dark:prose-invert prose-xs max-w-none prose-p:my-0"
+                                      className="text-slate-750 dark:text-slate-300 leading-relaxed text-xs break-words prose dark:prose-invert prose-xs max-w-none prose-p:my-0 cursor-default"
                                       dangerouslySetInnerHTML={{ __html: cleanHtml || 'Sin contenido.' }}
+                                      onClick={handleProseClick}
                                     />
 
                                     {/* Edit / Delete action buttons */}
