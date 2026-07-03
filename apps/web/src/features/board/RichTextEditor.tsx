@@ -41,6 +41,7 @@ export function RichTextEditor({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const { uploadFile } = useBoardStore();
+  const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
 
   // Load initial value
   useEffect(() => {
@@ -52,6 +53,15 @@ export function RichTextEditor({
   const handleInput = () => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  const handleEditorClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'IMG') {
+      setSelectedImg(target as HTMLImageElement);
+    } else {
+      setSelectedImg(null);
     }
   };
 
@@ -172,8 +182,94 @@ export function RichTextEditor({
         <p className="px-3 pt-1.5 text-[11px] text-rose-500 font-medium">{uploadError}</p>
       )}
 
+      {/* Selected Image Resize Toolbar */}
+      {selectedImg && (
+        <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 border-b border-indigo-100 dark:border-indigo-900/30 p-1.5 px-3 text-xs shrink-0 select-none animate-in slide-in-from-top-2 duration-150">
+          <span className="font-bold text-indigo-700 dark:text-indigo-400 mr-2">Tamaño de Imagen:</span>
+          <button
+            type="button"
+            onClick={() => {
+              selectedImg.style.width = '25%';
+              selectedImg.style.height = 'auto';
+              handleInput();
+            }}
+            className={cn(
+              "px-2 py-0.5 rounded font-bold transition",
+              selectedImg.style.width === '25%' 
+                ? "bg-indigo-600 text-white" 
+                : "text-indigo-650 hover:bg-indigo-100/50 dark:text-indigo-400 dark:hover:bg-indigo-900/30"
+            )}
+          >
+            Pequeño (25%)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              selectedImg.style.width = '50%';
+              selectedImg.style.height = 'auto';
+              handleInput();
+            }}
+            className={cn(
+              "px-2 py-0.5 rounded font-bold transition",
+              selectedImg.style.width === '50%' 
+                ? "bg-indigo-600 text-white" 
+                : "text-indigo-650 hover:bg-indigo-100/50 dark:text-indigo-400 dark:hover:bg-indigo-900/30"
+            )}
+          >
+            Medio (50%)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              selectedImg.style.width = '75%';
+              selectedImg.style.height = 'auto';
+              handleInput();
+            }}
+            className={cn(
+              "px-2 py-0.5 rounded font-bold transition",
+              selectedImg.style.width === '75%' 
+                ? "bg-indigo-600 text-white" 
+                : "text-indigo-650 hover:bg-indigo-100/50 dark:text-indigo-400 dark:hover:bg-indigo-900/30"
+            )}
+          >
+            Grande (75%)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              selectedImg.style.width = '100%';
+              selectedImg.style.height = 'auto';
+              handleInput();
+            }}
+            className={cn(
+              "px-2 py-0.5 rounded font-bold transition",
+              (!selectedImg.style.width || selectedImg.style.width === '100%') 
+                ? "bg-indigo-600 text-white" 
+                : "text-indigo-650 hover:bg-indigo-100/50 dark:text-indigo-400 dark:hover:bg-indigo-900/30"
+            )}
+          >
+            Total (100%)
+          </button>
+          <div className="w-px h-4 bg-indigo-200 dark:bg-indigo-900/50 mx-1" />
+          <button
+            type="button"
+            onClick={() => {
+              selectedImg.remove();
+              setSelectedImg(null);
+              handleInput();
+            }}
+            className="text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 px-2 py-0.5 rounded font-bold transition ml-auto"
+          >
+            Eliminar
+          </button>
+        </div>
+      )}
+
       {/* EDITABLE CONTAINER */}
-      <div className={cn("relative overflow-y-auto p-3 text-sm", minHeight, maxHeight)}>
+      <div 
+        onClick={handleEditorClick}
+        className={cn("relative overflow-y-auto p-3 text-sm", minHeight, maxHeight)}
+      >
         <div
           ref={editorRef}
           contentEditable
