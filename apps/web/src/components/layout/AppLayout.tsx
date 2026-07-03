@@ -1,4 +1,4 @@
-import { ReactNode, useState, useRef } from 'react';
+import { ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import type { ProjectSummary, AuthenticatedUser } from '@holocron/contracts';
 import { Button } from '../ui/button';
@@ -6,7 +6,7 @@ import { cn } from '../../lib/cn';
 import { useBoardStore } from '../../store/useBoardStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { getApiUrl } from '../../lib/api';
-import { compressImageToWebp } from '../../features/board/AttachmentsSection';
+import { ProfileModal } from '../../features/users/ProfileModal';
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -52,39 +52,9 @@ export function AppLayout({
   loading,
   loadBoard,
 }: AppLayoutProps) {
-  const { folders, uploadFile } = useBoardStore();
-  const { updateProfile } = useAuthStore();
+  const { folders } = useBoardStore();
   const [projectCopied, setProjectCopied] = useState(false);
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setAvatarUploading(true);
-    try {
-      let base64Data = '';
-      let filename = file.name;
-      
-      if (file.type.startsWith('image/')) {
-        base64Data = await compressImageToWebp(file, 200);
-        const dotIdx = file.name.lastIndexOf('.');
-        filename = (dotIdx !== -1 ? file.name.substring(0, dotIdx) : file.name) + '.webp';
-      } else {
-        alert("Por favor selecciona un archivo de imagen válido.");
-        setAvatarUploading(false);
-        return;
-      }
-
-      const { url } = await uploadFile(filename, base64Data);
-      await updateProfile(undefined, url);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al subir la foto de perfil');
-    } finally {
-      setAvatarUploading(false);
-    }
-  };
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const handleCopyProjectLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -140,42 +110,25 @@ export function AppLayout({
           </div>
 
           {/* User profile brief */}
-          <div className="p-4 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30">
+          <div 
+            onClick={() => setIsProfileModalOpen(true)}
+            className="p-4 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 hover:bg-slate-100/50 dark:hover:bg-slate-850/50 transition cursor-pointer group"
+            title="Mi Perfil"
+          >
             <div className="flex items-center gap-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="hidden"
-              />
-              <button
-                type="button"
-                disabled={avatarUploading}
-                onClick={() => fileInputRef.current?.click()}
-                className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-650 dark:text-slate-355 overflow-hidden border border-slate-300 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-400 transition cursor-pointer relative group"
-                title="Cambiar foto de perfil (Máx 1.5 MB)"
-              >
+              <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-650 dark:text-slate-355 overflow-hidden border border-slate-300 dark:border-slate-700 group-hover:border-indigo-500 dark:group-hover:border-indigo-400 transition relative shrink-0">
                 {user.avatarUrl ? (
                   <img
                     src={getApiUrl(user.avatarUrl)}
                     alt={user.name}
-                    className="h-full w-full object-cover animate-in fade-in duration-300"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
                   <UserCircle className="h-6 w-6" />
                 )}
-                {avatarUploading && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <span className="text-[8px] text-white font-bold animate-pulse">...</span>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[8px] text-white font-bold">
-                  SUBIR
-                </div>
-              </button>
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold truncate text-slate-900 dark:text-slate-100 leading-tight">{user.name}</p>
+                <p className="text-sm font-semibold truncate text-slate-900 dark:text-slate-105 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-405 transition">{user.name}</p>
                 <span className="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 mt-0.5">
                   {user.platformRole}
                 </span>
@@ -394,6 +347,11 @@ export function AppLayout({
           {children}
         </div>
       </main>
+
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </div>
   );
 }
