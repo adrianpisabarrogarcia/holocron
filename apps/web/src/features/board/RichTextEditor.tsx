@@ -9,6 +9,9 @@ type RichTextEditorProps = {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  minHeight?: string;
+  editorMinHeight?: string;
+  maxHeight?: string;
 };
 
 const TOOLBAR_BUTTONS = [
@@ -24,7 +27,14 @@ const TOOLBAR_BUTTONS = [
 const MAX_IMAGE_MB = 7;
 const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
 
-export function RichTextEditor({ value, onChange, placeholder = 'Escribe aquí la descripción...' }: RichTextEditorProps) {
+export function RichTextEditor({
+  value,
+  onChange,
+  placeholder = 'Escribe aquí la descripción...',
+  minHeight = 'min-h-[300px]',
+  editorMinHeight = 'min-h-[280px]',
+  maxHeight = 'max-h-[420px]'
+}: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -163,7 +173,7 @@ export function RichTextEditor({ value, onChange, placeholder = 'Escribe aquí l
       )}
 
       {/* EDITABLE CONTAINER */}
-      <div className="relative min-h-[300px] max-h-[420px] overflow-y-auto p-3 text-sm">
+      <div className={cn("relative overflow-y-auto p-3 text-sm", minHeight, maxHeight)}>
         <div
           ref={editorRef}
           contentEditable
@@ -174,7 +184,7 @@ export function RichTextEditor({ value, onChange, placeholder = 'Escribe aquí l
             setIsFocused(false);
             handleInput();
           }}
-          className="outline-none min-h-[280px] prose prose-slate dark:prose-invert prose-sm max-w-none text-slate-800 dark:text-slate-100"
+          className={cn("outline-none prose prose-slate dark:prose-invert prose-sm max-w-none text-slate-800 dark:text-slate-100", editorMinHeight)}
         />
         {!isFocused && (!value || value === '<br>' || value === '<div><br></div>') && (
           <div className="absolute top-3 left-3 text-slate-400 pointer-events-none select-none text-sm">

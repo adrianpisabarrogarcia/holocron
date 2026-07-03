@@ -454,6 +454,10 @@ export function TaskModal({
                                     <RichTextEditor
                                       value={editingCommentText}
                                       onChange={setEditingCommentText}
+                                      minHeight="min-h-[100px]"
+                                      editorMinHeight="min-h-[80px]"
+                                      maxHeight="max-h-[200px]"
+                                      placeholder="Escribe tu comentario aquí..."
                                     />
                                     <div className="rounded-xl border border-slate-200/60 dark:border-slate-800/80 bg-white dark:bg-slate-900/30 p-2.5">
                                       <span className="text-[10px] font-bold text-slate-450 dark:text-slate-555 uppercase tracking-wider block mb-2">Modificar adjuntos</span>
@@ -549,6 +553,9 @@ export function TaskModal({
                       <RichTextEditor
                         value={newCommentText}
                         onChange={setNewCommentText}
+                        minHeight="min-h-[100px]"
+                        editorMinHeight="min-h-[80px]"
+                        maxHeight="max-h-[200px]"
                         placeholder="Escribe un comentario o aclaración sobre la tarea..."
                       />
 
