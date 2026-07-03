@@ -61,16 +61,19 @@ export function TaskCard({ task, canWrite, onDragStart, onClick }: TaskCardProps
           {task.owners && task.owners.length > 0 ? (
             <div className="flex items-center gap-1 min-w-0">
               <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Owners:</span>
-              <div className="flex -space-x-1.5 overflow-hidden">
+              <div className="flex -space-x-1.5">
                 {task.owners.map((o) => {
                   const initials = o.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
                   return (
-                    <div
-                      key={o.id}
-                      className="h-5 w-5 rounded-full bg-amber-50 dark:bg-amber-950/45 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 flex items-center justify-center font-extrabold text-[8px] tracking-tighter"
-                      title={`Owner: ${o.name}`}
-                    >
-                      {initials}
+                    <div key={o.id} className="relative group shrink-0">
+                      <div
+                        className="h-5 w-5 rounded-full bg-amber-50 dark:bg-amber-950/45 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 flex items-center justify-center font-extrabold text-[8px] tracking-tighter cursor-help"
+                      >
+                        {initials}
+                      </div>
+                      <div className="pointer-events-none absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 rounded bg-slate-900 dark:bg-slate-950 text-white text-[9px] font-semibold px-2 py-0.5 whitespace-nowrap shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 border border-slate-700/50">
+                        {o.name} (Owner)
+                      </div>
                     </div>
                   );
                 })}
@@ -82,16 +85,19 @@ export function TaskCard({ task, canWrite, onDragStart, onClick }: TaskCardProps
           {task.assignees && task.assignees.length > 0 ? (
             <div className="flex items-center gap-1 min-w-0">
               <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Asignados:</span>
-              <div className="flex -space-x-1.5 overflow-hidden">
+              <div className="flex -space-x-1.5">
                 {task.assignees.map((a) => {
                   const initials = a.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
                   return (
-                    <div
-                      key={a.id}
-                      className="h-5 w-5 rounded-full bg-indigo-50 dark:bg-indigo-950/45 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/40 flex items-center justify-center font-extrabold text-[8px] tracking-tighter"
-                      title={`Asignado: ${a.name}`}
-                    >
-                      {initials}
+                    <div key={a.id} className="relative group shrink-0">
+                      <div
+                        className="h-5 w-5 rounded-full bg-indigo-50 dark:bg-indigo-950/45 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/40 flex items-center justify-center font-extrabold text-[8px] tracking-tighter cursor-help"
+                      >
+                        {initials}
+                      </div>
+                      <div className="pointer-events-none absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 rounded bg-slate-900 dark:bg-slate-950 text-white text-[9px] font-semibold px-2 py-0.5 whitespace-nowrap shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 border border-slate-700/50">
+                        {a.name}
+                      </div>
                     </div>
                   );
                 })}
