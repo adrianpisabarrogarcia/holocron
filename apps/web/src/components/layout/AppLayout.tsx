@@ -62,19 +62,13 @@ export function AppLayout({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const MAX_SIZE = 1.5 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      alert("La foto de perfil no debe superar 1.5 MB.");
-      return;
-    }
-
     setAvatarUploading(true);
     try {
       let base64Data = '';
       let filename = file.name;
       
       if (file.type.startsWith('image/')) {
-        base64Data = await compressImageToWebp(file);
+        base64Data = await compressImageToWebp(file, 200);
         const dotIdx = file.name.lastIndexOf('.');
         filename = (dotIdx !== -1 ? file.name.substring(0, dotIdx) : file.name) + '.webp';
       } else {

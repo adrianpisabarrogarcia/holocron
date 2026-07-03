@@ -29,7 +29,7 @@ function getFileEmoji(filename: string): string {
   return '📎';
 }
 
-export function compressImageToWebp(file: File): Promise<string> {
+export function compressImageToWebp(file: File, maxDim = 1200): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -37,7 +37,7 @@ export function compressImageToWebp(file: File): Promise<string> {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let { width, height } = img;
-        const MAX = 1200;
+        const MAX = maxDim;
         if (width > height && width > MAX) {
           height = Math.round((height * MAX) / width);
           width = MAX;
