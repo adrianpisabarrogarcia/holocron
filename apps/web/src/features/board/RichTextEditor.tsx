@@ -128,7 +128,17 @@ export function RichTextEditor({
         return;
       }
     }
-    // Non-image paste: let browser handle normally
+
+    const text = e.clipboardData?.getData('text/plain');
+    if (text) {
+      const hasMarkdown = /[\*\#\_\[\]`]|\n\s*[\-\*\d]/.test(text);
+      if (hasMarkdown) {
+        e.preventDefault();
+        const html = parseMarkdownToHtml(text);
+        document.execCommand('insertHTML', false, html);
+        handleInput();
+      }
+    }
   }, [uploadAndInsertImage]);
 
   return (
@@ -292,4 +302,91 @@ export function RichTextEditor({
       <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
     </div>
   );
+}
+
+export function parseMarkdownToHtml(md: string): string {
+  if (!md) return '';
+
+  let html = md
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Code blocks
+  html = html.replace(/```([\s\S]+?)```/g, (_, code) => {
+    return `<pre><code>${code.trim()}</code></pre>`;
+  });
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Images
+  html = html.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;margin:6px 0;display:block;" />');
+
+  // Links
+  html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  // Bold
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+
+  // Italic
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+
+  const lines = html.split('\n');
+  const result: string[] = [];
+  let inUl = false;
+  let inOl = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const isUlLine = line.startsWith('- ') || line.startsWith('* ');
+    const isOlLine = /^\d+\.\s/.test(line);
+
+    if (inUl && !isUlLine) {
+      result.push('</ul>');
+      inUl = false;
+    }
+    if (inOl && !isOlLine) {
+      result.push('</ol>');
+      inOl = false;
+    }
+
+    if (line.startsWith('# ')) {
+      result.push(`<h1>${line.substring(2)}</h1>`);
+    } else if (line.startsWith('## ')) {
+      result.push(`<h2>${line.substring(3)}</h2>`);
+    } else if (line.startsWith('### ')) {
+      result.push(`<h3>${line.substring(4)}</h3>`);
+    } else if (line.startsWith('&gt; ')) {
+      result.push(`<blockquote>${line.substring(5)}</blockquote>`);
+    } else if (isUlLine) {
+      if (!inUl) {
+        result.push('<ul>');
+        inUl = true;
+      }
+      result.push(`<li>${line.substring(2)}</li>`);
+    } else if (isOlLine) {
+      if (!inOl) {
+        result.push('<ol>');
+        inOl = true;
+      }
+      const match = line.match(/^\d+\.\s(.*)/);
+      result.push(`<li>${match ? match[1] : line}</li>`);
+    } else if (line === '') {
+      result.push('<br>');
+    } else {
+      if (line.startsWith('<pre>') || line.startsWith('</pre>') || line.startsWith('<li>') || line.startsWith('<ul>') || line.startsWith('<ol>')) {
+        result.push(lines[i]);
+      } else {
+        result.push(`<p>${lines[i]}</p>`);
+      }
+    }
+  }
+
+  if (inUl) result.push('</ul>');
+  if (inOl) result.push('</ol>');
+
+  return result.join('\n');
 }
