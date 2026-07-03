@@ -342,36 +342,46 @@ export function TaskModal({
                           <Clock className={cn("h-4 w-4 text-slate-400", timerStartedAt && "text-indigo-500 animate-pulse")} />
                           <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Cronómetro de Tarea</span>
                         </div>
-
-                        {timerStartedAt ? (
-                          <span className="text-xs font-bold text-red-500 bg-red-50 dark:bg-red-950/30 px-2 py-0.5 rounded-lg border border-red-200/50 dark:border-red-900/40 animate-pulse">
-                            {new Date(elapsedSeconds * 1000).toISOString().substr(11, 8)} corriendo
-                          </span>
-                        ) : (
-                          <span className="text-xs font-medium text-slate-450 dark:text-slate-550">
-                            Inactivo
-                          </span>
-                        )}
+                        <span className={cn(
+                          "text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider border",
+                          timerStartedAt 
+                            ? "bg-red-50 text-red-600 border-red-200/40 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/30" 
+                            : "bg-slate-100 text-slate-500 border-slate-200/60 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700/50"
+                        )}>
+                          {timerStartedAt ? 'Corriendo' : 'Pausado'}
+                        </span>
                       </div>
+
+                      {/* Centered Large Digital Clock */}
+                      {timerStartedAt && (
+                        <div className="flex items-center justify-center py-2.5 gap-3 bg-red-500/[0.02] dark:bg-red-500/[0.01] rounded-xl border border-dashed border-red-500/10">
+                          <span className="h-2 w-2 rounded-full bg-red-500 animate-ping shrink-0" />
+                          <span className="font-mono text-2xl font-black text-slate-800 dark:text-slate-100 tracking-wider">
+                            {new Date(elapsedSeconds * 1000).toISOString().substr(11, 8)}
+                          </span>
+                        </div>
+                      )}
 
                       <div className="flex items-center gap-2">
                         {!timerStartedAt ? (
                           <Button
                             type="button"
+                            variant="primary"
                             onClick={() => {
                               const now = new Date().toISOString();
                               setTimerStartedAt(now);
                               // Auto-update timer in background
                               updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, now);
                             }}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white flex-1 text-xs py-1.5 h-8.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
+                            className="flex-1 text-xs py-1.5 h-8.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
                           >
-                            <Play className="h-3.5 w-3.5 fill-white" /> Iniciar Tracking
+                            <Play className="h-3.5 w-3.5 fill-white text-white" /> Iniciar Tracking
                           </Button>
                         ) : (
                           <>
                             <Button
                               type="button"
+                              variant="primary"
                               onClick={() => {
                                 const seconds = elapsedSeconds;
                                 const additionalHours = Number((seconds / 3600).toFixed(3));
@@ -381,14 +391,14 @@ export function TaskModal({
                                 setElapsedSeconds(0);
                                 updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, newTimeSpent, null);
                               }}
-                              variant="outline"
-                              className="border-indigo-200 hover:bg-indigo-50 dark:border-indigo-900/45 dark:hover:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 text-xs py-1.5 h-8.5 rounded-xl font-bold flex-1 flex items-center justify-center gap-1.5 transition active:scale-95"
+                              className="flex-1 text-xs py-1.5 h-8.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
                             >
-                              <Pause className="h-3.5 w-3.5 fill-current" /> Pausar y Guardar
+                              <Pause className="h-3.5 w-3.5 fill-white text-white" /> Pausar y Guardar
                             </Button>
 
                             <Button
                               type="button"
+                              variant="secondary"
                               onClick={() => {
                                 if (confirm("¿Estás seguro de que quieres detener el cronómetro sin guardar el tiempo transcurrido?")) {
                                   setTimerStartedAt(null);
@@ -396,7 +406,7 @@ export function TaskModal({
                                   updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, null);
                                 }
                               }}
-                              className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 text-xs py-1.5 px-3 h-8.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
+                              className="text-xs py-1.5 px-3 h-8.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
                             >
                               <Square className="h-3.5 w-3.5 fill-current text-slate-500" /> Cancelar
                             </Button>
@@ -408,7 +418,7 @@ export function TaskModal({
                       {estimatedHours && Number(estimatedHours) > 0 && (
                         <div className="space-y-1">
                           <div className="flex justify-between text-[10px] font-bold text-slate-450 dark:text-slate-550">
-                            <span>Progreso: {Math.round((timeSpent / Number(estimatedHours)) * 105)}%</span>
+                            <span>Progreso: {Math.round((timeSpent / Number(estimatedHours)) * 100)}%</span>
                             <span>{timeSpent}h / {estimatedHours}h</span>
                           </div>
                           <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
