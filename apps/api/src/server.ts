@@ -42,7 +42,8 @@ mkdirSync(resolve(process.cwd(), uploadsDir), { recursive: true });
 const app = Fastify({ logger: true });
 
 await app.register(helmet, {
-  contentSecurityPolicy: false, // Disabled to prevent blocking file uploads previews in SPA
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: false, // Disabled to allow SPA on port 5173 to load static files from port 4000
 });
 
 await app.register(rateLimit, {
