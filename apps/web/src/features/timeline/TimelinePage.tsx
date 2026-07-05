@@ -11,19 +11,37 @@ import {
   Clock,
   TrendingUp,
   Sliders,
+  Search,
+  Filter,
+  X,
 } from 'lucide-react';
+import { fieldClassName } from '../../lib/constants';
 
 export function TimelinePage() {
   const { tasks, projects, selectedProjectId, updateTask } = useBoardStore();
   const [activeTab, setActiveTab] = useState<'cascade' | 'calendar'>('cascade');
+
+  // Filter parameters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [priorityFilter, setPriorityFilter] = useState('ALL');
 
   // Find current project
   const currentProject = useMemo(() => {
     return projects.find((p) => p.id === selectedProjectId) || null;
   }, [projects, selectedProjectId]);
 
-  // Tasks from the selected project (tasks list in store is already scoped to the project)
-  const projectTasks = tasks;
+  // Filter tasks based on selected project and query inputs
+  const projectTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            (t.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
+      const matchesPriority = priorityFilter === 'ALL' || t.priority === priorityFilter;
+
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [tasks, searchQuery, statusFilter, priorityFilter]);
 
   // State for Calendar Month View
   const [currentDate, setCurrentDate] = useState(() => new Date());
@@ -131,6 +149,14 @@ export function TimelinePage() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('ALL');
+    setPriorityFilter('ALL');
+  };
+
+  const hasActiveFilters = searchQuery !== '' || statusFilter !== 'ALL' || priorityFilter !== 'ALL';
+
   if (!currentProject) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
@@ -175,7 +201,7 @@ export function TimelinePage() {
     <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
       
       {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 dark:border-slate-800/40 pb-4">
         <div>
           <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-indigo-650 dark:text-indigo-400" />
@@ -185,7 +211,7 @@ export function TimelinePage() {
         </div>
 
         {/* TAB SELECTOR */}
-        <div className="flex p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/60 shadow-sm">
+        <div className="flex p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/60 shadow-sm shrink-0">
           <button
             onClick={() => setActiveTab('cascade')}
             className={cn(
@@ -211,6 +237,73 @@ export function TimelinePage() {
             Calendario Mensual
           </button>
         </div>
+      </div>
+
+      {/* DYNAMIC FILTER BAR */}
+      <div className="flex flex-wrap items-center gap-3.5 bg-slate-50/50 dark:bg-slate-900/30 p-3.5 rounded-2xl border border-slate-200/50 dark:border-slate-850/60 shadow-sm">
+        
+        {/* Search filter */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Buscar por título o descripción..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={cn(fieldClassName, "pl-9 text-xs")}
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Status filter dropdown */}
+        <div className="flex items-center gap-2 shrink-0">
+          <Filter className="h-3.5 w-3.5 text-slate-400" />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-semibold text-slate-600 dark:text-slate-300 outline-none hover:border-indigo-500 transition"
+          >
+            <option value="ALL">Todos los estados</option>
+            <option value="TODO">Por Hacer</option>
+            <option value="IN_PROGRESS">En Progreso</option>
+            <option value="BLOCKED">Bloqueadas</option>
+            <option value="DONE">Completadas</option>
+          </select>
+        </div>
+
+        {/* Priority filter dropdown */}
+        <div className="flex items-center gap-2 shrink-0">
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-semibold text-slate-600 dark:text-slate-300 outline-none hover:border-indigo-500 transition"
+          >
+            <option value="ALL">Todas las prioridades</option>
+            <option value="LOW">Baja</option>
+            <option value="MEDIUM">Media</option>
+            <option value="HIGH">Alta</option>
+            <option value="URGENT">Urgente</option>
+          </select>
+        </div>
+
+        {/* Clear Filters Button */}
+        {hasActiveFilters && (
+          <Button 
+            onClick={handleClearFilters}
+            variant="outline"
+            className="text-xs py-1.5 h-8.5 font-bold flex items-center gap-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 rounded-xl border border-slate-250 text-slate-600 dark:text-slate-305 dark:border-slate-800 shrink-0"
+          >
+            <X className="h-3 w-3" />
+            Limpiar Filtros
+          </Button>
+        )}
       </div>
 
       {/* CASCADE (GANTT) VIEW */}
@@ -239,7 +332,7 @@ export function TimelinePage() {
 
                 {projectTasks.length === 0 ? (
                   <div className="p-8 text-center text-xs text-slate-400 dark:text-slate-500">
-                    No hay tareas registradas en este proyecto.
+                    No se encontraron tareas con los filtros activos.
                   </div>
                 ) : (
                   projectTasks.map((t) => (
@@ -425,7 +518,7 @@ export function TimelinePage() {
                     key={key} 
                     className={cn(
                       "min-h-24 p-2 transition flex flex-col justify-between hover:bg-slate-50/20 dark:hover:bg-slate-800/5",
-                      isCurrentMonth ? "bg-white dark:bg-slate-900/10" : "bg-slate-50/30 dark:bg-slate-950/20 text-slate-400 dark:text-slate-655"
+                      isCurrentMonth ? "bg-white dark:bg-slate-900/10" : "bg-slate-50/30 dark:bg-slate-955/20 text-slate-400 dark:text-slate-655"
                     )}
                   >
                     {/* Day number */}
