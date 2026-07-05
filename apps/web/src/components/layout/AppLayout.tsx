@@ -103,7 +103,7 @@ export function AppLayout({
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-955 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
       
       {/* Mobile Drawer Overlay */}
       {isMobileMenuOpen && (

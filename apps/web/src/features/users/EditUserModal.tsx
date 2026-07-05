@@ -99,7 +99,7 @@ export function EditUserModal({
                 onChange={handleAvatarUpload}
                 className="hidden"
               />
-              <div className="relative group h-20 w-20 rounded-full overflow-hidden border-2 border-indigo-100 dark:border-indigo-900 bg-slate-50 dark:bg-slate-955 flex items-center justify-center shadow-md shrink-0">
+              <div className="relative group h-20 w-20 rounded-full overflow-hidden border-2 border-indigo-100 dark:border-indigo-900 bg-slate-50 dark:bg-slate-950 flex items-center justify-center shadow-md shrink-0">
                 {avatarUploading ? (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <Loader2 className="h-5 w-5 text-white animate-spin" />

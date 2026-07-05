@@ -371,7 +371,7 @@ export function TimelinePage() {
                           type="date"
                           value={t.startDate ? t.startDate.split('T')[0] : ''}
                           onChange={(e) => handleDateChange(t.id, 'startDate', e.target.value)}
-                          className="w-full text-[11px] px-1.5 py-1 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/60 dark:bg-slate-955 font-medium focus:border-indigo-500 dark:focus:border-indigo-400 outline-none transition"
+                          className="w-full text-[11px] px-1.5 py-1 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/60 dark:bg-slate-950 font-medium focus:border-indigo-500 dark:focus:border-indigo-400 outline-none transition"
                         />
                       </div>
 
@@ -381,7 +381,7 @@ export function TimelinePage() {
                           type="date"
                           value={t.endDate ? t.endDate.split('T')[0] : ''}
                           onChange={(e) => handleDateChange(t.id, 'endDate', e.target.value)}
-                          className="w-full text-[11px] px-1.5 py-1 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/60 dark:bg-slate-955 font-medium focus:border-indigo-500 dark:focus:border-indigo-400 outline-none transition"
+                          className="w-full text-[11px] px-1.5 py-1 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/60 dark:bg-slate-950 font-medium focus:border-indigo-500 dark:focus:border-indigo-400 outline-none transition"
                         />
                       </div>
 
@@ -540,7 +540,7 @@ export function TimelinePage() {
                     key={key} 
                     className={cn(
                       "min-h-24 p-2 transition flex flex-col justify-between hover:bg-slate-50/20 dark:hover:bg-slate-800/5",
-                      isCurrentMonth ? "bg-white dark:bg-slate-900/10" : "bg-slate-50/30 dark:bg-slate-955/20 text-slate-400 dark:text-slate-655"
+                      isCurrentMonth ? "bg-white dark:bg-slate-900/10" : "bg-slate-50/30 dark:bg-slate-950/20 text-slate-400 dark:text-slate-600"
                     )}
                   >
                     {/* Day number */}

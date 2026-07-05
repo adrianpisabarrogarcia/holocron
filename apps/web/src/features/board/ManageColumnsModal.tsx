@@ -169,7 +169,7 @@ export function ManageColumnsModal({
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setActivePickerIndex(null)} />
                       <div className={cn(
-                        "absolute left-0 z-50 p-2 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl grid grid-cols-5 gap-1.5 w-48 animate-in fade-in zoom-in-95 duration-100",
+                        "absolute left-0 z-50 p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl grid grid-cols-5 gap-1.5 w-48 animate-in fade-in zoom-in-95 duration-100",
                         index >= columns.length - 2 ? "bottom-full mb-2" : "top-full mt-2"
                       )}>
                         {EMOJIS.map((emoji) => (
@@ -250,7 +250,7 @@ export function ManageColumnsModal({
                 {isNewColPickerOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsNewColPickerOpen(false)} />
-                    <div className="absolute left-0 bottom-full mb-2 z-50 p-2 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl grid grid-cols-5 gap-1.5 w-48 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="absolute left-0 bottom-full mb-2 z-50 p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl grid grid-cols-5 gap-1.5 w-48 animate-in fade-in zoom-in-95 duration-100">
                       {EMOJIS.map((emoji) => (
                         <button
                           key={emoji}
