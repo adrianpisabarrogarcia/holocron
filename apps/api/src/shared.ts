@@ -39,7 +39,7 @@ export const uploadsDir = process.env.UPLOADS_DIR ?? 'storage/uploads';
 export const accessTokenSecret = process.env.JWT_ACCESS_SECRET ?? 'holocron-local-access-secret';
 export const refreshTokenSecret = process.env.JWT_REFRESH_SECRET ?? 'holocron-local-refresh-secret';
 export const accessTokenTtlMinutes = Number(process.env.ACCESS_TOKEN_TTL_MINUTES ?? 15);
-export const refreshTokenTtlDays = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 7);
+export const refreshTokenTtlHours = Number(process.env.REFRESH_TOKEN_TTL_HOURS ?? 10);
 export const refreshCookieName = 'holocron_refresh_token';
 export const isProduction = process.env.NODE_ENV === 'production';
 export const allowedPlatformRoles = new Set<AuthenticatedUser['platformRole']>(['ADMIN', 'MEMBER']);
@@ -101,8 +101,8 @@ export function hashRefreshToken(token: string) {
   return createHash('sha256').update(token).digest('hex');
 }
 
-export function expiresInSeconds(days: number) {
-  return days * 24 * 60 * 60;
+export function expiresInSeconds(hours: number) {
+  return hours * 60 * 60;
 }
 
 export function normalizePlatformRole(role: string): AuthenticatedUser['platformRole'] | null {
@@ -184,7 +184,7 @@ export function createAccessToken(user: AuthenticatedUser) {
 
 export function createRefreshToken(sessionId: string, userId: string) {
   return jwt.sign({ sessionId }, refreshTokenSecret, {
-    expiresIn: `${refreshTokenTtlDays}d`,
+    expiresIn: `${refreshTokenTtlHours}h`,
     subject: userId,
   });
 }
@@ -192,7 +192,7 @@ export function createRefreshToken(sessionId: string, userId: string) {
 export function setRefreshCookie(reply: FastifyReply, token: string) {
   reply.setCookie(refreshCookieName, token, {
     httpOnly: true,
-    maxAge: expiresInSeconds(refreshTokenTtlDays),
+    maxAge: expiresInSeconds(refreshTokenTtlHours),
     path: '/',
     sameSite: 'lax',
     secure: isProduction,

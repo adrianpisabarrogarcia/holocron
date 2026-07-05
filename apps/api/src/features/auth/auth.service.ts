@@ -11,7 +11,7 @@ import {
   createRefreshToken,
   hashRefreshToken,
   expiresInSeconds,
-  refreshTokenTtlDays,
+  refreshTokenTtlHours,
   setRefreshCookie,
   clearRefreshCookie,
   sendError,
@@ -46,11 +46,11 @@ export class AuthService {
     };
 
     if (user && user.isActive) {
-      // Generate short-lived (15 minutes) magic link token signed with refreshTokenSecret
+      // Generate short-lived (5 minutes) magic link token signed with refreshTokenSecret
       const magicToken = jwt.sign(
         { email: user.email },
         refreshTokenSecret,
-        { expiresIn: '15m' }
+        { expiresIn: '5m' }
       );
 
       const callbackUrl = `${emailConfig.appUrl}/login/callback?token=${magicToken}`;
@@ -100,7 +100,7 @@ export class AuthService {
       data: {
         userId: user.id,
         refreshTokenHash: hashRefreshToken(sessionSeed),
-        expiresAt: new Date(Date.now() + expiresInSeconds(refreshTokenTtlDays) * 1000),
+        expiresAt: new Date(Date.now() + expiresInSeconds(refreshTokenTtlHours) * 1000),
         userAgent: typeof request.headers['user-agent'] === 'string' ? request.headers['user-agent'] : null,
         ipAddress: request.ip,
       },
@@ -176,7 +176,7 @@ export class AuthService {
       data: {
         userId: session.userId,
         refreshTokenHash: hashRefreshToken(randomBytes(32).toString('hex')),
-        expiresAt: new Date(Date.now() + expiresInSeconds(refreshTokenTtlDays) * 1000),
+        expiresAt: new Date(Date.now() + expiresInSeconds(refreshTokenTtlHours) * 1000),
         userAgent: typeof request.headers['user-agent'] === 'string' ? request.headers['user-agent'] : null,
         ipAddress: request.ip,
       },
