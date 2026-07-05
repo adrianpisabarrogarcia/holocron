@@ -270,6 +270,7 @@ export function SprintsPage({
 
   // Drag & Drop
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.stopPropagation();
     e.dataTransfer.setData('text/plain', taskId);
   };
 
