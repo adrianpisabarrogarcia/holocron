@@ -235,6 +235,7 @@ export class TasksService {
       where: { id: taskId },
       select: {
         status: true,
+        isBlocked: true,
         assignees: { select: { id: true } }
       },
     });
@@ -302,6 +303,12 @@ export class TasksService {
           console.error('[EMAIL ERROR] Failed to send task assigned email:', err);
         });
       }
+    }
+
+    if (isBlocked === true && existingTask?.isBlocked === false) {
+      EmailService.sendTaskBlockedEmail(updatedTask, authUser).catch(err => {
+        console.error('[EMAIL ERROR] Failed to send task blocked email:', err);
+      });
     }
 
     if (status && status !== existingTask.status) {
@@ -485,6 +492,17 @@ export class TasksService {
         }
       }
     });
+
+    const commentTask = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { title: true }
+    });
+
+    if (commentTask) {
+      EmailService.handleCommentMentions(comment.content, commentTask.title, comment.user).catch(err => {
+        console.error('[EMAIL ERROR] Failed to check comment mentions:', err);
+      });
+    }
 
     return {
       id: comment.id,
