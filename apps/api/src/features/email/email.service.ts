@@ -9,6 +9,7 @@ export const emailConfig = {
   smtpPass: process.env.SMTP_PASS,
   fromEmail: process.env.EMAIL_FROM || process.env.SMTP_USER || 'notifications@holocron.local',
   fromName: process.env.EMAIL_FROM_NAME || 'Holocron',
+  appUrl: process.env.CORS_ORIGIN || 'http://localhost:5173',
 };
 
 export class EmailService {
@@ -69,6 +70,8 @@ ${html}
     });
 
     const projectName = project?.name ?? 'Proyecto';
+    const projectQuery = project ? `?project=${project.id}` : '';
+    const actionUrl = `${emailConfig.appUrl}/board${projectQuery}`;
     
     const participantEmails = new Set<string>();
     task.owners.forEach(o => participantEmails.add(o.email));
@@ -79,7 +82,7 @@ ${html}
     const subject = `🆕 Nueva Tarea: "${task.title}" en ${projectName}`;
     
     const plainDesc = task.description ? task.description.replace(/<[^>]*>/g, '') : 'Sin descripción';
-    const text = `Hola,\n\nSe ha creado una nueva tarea en Holocron.\n\nProyecto: ${projectName}\nTarea: ${task.title}\nCreada por: ${creator.name}\n\nDescripción:\n${plainDesc}`;
+    const text = `Hola,\n\nSe ha creado una nueva tarea en Holocron.\n\nProyecto: ${projectName}\nTarea: ${task.title}\nCreada por: ${creator.name}\n\nDescripción:\n${plainDesc}\n\nVer tablero: ${actionUrl}`;
     
     const html = `
       <!DOCTYPE html>
@@ -98,8 +101,10 @@ ${html}
           .details-table td { padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
           .details-table td.label { font-weight: 600; color: #64748b; width: 100px; }
           .details-table td.value { color: #1e293b; }
-          .desc-box { background-color: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 13px; line-height: 1.5; color: #334155; }
+          .desc-box { background-color: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 8px; padding: 14px; margin-bottom: 24px; font-size: 13px; line-height: 1.5; color: #334155; }
           .desc-box h4 { margin-top: 0; margin-bottom: 6px; color: #475569; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+          .btn-container { text-align: center; margin: 24px 0 10px 0; }
+          .btn { background-color: #4f46e5; color: #ffffff !important; padding: 12px 24px; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 8px; display: inline-block; }
           .footer { background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8; }
         </style>
       </head>
@@ -129,6 +134,9 @@ ${html}
                 <h4>Descripción de la tarea:</h4>
                 <div>${task.description || '<i>Sin descripción</i>'}</div>
               </div>
+              <div class="btn-container">
+                <a href="${actionUrl}" class="btn" target="_blank">Ver Tablero de Tareas</a>
+              </div>
             </div>
             <div class="footer">
               Este es un correo automático de Holocron. Por favor, no respondas a este mensaje.
@@ -148,7 +156,8 @@ ${html}
     assigner: { name: string }
   ) {
     const subject = `📌 Asignación: "${taskTitle}"`;
-    const text = `Hola ${assignee.name},\n\n${assigner.name} te ha asignado a la tarea: "${taskTitle}".`;
+    const actionUrl = `${emailConfig.appUrl}/board`;
+    const text = `Hola ${assignee.name},\n\n${assigner.name} te ha asignado a la tarea: "${taskTitle}".\n\nVer mis tareas: ${actionUrl}`;
     
     const html = `
       <!DOCTYPE html>
@@ -164,6 +173,8 @@ ${html}
           .content { padding: 28px 24px; }
           .title { font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px; }
           .highlight-box { background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 10px; padding: 18px; font-weight: bold; font-size: 15px; color: #4338ca; text-align: center; margin: 20px 0; }
+          .btn-container { text-align: center; margin: 24px 0 10px 0; }
+          .btn { background-color: #4f46e5; color: #ffffff !important; padding: 12px 24px; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 8px; display: inline-block; }
           .footer { background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8; }
         </style>
       </head>
@@ -184,6 +195,9 @@ ${html}
               <p style="font-size: 13px; line-height: 1.5; color: #475569;">
                 Accede al tablero de Holocron para ver los detalles y organizar tu jornada.
               </p>
+              <div class="btn-container">
+                <a href="${actionUrl}" class="btn" target="_blank">Ir a Mis Tareas</a>
+              </div>
             </div>
             <div class="footer">
               Este es un correo automático de Holocron. Por favor, no respondas a este mensaje.
@@ -212,8 +226,9 @@ ${html}
     const emails = project.memberships.map(m => m.user.email);
     if (emails.length === 0) return;
 
+    const actionUrl = `${emailConfig.appUrl}/sprints?project=${projectId}`;
     const subject = `🎉 Hito/Sprint Cerrado: "${sprintName}" en ${projectName}`;
-    const text = `Hola,\n\nEl sprint/hito "${sprintName}" en el proyecto "${projectName}" ha sido cerrado por ${closer.name}.\n\n¡Buen trabajo equipo!`;
+    const text = `Hola,\n\nEl sprint/hito "${sprintName}" en el proyecto "${projectName}" ha sido cerrado por ${closer.name}.\n\n¡Buen trabajo equipo!\n\nVer sprints: ${actionUrl}`;
     
     const html = `
       <!DOCTYPE html>
@@ -229,6 +244,8 @@ ${html}
           .content { padding: 28px 24px; }
           .title { font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px; }
           .success-box { background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 18px; font-weight: bold; font-size: 15px; color: #065f46; text-align: center; margin: 20px 0; }
+          .btn-container { text-align: center; margin: 24px 0 10px 0; }
+          .btn { background-color: #10b981; color: #ffffff !important; padding: 12px 24px; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 8px; display: inline-block; }
           .footer { background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8; }
         </style>
       </head>
@@ -252,6 +269,9 @@ ${html}
               <p style="font-size: 13px; line-height: 1.5; color: #475569;">
                 Accede a Holocron para revisar las métricas y empezar a planificar el próximo ciclo.
               </p>
+              <div class="btn-container">
+                <a href="${actionUrl}" class="btn" target="_blank">Ver Sprints / Hitos</a>
+              </div>
             </div>
             <div class="footer">
               Este es un correo automático de Holocron. Por favor, no respondas a este mensaje.
@@ -300,8 +320,9 @@ ${html}
     commentContent: string
   ) {
     const subject = `💬 Mención: "${taskTitle}"`;
+    const actionUrl = `${emailConfig.appUrl}/board`;
     const cleanComment = commentContent.replace(/<[^>]*>/g, '');
-    const text = `Hola ${mentionedUser.name},\n\n${commenter.name} te ha mencionado en un comentario dentro de la tarea "${taskTitle}":\n\n"${cleanComment}"`;
+    const text = `Hola ${mentionedUser.name},\n\n${commenter.name} te ha mencionado en un comentario dentro de la tarea "${taskTitle}":\n\n"${cleanComment}"\n\nVer conversación: ${actionUrl}`;
     
     const html = `
       <!DOCTYPE html>
@@ -317,6 +338,8 @@ ${html}
           .content { padding: 28px 24px; }
           .title { font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px; }
           .comment-box { background-color: #f8fafc; border-left: 4px solid #6366f1; border-radius: 8px; padding: 14px; margin: 20px 0; font-size: 13px; line-height: 1.5; color: #334155; }
+          .btn-container { text-align: center; margin: 24px 0 10px 0; }
+          .btn { background-color: #4f46e5; color: #ffffff !important; padding: 12px 24px; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 8px; display: inline-block; }
           .footer { background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8; }
         </style>
       </head>
@@ -337,6 +360,9 @@ ${html}
               <p style="font-size: 13px; line-height: 1.5; color: #475569;">
                 Entra a Holocron para responder y seguir la conversación.
               </p>
+              <div class="btn-container">
+                <a href="${actionUrl}" class="btn" target="_blank">Ver Conversación</a>
+              </div>
             </div>
             <div class="footer">
               Este es un correo automático de Holocron. Por favor, no respondas a este mensaje.
@@ -360,8 +386,9 @@ ${html}
 
     if (participantEmails.size === 0) return;
 
+    const actionUrl = `${emailConfig.appUrl}/board`;
     const subject = `⚠️ Tarea Bloqueada: "${task.title}"`;
-    const text = `Hola,\n\nLa tarea "${task.title}" ha sido marcada como BLOQUEADA por ${blocker.name}.\n\nMotivo del bloqueo:\n${task.blockedReason || 'Sin motivo especificado'}`;
+    const text = `Hola,\n\nLa tarea "${task.title}" ha sido marcada como BLOQUEADA por ${blocker.name}.\n\nMotivo del bloqueo:\n${task.blockedReason || 'Sin motivo especificado'}\n\nVer tarea: ${actionUrl}`;
     
     const html = `
       <!DOCTYPE html>
@@ -378,6 +405,8 @@ ${html}
           .title { font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px; }
           .warning-box { background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px; padding: 14px; margin: 20px 0; font-size: 13px; line-height: 1.5; color: #991b1b; }
           .warning-box h4 { margin-top: 0; margin-bottom: 6px; color: #991b1b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+          .btn-container { text-align: center; margin: 24px 0 10px 0; }
+          .btn { background-color: #ef4444; color: #ffffff !important; padding: 12px 24px; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 8px; display: inline-block; }
           .footer { background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8; }
         </style>
       </head>
@@ -399,6 +428,9 @@ ${html}
               <p style="font-size: 13px; line-height: 1.5; color: #475569;">
                 Por favor, revisa el tablero para coordinar y desbloquear el trabajo.
               </p>
+              <div class="btn-container">
+                <a href="${actionUrl}" class="btn" target="_blank">Ver Tarea Bloqueada</a>
+              </div>
             </div>
             <div class="footer">
               Este es un correo automático de Holocron. Por favor, no respondas a este mensaje.
