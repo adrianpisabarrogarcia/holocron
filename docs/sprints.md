@@ -394,6 +394,29 @@ Sprint 1 se considera terminado cuando el producto ya no depende de usuarios har
 4. La diferencia entre rol global y rol por proyecto debe reflejarse con nitidez en backend y frontend para evitar inconsistencias.
 5. La experiencia con cookies, CORS y entornos locales puede generar friccion si no se prueba temprano.
 
+### Sprint 3 - Evoluciones de Autenticación, Seguridad y Vistas Avanzadas
+
+Este sprint introduce mejoras sustanciales en la seguridad, la usabilidad de la planificación temporal y el control operativo del tablero.
+
+#### 1. Autenticación sin Contraseñas (Passwordless Magic Links)
+*   **Decisión**: Se ha eliminado por completo el sistema tradicional de contraseñas de la plataforma para simplificar el flujo y aumentar la seguridad.
+*   **Mecanismo**: El login ahora genera un token JWT temporal de un solo uso con una expiración estricta de **5 minutos** firmado con la clave privada de refresh del backend. Este token se envía por correo electrónico transaccional (HTML corporativo con botón de acceso).
+*   **Prevención de Enumeración**: La API responde con un mensaje genérico de éxito sin indicar si el correo existe o no, mitigando ataques de fuerza bruta o escaneo de cuentas.
+*   **Usuario por Defecto**: Se ha configurado la dirección `adrian.pisabarro.garcia@gmail.com` como el correo preestablecido de administración en las semillas del sistema.
+
+#### 2. Vistas Avanzadas de Tareas (Cronograma y Gantt)
+*   **Diagrama de Cascada (Gantt)**: Vista temporal de tareas que dibuja barras horizontales interactivas basadas en `startDate` y `endDate`. Las fechas pueden ser modificadas en línea directamente desde la tabla de tareas y se redibujan de forma reactiva.
+*   **Calendario Mensual**: Cuadrícula interactiva mensual que visualiza las tareas activas de cada día clasificadas con colores según su estado actual.
+*   **Filtros Dinámicos**: Barra de filtrado avanzado que permite buscar tareas en tiempo real por texto, estado, prioridad y sprint (incluyendo backlog general). El eje temporal del Gantt se reajusta automáticamente al rango de las tareas filtradas.
+
+#### 3. Ordenamiento Manual en Kanban
+*   **Drag-and-Drop de Tarjetas**: Se ha habilitado la ordenación personalizada de tareas dentro de la misma columna arrastrando una tarea y soltándola encima de otra específica.
+*   **Persistencia**: El orden personalizado se almacena en el `localStorage` del navegador mapeado por proyecto y estado de columna, manteniendo la estructura tras refrescar la aplicación.
+
+#### 4. Seguridad de la API (Rate Limiting y Helmet)
+*   **Cabeceras Seguras**: Registro de `@fastify/helmet` para forzar cabeceras HTTP robustas recomendadas por OWASP (prevención de iframe clickjacking, sniffing, referrers, etc.).
+*   **Límite de Peticiones**: Registro de `@fastify/rate-limit` configurado a un máximo de **150 peticiones por minuto por IP** para mitigar ataques DDoS y abusos de llamadas automáticas en endpoints críticos de correo.
+
 ### Cierre
 
-Este roadmap prioriza fundamentos sobre expansion superficial. La plataforma necesita primero una columna estructural solida: identidad, sesion, membresias y permisos. Sobre eso se construye el resto del producto sin improvisacion.
+Este roadmap prioriza fundamentos sobre expansion superficial. La plataforma cuenta ahora con una columna estructural sólida: identidad segura sin contraseñas, vistas avanzadas de planificación visual (Gantt/Calendario) con ordenación interactiva, y un backend protegido frente a abusos.
