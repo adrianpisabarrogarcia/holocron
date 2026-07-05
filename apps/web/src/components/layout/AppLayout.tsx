@@ -22,6 +22,8 @@ import {
   Check,
   Calendar,
   Workflow,
+  Menu,
+  X,
 } from 'lucide-react';
 
 type AppLayoutProps = {
@@ -56,6 +58,7 @@ export function AppLayout({
   const { folders } = useBoardStore();
   const [projectCopied, setProjectCopied] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleCopyProjectLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -100,19 +103,42 @@ export function AppLayout({
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-955 text-slate-800 dark:text-slate-100 transition-colors duration-200">
       
+      {/* Mobile Drawer Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs md:hidden"
+        />
+      )}
+
       {/* SIDEBAR NAVIGATION */}
-      <aside className="w-64 border-r border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-slate-900 flex flex-col justify-between shrink-0">
+      <aside
+        className={cn(
+          "w-64 border-r border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-slate-900 flex flex-col justify-between shrink-0 transition-transform duration-250 z-50",
+          "fixed inset-y-0 left-0 md:static md:translate-x-0",
+          isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0"
+        )}
+      >
         <div>
           {/* Logo / Header */}
-          <div className="h-16 flex items-center px-6 border-b border-slate-200/80 dark:border-slate-800/80">
+          <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200/80 dark:border-slate-800/80">
             <span className="text-xs font-black tracking-widest uppercase text-slate-400 dark:text-slate-500">Holocron Workspace</span>
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 md:hidden"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
           </div>
 
           {/* User profile brief */}
           <div 
-            onClick={() => setIsProfileModalOpen(true)}
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setIsProfileModalOpen(true);
+            }}
             className="p-4 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 hover:bg-slate-100/50 dark:hover:bg-slate-850/50 transition cursor-pointer group"
             title="Mi Perfil"
           >
@@ -141,6 +167,7 @@ export function AppLayout({
           <nav className="p-4 space-y-1.5">
             <NavLink
               to="/overview"
+              onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
@@ -156,6 +183,7 @@ export function AppLayout({
 
             <NavLink
               to="/board"
+              onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
@@ -171,6 +199,7 @@ export function AppLayout({
 
             <NavLink
               to="/sprints"
+              onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
@@ -186,6 +215,7 @@ export function AppLayout({
 
             <NavLink
               to="/timeline"
+              onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
@@ -208,6 +238,7 @@ export function AppLayout({
                 </div>
                 <NavLink
                   to="/admin/users"
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className={({ isActive }) =>
                     cn(
                       'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
@@ -222,6 +253,7 @@ export function AppLayout({
                 </NavLink>
                 <NavLink
                   to="/admin/projects"
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className={({ isActive }) =>
                     cn(
                       'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
@@ -236,6 +268,7 @@ export function AppLayout({
                 </NavLink>
                 <NavLink
                   to="/admin/access"
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className={({ isActive }) =>
                     cn(
                       'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
@@ -287,7 +320,10 @@ export function AppLayout({
           </div>
 
           <Button
-            onClick={() => void logout()}
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              void logout();
+            }}
             className="w-full justify-start text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/20"
             variant="ghost"
           >
@@ -301,21 +337,29 @@ export function AppLayout({
       <main className="flex-1 flex flex-col min-w-0 holocron-grid">
         
         {/* Top Header */}
-        <header className="h-16 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-6 z-10 shrink-0">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white">
-              {pathname === '/overview' && 'Resumen del Sistema'}
-              {pathname === '/board' && 'Tablero del Proyecto'}
-              {pathname === '/sprints' && 'Planificación de Sprints'}
-              {pathname === '/timeline' && 'Cronograma de Proyecto'}
-              {pathname.startsWith('/admin') && 'Panel de Administración'}
+        <header className="h-16 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 z-10 shrink-0">
+          <div className="flex items-center gap-3.5 min-w-0 flex-1 md:flex-initial">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 md:hidden shrink-0"
+              title="Abrir menú"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            <h1 className="text-sm md:text-lg font-bold text-slate-900 dark:text-white truncate">
+              {pathname === '/overview' && 'Resumen'}
+              {pathname === '/board' && 'Tablero'}
+              {pathname === '/sprints' && 'Sprints'}
+              {pathname === '/timeline' && 'Cronograma'}
+              {pathname.startsWith('/admin') && 'Admin'}
             </h1>
             
             {projects.length > 0 && (
-              <div className="w-64 flex items-center gap-2">
-                <Folder className="h-4 w-4 text-indigo-650 dark:text-indigo-400 shrink-0" />
+              <div className="max-w-[150px] md:max-w-[240px] flex items-center gap-1.5 truncate">
+                <Folder className="h-3.5 w-3.5 text-indigo-650 dark:text-indigo-400 shrink-0 hidden sm:block" />
                 <select
-                  className="bg-transparent text-sm font-semibold text-slate-700 dark:text-slate-355 outline-none cursor-pointer hover:text-indigo-655 dark:hover:text-indigo-400 transition"
+                  className="bg-transparent text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-355 outline-none cursor-pointer hover:text-indigo-655 dark:hover:text-indigo-400 transition truncate"
                   value={boardSelectedProjectId ?? ''}
                   onChange={(e) => void handleProjectChange(e.target.value)}
                 >
@@ -338,29 +382,29 @@ export function AppLayout({
                 <button
                   type="button"
                   onClick={handleCopyProjectLink}
-                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-650 transition shrink-0 ml-1 flex items-center justify-center"
+                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-650 transition shrink-0 ml-0.5 flex items-center justify-center"
                   title="Copiar enlace de esta vista"
                 >
                   {projectCopied ? (
-                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                   ) : (
-                    <Link className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 hover:text-indigo-650 dark:hover:text-indigo-400" />
+                    <Link className="h-3 w-3 text-slate-400 dark:text-slate-500 hover:text-indigo-650 dark:hover:text-indigo-400" />
                   )}
                 </button>
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button size="sm" variant="outline" disabled={loading} onClick={() => void loadBoard()}>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" disabled={loading} onClick={() => void loadBoard()} className="px-2 md:px-3 h-8.5 text-xs">
               <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
-              <span>{loading ? 'Sincronizando...' : 'Actualizar'}</span>
+              <span className="hidden sm:inline">{loading ? 'Sincronizando...' : 'Actualizar'}</span>
             </Button>
           </div>
         </header>
 
         {/* Page Body Wrapper */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </div>
       </main>
