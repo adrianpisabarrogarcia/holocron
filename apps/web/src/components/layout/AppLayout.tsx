@@ -143,7 +143,7 @@ export function AppLayout({
             title="Mi Perfil"
           >
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-650 dark:text-slate-355 overflow-hidden border border-slate-300 dark:border-slate-700 group-hover:border-indigo-500 dark:group-hover:border-indigo-400 transition relative shrink-0">
+              <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 overflow-hidden border border-slate-300 dark:border-slate-700 group-hover:border-indigo-500 dark:group-hover:border-indigo-400 transition relative shrink-0">
                 {user.avatarUrl ? (
                   <img
                     src={getApiUrl(user.avatarUrl)}
@@ -155,7 +155,7 @@ export function AppLayout({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold truncate text-slate-900 dark:text-slate-105 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-405 transition">{user.name}</p>
+                <p className="text-sm font-semibold truncate text-slate-900 dark:text-slate-100 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">{user.name}</p>
                 <span className="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 mt-0.5">
                   {user.platformRole}
                 </span>
@@ -359,7 +359,7 @@ export function AppLayout({
               <div className="max-w-[150px] md:max-w-[240px] flex items-center gap-1.5 truncate">
                 <Folder className="h-3.5 w-3.5 text-indigo-650 dark:text-indigo-400 shrink-0 hidden sm:block" />
                 <select
-                  className="bg-transparent text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-355 outline-none cursor-pointer hover:text-indigo-655 dark:hover:text-indigo-400 transition truncate"
+                  className="bg-transparent text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition truncate"
                   value={boardSelectedProjectId ?? ''}
                   onChange={(e) => void handleProjectChange(e.target.value)}
                 >
