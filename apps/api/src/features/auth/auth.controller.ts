@@ -8,6 +8,10 @@ export class AuthController {
     return this.authService.login(request, reply);
   };
 
+  magicLogin = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.authService.magicLogin(request, reply);
+  };
+
   refresh = async (request: FastifyRequest, reply: FastifyReply) => {
     return this.authService.refresh(request, reply);
   };

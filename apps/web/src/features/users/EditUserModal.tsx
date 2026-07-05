@@ -18,8 +18,6 @@ type EditUserModalProps = {
   onNameChange: (val: string) => void;
   email: string;
   onEmailChange: (val: string) => void;
-  password: string;
-  onPasswordChange: (val: string) => void;
   role: PlatformRole;
   onRoleChange: (val: PlatformRole) => void;
   avatarUrl: string | null;
@@ -37,8 +35,6 @@ export function EditUserModal({
   onNameChange,
   email,
   onEmailChange,
-  password,
-  onPasswordChange,
   role,
   onRoleChange,
   avatarUrl,
@@ -139,10 +135,7 @@ export function EditUserModal({
               <span className="mb-1 block font-medium">Email</span>
               <input className={fieldClassName} onChange={(event) => onEmailChange(event.target.value)} required type="email" value={email} placeholder="adrian@holocron.local" />
             </label>
-            <label className="block text-sm text-slate-655 dark:text-slate-355">
-              <span className="mb-1 block font-medium">Contraseña (opcional)</span>
-              <input className={fieldClassName} minLength={8} onChange={(event) => onPasswordChange(event.target.value)} type="password" value={password} placeholder="Dejar en blanco para no cambiar" />
-            </label>
+
             <label className="block text-sm text-slate-655 dark:text-slate-355">
               <span className="mb-1 block font-medium">Rol del sistema</span>
               <select className={fieldClassName} onChange={(event) => onRoleChange(event.target.value as PlatformRole)} value={role}>

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Navigate, Route, Routes, useLocation, useSearchParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import type { PlatformRole, ProjectMembershipRole } from '@holocron/contracts';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
@@ -29,11 +29,10 @@ type RouteState = {
 };
 
 export function App() {
-  const [email, setEmail] = useState('keeper@holocron.local');
-  const [password, setPassword] = useState('ChangeMe123!');
+  const [email, setEmail] = useState('adrian.pisabarro.garcia@gmail.com');
+  const [magicLinkSentMessage, setMagicLinkSentMessage] = useState<string | null>(null);
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<PlatformRole>('MEMBER');
   const [selectedUserId, setSelectedUserId] = useState('');
   const [membershipProjectId, setMembershipProjectId] = useState('');
@@ -146,7 +145,15 @@ export function App() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await login(email, password);
+    setMagicLinkSentMessage(null);
+    try {
+      const res = await login(email);
+      if (res && res.success) {
+        setMagicLinkSentMessage(res.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleCreateUser = async (event: FormEvent<HTMLFormElement>) => {
@@ -157,13 +164,11 @@ export function App() {
       const createdUser = await createUser({
         email: newUserEmail,
         name: newUserName,
-        password: newUserPassword,
         platformRole: newUserRole,
       });
 
       setNewUserEmail('');
       setNewUserName('');
-      setNewUserPassword('');
       setNewUserRole('MEMBER');
       setSelectedUserId(createdUser.id);
       setAdminNotice(`Usuario ${createdUser.email} creado.`);
@@ -216,6 +221,12 @@ export function App() {
     );
   }
 
+  const location = useLocation();
+
+  if (location.pathname === '/login/callback') {
+    return <LoginCallbackPage />;
+  }
+
   if (!user) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 text-slate-800 dark:text-slate-100 holocron-grid">
@@ -233,17 +244,18 @@ export function App() {
                 <span className="mb-1.5 block">Correo electrónico</span>
                 <input className={fieldClassName} onChange={(event) => setEmail(event.target.value)} type="email" value={email} required />
               </label>
-              <label className="block text-sm font-medium text-slate-650 dark:text-slate-300">
-                <span className="mb-1.5 block">Contraseña</span>
-                <input className={fieldClassName} onChange={(event) => setPassword(event.target.value)} type="password" value={password} required />
-              </label>
-              {authError ? (
+              {magicLinkSentMessage && (
+                <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/20 p-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
+                  {magicLinkSentMessage}
+                </div>
+              )}
+              {authError && !magicLinkSentMessage ? (
                 <div className="rounded-xl bg-rose-50 dark:bg-rose-950/20 p-3 text-sm text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30">
                   {authError}
                 </div>
               ) : null}
               <Button className="w-full py-2.5 font-semibold text-white" variant="primary" disabled={status === 'loading'} type="submit">
-                {status === 'loading' ? 'Accediendo...' : 'Entrar en el sistema'}
+                {status === 'loading' ? 'Enviando...' : 'Enviar enlace de acceso'}
               </Button>
             </form>
           </CardContent>
@@ -349,11 +361,9 @@ export function App() {
                 handleCreateUser={handleCreateUser}
                 newUserEmail={newUserEmail}
                 newUserName={newUserName}
-                newUserPassword={newUserPassword}
                 newUserRole={newUserRole}
                 onNewUserEmailChange={setNewUserEmail}
                 onNewUserNameChange={setNewUserName}
-                onNewUserPasswordChange={setNewUserPassword}
                 onNewUserRoleChange={setNewUserRole}
                 users={users}
                 usersError={usersError}
@@ -392,5 +402,48 @@ export function App() {
         <Route path="*" element={<Navigate replace to="/overview" />} />
       </Routes>
     </AppLayout>
+  );
+}
+
+function LoginCallbackPage() {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
+  const loginWithMagicToken = useAuthStore((s) => s.loginWithMagicToken);
+  const error = useAuthStore((s) => s.error);
+  const status = useAuthStore((s) => s.status);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (token) {
+      loginWithMagicToken(token)
+        .then(() => {
+          navigate('/overview');
+        })
+        .catch((err) => {
+          console.error('[MAGIC LOGIN ERROR]:', err);
+        });
+    }
+  }, [token, loginWithMagicToken, navigate]);
+
+  return (
+    <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
+      <div className="max-w-md w-full p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-lg text-center">
+        <h2 className="text-xl font-bold mb-4">Verificando enlace de acceso...</h2>
+        {status === 'loading' && (
+          <div className="flex justify-center items-center gap-2 text-indigo-650 dark:text-indigo-400 font-semibold text-sm">
+            <span className="h-4 w-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin"></span>
+            Procesando inicio de sesión seguro...
+          </div>
+        )}
+        {error && (
+          <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-250/40 dark:border-rose-800/40">
+            {error}
+            <div className="mt-4">
+              <a href="/" className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition">Volver al Login</a>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { AuthResponse, AuthenticatedUser } from '@holocron/contracts';
 import { prisma } from '@holocron/db';
+import { EmailService, emailConfig } from '../email/email.service';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { randomBytes } from 'node:crypto';
 import jwt from 'jsonwebtoken';
@@ -21,28 +22,76 @@ import {
 } from '../../shared';
 
 export class AuthService {
-  async login(request: FastifyRequest, reply: FastifyReply): Promise<AuthResponse | void> {
-    const { email, password } = (request.body ?? {}) as { email?: string; password?: string };
+  async login(request: FastifyRequest, reply: FastifyReply): Promise<{ success: boolean; message: string } | void> {
+    const { email } = (request.body ?? {}) as { email?: string };
 
-    if (!email || !password) {
-      return sendError(reply, 400, 'INVALID_CREDENTIALS', 'Email and password are required');
+    if (!email) {
+      return sendError(reply, 400, 'INVALID_CREDENTIALS', 'El correo electrónico es obligatorio');
     }
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: email.trim().toLowerCase() },
       select: {
         id: true,
         email: true,
         name: true,
-        passwordHash: true,
+        isActive: true,
+      },
+    });
+
+    // To prevent user enumeration, we always return the same message
+    const successResponse = {
+      success: true,
+      message: 'Si tu dirección de correo electrónico existe en nuestro sistema, recibirás un enlace de acceso en unos minutos.'
+    };
+
+    if (user && user.isActive) {
+      // Generate short-lived (15 minutes) magic link token signed with refreshTokenSecret
+      const magicToken = jwt.sign(
+        { email: user.email },
+        refreshTokenSecret,
+        { expiresIn: '15m' }
+      );
+
+      const callbackUrl = `${emailConfig.appUrl}/login/callback?token=${magicToken}`;
+      
+      // Send magic link email in background
+      EmailService.sendMagicLinkEmail(user.email, user.name, callbackUrl).catch(err => {
+        console.error('[EMAIL ERROR] Failed to send magic link email:', err);
+      });
+    }
+
+    return successResponse;
+  }
+
+  async magicLogin(request: FastifyRequest, reply: FastifyReply): Promise<AuthResponse | void> {
+    const { token } = (request.body ?? {}) as { token?: string };
+
+    if (!token) {
+      return sendError(reply, 400, 'INVALID_TOKEN', 'El token de acceso es obligatorio');
+    }
+
+    let payload: { email: string };
+    try {
+      payload = jwt.verify(token, refreshTokenSecret) as { email: string };
+    } catch {
+      return sendError(reply, 401, 'INVALID_TOKEN', 'El enlace de acceso ha expirado o es inválido');
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: payload.email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
         platformRole: true,
         isActive: true,
         avatarUrl: true,
       },
     });
 
-    if (!user || !user.isActive || !verifyPassword(password, user.passwordHash)) {
-      return sendError(reply, 401, 'INVALID_CREDENTIALS', 'Invalid email or password');
+    if (!user || !user.isActive) {
+      return sendError(reply, 401, 'INVALID_TOKEN', 'El usuario no está activo o no existe');
     }
 
     const authUser = buildAuthUser(user);

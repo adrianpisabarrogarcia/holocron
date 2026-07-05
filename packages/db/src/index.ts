@@ -7,8 +7,8 @@ const globalForPrisma = globalThis as typeof globalThis & {
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient();
 
-const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL ?? 'keeper@holocron.local';
-const initialAdminName = process.env.INITIAL_ADMIN_NAME ?? 'Archivist Keeper';
+const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL ?? 'adrian.pisabarro.garcia@gmail.com';
+const initialAdminName = process.env.INITIAL_ADMIN_NAME ?? 'Adrián Pisabarro';
 const initialAdminPassword = process.env.INITIAL_ADMIN_PASSWORD ?? 'ChangeMe123!';
 const demoProjectName = 'Outer Rim Recovery';
 

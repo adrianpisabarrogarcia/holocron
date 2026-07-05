@@ -50,15 +50,14 @@ export class UsersService {
   }
 
   async createUser(request: FastifyRequest, reply: FastifyReply): Promise<AuthenticatedUser | void> {
-    const { email, name, password, platformRole } = (request.body ?? {}) as {
+    const { email, name, platformRole } = (request.body ?? {}) as {
       email?: string;
       name?: string;
-      password?: string;
       platformRole?: AuthenticatedUser['platformRole'];
     };
 
-    if (!email || !name || !password) {
-      return sendError(reply, 400, 'VALIDATION_ERROR', 'Email, name, and password are required');
+    if (!email || !name) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'Email and name are required');
     }
 
     if (platformRole && !allowedPlatformRoles.has(platformRole)) {
@@ -70,7 +69,7 @@ export class UsersService {
         data: {
           email,
           name,
-          passwordHash: hashPassword(password),
+          passwordHash: '',
           platformRole: platformRole ?? 'MEMBER',
           isActive: true,
         },

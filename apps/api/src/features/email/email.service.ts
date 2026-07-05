@@ -443,4 +443,57 @@ ${html}
 
     await this.sendEmail(Array.from(participantEmails), subject, html, text);
   }
+
+  static async sendMagicLinkEmail(email: string, name: string, link: string) {
+    const subject = `🔑 Enlace de Acceso a Holocron`;
+    const text = `Hola ${name},\n\nPara iniciar sesión en Holocron, haz clic en el siguiente enlace (válido por 15 minutos):\n\n${link}`;
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8fafc; color: #334155; margin: 0; padding: 0; }
+          .wrapper { width: 100%; background-color: #f8fafc; padding: 32px 16px; box-sizing: border-box; }
+          .card { max-width: 580px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+          .header { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); padding: 24px; text-align: center; }
+          .header h1 { color: #ffffff; font-size: 18px; font-weight: 800; margin: 0; letter-spacing: 0.05em; text-transform: uppercase; }
+          .content { padding: 28px 24px; text-align: center; }
+          .title { font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px; }
+          .btn-container { text-align: center; margin: 30px 0; }
+          .btn { background-color: #4f46e5; color: #ffffff !important; padding: 12px 28px; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 8px; display: inline-block; }
+          .footer { background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8; }
+        </style>
+      </head>
+      <body>
+        <div class="wrapper">
+          <div class="card">
+            <div class="header">
+              <h1>Holocron Workspace</h1>
+            </div>
+            <div class="content">
+              <h3 class="title">Iniciar Sesión</h3>
+              <p style="font-size: 13px; line-height: 1.5; color: #475569;">
+                Hola <strong>${name}</strong>, para acceder de forma segura a tu cuenta de Holocron, haz clic en el siguiente botón. El enlace es válido durante 15 minutos.
+              </p>
+              <div class="btn-container">
+                <a href="${link}" class="btn" target="_blank">Iniciar Sesión en Holocron</a>
+              </div>
+              <p style="font-size: 11px; color: #64748b; line-height: 1.4; word-break: break-all;">
+                Si el botón no funciona, copia y pega esta URL en tu navegador:<br>
+                <a href="${link}" style="color: #4f46e5;">${link}</a>
+              </p>
+            </div>
+            <div class="footer">
+              Si no has solicitado este enlace, puedes ignorar este correo de forma segura.
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await this.sendEmail(email, subject, html, text);
+  }
 }

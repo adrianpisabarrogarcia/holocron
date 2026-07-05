@@ -15,8 +15,6 @@ type CreateUserModalProps = {
   onNewUserNameChange: (val: string) => void;
   newUserEmail: string;
   onNewUserEmailChange: (val: string) => void;
-  newUserPassword: string;
-  onNewUserPasswordChange: (val: string) => void;
   newUserRole: PlatformRole;
   onNewUserRoleChange: (val: PlatformRole) => void;
   createUserPending: boolean;
@@ -26,14 +24,13 @@ const platformRoles: PlatformRole[] = ['ADMIN', 'MEMBER'];
 
 export function CreateUserModal({
   isOpen,
+  isOpen: _unused_isOpen,
   onClose,
   onSubmit,
   newUserName,
   onNewUserNameChange,
   newUserEmail,
   onNewUserEmailChange,
-  newUserPassword,
-  onNewUserPasswordChange,
   newUserRole,
   onNewUserRoleChange,
   createUserPending,
@@ -68,10 +65,7 @@ export function CreateUserModal({
               <span className="mb-1 block font-medium">Email</span>
               <input className={fieldClassName} onChange={(event) => onNewUserEmailChange(event.target.value)} required type="email" value={newUserEmail} placeholder="adrian@holocron.local" />
             </label>
-            <label className="block text-sm text-slate-650 dark:text-slate-355">
-              <span className="mb-1 block font-medium">Contraseña</span>
-              <input className={fieldClassName} minLength={8} onChange={(event) => onNewUserPasswordChange(event.target.value)} required type="password" value={newUserPassword} placeholder="Mínimo 8 caracteres" />
-            </label>
+
             <label className="block text-sm text-slate-650 dark:text-slate-355">
               <span className="mb-1 block font-medium">Rol del sistema</span>
               <select className={fieldClassName} onChange={(event) => onNewUserRoleChange(event.target.value as PlatformRole)} value={newUserRole}>

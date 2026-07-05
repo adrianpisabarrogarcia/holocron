@@ -16,11 +16,9 @@ export type AdminPageProps = {
   handleCreateUser: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   newUserEmail: string;
   newUserName: string;
-  newUserPassword: string;
   newUserRole: PlatformRole;
   onNewUserEmailChange: (value: string) => void;
   onNewUserNameChange: (value: string) => void;
-  onNewUserPasswordChange: (value: string) => void;
   onNewUserRoleChange: (value: PlatformRole) => void;
   onRefreshUsers: () => void;
   users: Array<AuthenticatedUser>;
@@ -38,11 +36,9 @@ export function AdminPage({
   handleCreateUser,
   newUserEmail,
   newUserName,
-  newUserPassword,
   newUserRole,
   onNewUserEmailChange,
   onNewUserNameChange,
-  onNewUserPasswordChange,
   onNewUserRoleChange,
   onRefreshUsers,
   users,
@@ -61,7 +57,6 @@ export function AdminPage({
   const [editUserId, setEditUserId] = useState('');
   const [editUserName, setEditUserName] = useState('');
   const [editUserEmail, setEditUserEmail] = useState('');
-  const [editUserPassword, setEditUserPassword] = useState('');
   const [editUserRole, setEditUserRole] = useState<PlatformRole>('MEMBER');
   const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(null);
 
@@ -69,7 +64,6 @@ export function AdminPage({
     setEditUserId(member.id);
     setEditUserName(member.name);
     setEditUserEmail(member.email);
-    setEditUserPassword('');
     setEditUserRole(member.platformRole);
     setEditUserAvatarUrl(member.avatarUrl || null);
     setIsEditModalOpen(true);
@@ -84,9 +78,6 @@ export function AdminPage({
         platformRole: editUserRole,
         avatarUrl: editUserAvatarUrl,
       };
-      if (editUserPassword) {
-        payload.password = editUserPassword;
-      }
       await onUpdateUser(editUserId, payload);
       setIsEditModalOpen(false);
     } catch {
@@ -334,8 +325,6 @@ export function AdminPage({
         onNewUserNameChange={onNewUserNameChange}
         newUserEmail={newUserEmail}
         onNewUserEmailChange={onNewUserEmailChange}
-        newUserPassword={newUserPassword}
-        onNewUserPasswordChange={onNewUserPasswordChange}
         newUserRole={newUserRole}
         onNewUserRoleChange={onNewUserRoleChange}
         createUserPending={createUserPending}
@@ -350,8 +339,6 @@ export function AdminPage({
         onNameChange={setEditUserName}
         email={editUserEmail}
         onEmailChange={setEditUserEmail}
-        password={editUserPassword}
-        onPasswordChange={setEditUserPassword}
         role={editUserRole}
         onRoleChange={setEditUserRole}
         avatarUrl={editUserAvatarUrl}

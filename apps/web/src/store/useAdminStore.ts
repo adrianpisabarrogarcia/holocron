@@ -5,7 +5,6 @@ import { apiFetch, parseJsonError } from '../lib/api';
 type CreateUserInput = {
   email: string;
   name: string;
-  password: string;
   platformRole: PlatformRole;
 };
 
@@ -25,7 +24,6 @@ type AssignFolderMembershipInput = {
 type UpdateUserInput = {
   email?: string;
   name?: string;
-  password?: string;
   platformRole?: PlatformRole;
 };
 
