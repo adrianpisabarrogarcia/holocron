@@ -170,4 +170,61 @@ export class UsersService {
       return sendError(reply, 500, 'INTERNAL_ERROR', 'Failed to delete user');
     }
   }
+
+  async bulkImportUsers(request: FastifyRequest, reply: FastifyReply) {
+    const { users } = (request.body ?? {}) as {
+      users?: Array<{ email: string; name: string; platformRole?: string }>;
+    };
+
+    if (!users || !Array.isArray(users)) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'A users array is required');
+    }
+
+    const results = {
+      created: 0,
+      updated: 0,
+      errors: [] as string[],
+    };
+
+    for (const item of users) {
+      if (!item.email || !item.name) {
+        results.errors.push(`Usuario omitido: Falta email o nombre para: ${JSON.stringify(item)}`);
+        continue;
+      }
+
+      const role = item.platformRole === 'ADMIN' ? 'ADMIN' : 'MEMBER';
+
+      try {
+        const existing = await prisma.user.findUnique({
+          where: { email: item.email },
+        });
+
+        if (existing) {
+          await prisma.user.update({
+            where: { id: existing.id },
+            data: {
+              name: item.name,
+              platformRole: role,
+            },
+          });
+          results.updated++;
+        } else {
+          await prisma.user.create({
+            data: {
+              email: item.email,
+              name: item.name,
+              passwordHash: '',
+              platformRole: role,
+              isActive: true,
+            },
+          });
+          results.created++;
+        }
+      } catch (error) {
+        results.errors.push(`Error al importar ${item.email}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    return results;
+  }
 }

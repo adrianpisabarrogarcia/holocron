@@ -7,4 +7,5 @@ export function registerUsersRoutes(app: FastifyInstance, controller: UsersContr
   app.post('/admin/users', { preHandler: requireAdmin }, controller.createUser);
   app.patch('/admin/users/:userId', { preHandler: requireAdmin }, controller.updateUser);
   app.delete('/admin/users/:userId', { preHandler: requireAdmin }, controller.deleteUser);
+  app.post('/admin/users/bulk-import', { preHandler: requireAdmin }, controller.bulkImportUsers);
 }

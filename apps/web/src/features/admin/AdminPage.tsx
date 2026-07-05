@@ -7,7 +7,7 @@ import { fieldClassName } from '../../lib/constants';
 import { CreateUserModal } from '../users/CreateUserModal';
 import { EditUserModal } from '../users/EditUserModal';
 import { ProjectsAdminPage } from './ProjectsAdminPage';
-import { RefreshCw, UserPlus, Download, Pencil, Trash2 } from 'lucide-react';
+import { RefreshCw, UserPlus, Download, Upload, Pencil, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../../lib/api';
 
 export type AdminPageProps = {
@@ -88,6 +88,56 @@ export function AdminPage({
   // Client-side search state
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Bulk import state
+  const [importPending, setImportPending] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
+
+  const handleImportUsers = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportPending(true);
+    setImportError(null);
+    setImportSuccess(null);
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      
+      const usersToImport = Array.isArray(parsed) ? parsed : (parsed.users || []);
+      
+      if (!Array.isArray(usersToImport)) {
+        throw new Error('El archivo JSON debe contener un array de usuarios.');
+      }
+
+      const { apiFetch, parseJsonError } = await import('../../lib/api');
+      const response = await apiFetch('/admin/users/bulk-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ users: usersToImport }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseJsonError(response));
+      }
+
+      const result = await response.json() as { created: number; updated: number; errors: string[] };
+      onRefreshUsers();
+
+      if (result.errors.length > 0) {
+        setImportError(`Importación con errores parciales. Creados: ${result.created}, Actualizados: ${result.updated}. Errores: ${result.errors.join('; ')}`);
+      } else {
+        setImportSuccess(`Importación masiva exitosa. Creados: ${result.created}, Actualizados: ${result.updated}.`);
+      }
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Error al importar archivo JSON');
+    } finally {
+      setImportPending(false);
+      e.target.value = '';
+    }
+  };
+
   // Handle submissions and close modal on success
   const onCreateUserSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -134,6 +184,25 @@ export function AdminPage({
     document.body.removeChild(link);
   };
 
+  const exportToJson = () => {
+    const dataToExport = filteredUsers.map((u) => ({
+      name: u.name,
+      email: u.email,
+      platformRole: u.platformRole,
+    }));
+
+    const jsonContent = JSON.stringify(dataToExport, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `holocron_usuarios_${new Date().toISOString().substring(0, 10)}.json`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <section className="space-y-6 animate-in fade-in duration-300">
       {adminNotice ? (
@@ -141,10 +210,22 @@ export function AdminPage({
           {adminNotice}
         </div>
       ) : null}
+
+      {importSuccess ? (
+        <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/20 p-3 text-sm text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
+          {importSuccess}
+        </div>
+      ) : null}
       
       {usersError ? (
         <div className="rounded-xl bg-rose-50 dark:bg-rose-950/20 p-3 text-sm text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30">
           {usersError}
+        </div>
+      ) : null}
+
+      {importError ? (
+        <div className="rounded-xl bg-rose-50 dark:bg-rose-950/20 p-3 text-sm text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30">
+          {importError}
         </div>
       ) : null}
 
@@ -167,9 +248,32 @@ export function AdminPage({
             <RefreshCw className={cn('h-3.5 w-3.5', usersLoading && 'animate-spin')} />
             <span>{usersLoading ? 'Actualizando...' : 'Recargar'}</span>
           </Button>
+          
+          <input
+            id="bulk-import-file-input"
+            type="file"
+            accept=".json"
+            onChange={handleImportUsers}
+            className="hidden"
+          />
+          <Button 
+            size="sm" 
+            variant="outline" 
+            disabled={importPending} 
+            onClick={() => document.getElementById('bulk-import-file-input')?.click()} 
+            type="button"
+          >
+            <Upload className={cn('h-3.5 w-3.5', importPending && 'animate-spin')} />
+            <span>{importPending ? 'Importando...' : 'Importar JSON'}</span>
+          </Button>
+
           <Button size="sm" variant="outline" onClick={exportToExcel} type="button">
             <Download className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
             <span>Exportar Excel</span>
+          </Button>
+          <Button size="sm" variant="outline" onClick={exportToJson} type="button">
+            <Download className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Exportar JSON</span>
           </Button>
           <Button size="sm" variant="primary" className="text-white" onClick={() => setIsUserModalOpen(true)}>
             <UserPlus className="h-4 w-4" />

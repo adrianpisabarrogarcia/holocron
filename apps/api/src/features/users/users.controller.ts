@@ -19,4 +19,8 @@ export class UsersController {
   deleteUser = async (request: FastifyRequest, reply: FastifyReply) => {
     return this.usersService.deleteUser(request, reply);
   };
+
+  bulkImportUsers = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.usersService.bulkImportUsers(request, reply);
+  };
 }
