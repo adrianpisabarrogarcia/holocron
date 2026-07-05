@@ -34,6 +34,21 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
   const [createInitialStatus, setCreateInitialStatus] = useState<TaskSummary['status']>('TODO');
   const [sprintFilter, setSprintFilter] = useState<string>('active');
 
+  // Custom task ordering state
+  const [taskOrders, setTaskOrders] = useState<Record<string, string[]>>({});
+
+  const getStoredOrder = (status: string) => {
+    const key = `holocron_task_order_${currentProject?.id}_${status}`;
+    const stored = localStorage.getItem(key);
+    return stored ? (JSON.parse(stored) as string[]) : [];
+  };
+
+  const saveStoredOrder = (status: string, order: string[]) => {
+    const key = `holocron_task_order_${currentProject?.id}_${status}`;
+    localStorage.setItem(key, JSON.stringify(order));
+    setTaskOrders(prev => ({ ...prev, [status]: order }));
+  };
+
   // Visualization filters states
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -95,11 +110,25 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
   });
 
   const columnsList = currentProject?.columns ?? [];
-  const localTasksByStatus = columnsList.map(col => ({
-    status: col.name,
-    emoji: col.emoji || null,
-    tasks: filteredTasks.filter(t => t.status === col.name),
-  }));
+  const localTasksByStatus = columnsList.map(col => {
+    const laneTasks = filteredTasks.filter(t => t.status === col.name);
+    const order = taskOrders[col.name] || getStoredOrder(col.name);
+    
+    const sorted = [...laneTasks].sort((a, b) => {
+      const idxA = order.indexOf(a.id);
+      const idxB = order.indexOf(b.id);
+      if (idxA === -1 && idxB === -1) return 0;
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    });
+
+    return {
+      status: col.name,
+      emoji: col.emoji || null,
+      tasks: sorted,
+    };
+  });
 
   // Sync open task modal with URL task query parameter
   useEffect(() => {
@@ -220,8 +249,52 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
     setActiveLane(null);
     const taskId = e.dataTransfer.getData('text/plain');
     if (taskId) {
-      await moveTask(taskId, targetStatus);
+      const draggedTask = tasks.find(t => t.id === taskId);
+      if (draggedTask && draggedTask.status !== targetStatus) {
+        await moveTask(taskId, targetStatus);
+      }
+      
+      const currentOrder = getStoredOrder(targetStatus);
+      if (!currentOrder.includes(taskId)) {
+        saveStoredOrder(targetStatus, [...currentOrder, taskId]);
+      }
     }
+  };
+
+  const handleTaskCardDrop = async (e: React.DragEvent, targetTaskId: string, targetStatus: string) => {
+    if (!canWrite) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveLane(null);
+
+    const draggedTaskId = e.dataTransfer.getData('text/plain');
+    if (!draggedTaskId || draggedTaskId === targetTaskId) return;
+
+    const draggedTask = tasks.find(t => t.id === draggedTaskId);
+    if (draggedTask && draggedTask.status !== targetStatus) {
+      await moveTask(draggedTaskId, targetStatus);
+    }
+
+    const currentOrder = getStoredOrder(targetStatus);
+    const currentLaneTasks = tasks.filter(t => t.status === targetStatus || (t.id === draggedTaskId && draggedTask?.status !== targetStatus));
+    let initialOrder = currentOrder.filter(id => currentLaneTasks.some(t => t.id === id));
+    
+    currentLaneTasks.forEach(t => {
+      if (!initialOrder.includes(t.id)) {
+        initialOrder.push(t.id);
+      }
+    });
+
+    initialOrder = initialOrder.filter(id => id !== draggedTaskId);
+
+    const targetIdx = initialOrder.indexOf(targetTaskId);
+    if (targetIdx !== -1) {
+      initialOrder.splice(targetIdx, 0, draggedTaskId);
+    } else {
+      initialOrder.push(draggedTaskId);
+    }
+
+    saveStoredOrder(targetStatus, initialOrder);
   };
 
   return (
@@ -454,6 +527,11 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
                       onDragStart={handleDragStart}
                       onTaskClick={openEditTask}
                       onAddTask={openCreateTask}
+                      onDragOverCard={(e) => {
+                        if (!canWrite) return;
+                        e.preventDefault();
+                      }}
+                      onDropCard={handleTaskCardDrop}
                     />
                   </div>
                 );

@@ -15,6 +15,8 @@ type TaskColumnProps = {
   onDragStart: (e: React.DragEvent, id: string) => void;
   onTaskClick: (task: TaskSummary) => void;
   onAddTask: (status: TaskSummary['status']) => void;
+  onDragOverCard?: (e: React.DragEvent) => void;
+  onDropCard?: (e: React.DragEvent, targetTaskId: string, targetStatus: string) => void;
 };
 
 export function TaskColumn({
@@ -28,6 +30,8 @@ export function TaskColumn({
   onDragStart,
   onTaskClick,
   onAddTask,
+  onDragOverCard,
+  onDropCard,
 }: TaskColumnProps) {
   const normalizedStatus = column.status.toLowerCase().trim();
   const isTodo = normalizedStatus === 'todo' || normalizedStatus.startsWith('por hacer');
@@ -88,6 +92,8 @@ export function TaskColumn({
             task={task}
             canWrite={canWrite}
             onDragStart={onDragStart}
+            onDragOver={onDragOverCard}
+            onDrop={onDropCard}
             onClick={() => onTaskClick(task)}
           />
         ))}

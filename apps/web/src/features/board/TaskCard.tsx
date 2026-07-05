@@ -8,6 +8,8 @@ type TaskCardProps = {
   canWrite: boolean;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onClick: () => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent, targetTaskId: string, targetStatus: string) => void;
 };
 
 function stripHtml(html: string | null | undefined): string {
@@ -34,13 +36,15 @@ export function formatHoursToReadable(hours: number): string {
   return parts.join(' ');
 }
 
-export function TaskCard({ task, canWrite, onDragStart, onClick }: TaskCardProps) {
+export function TaskCard({ task, canWrite, onDragStart, onClick, onDragOver, onDrop }: TaskCardProps) {
   const plainDescription = stripHtml(task.description);
 
   return (
     <article
       draggable={canWrite}
       onDragStart={(e) => onDragStart(e, task.id)}
+      onDragOver={onDragOver}
+      onDrop={(e) => onDrop && onDrop(e, task.id, task.status)}
       onClick={onClick}
       className={cn(
         'rounded-xl border bg-white dark:bg-slate-900 p-4 shadow-sm hover:shadow-md transition duration-200',
