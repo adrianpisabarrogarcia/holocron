@@ -9,6 +9,8 @@
   "dependencies": {
     "@fastify/cookie": "^10.0.1",
     "@fastify/cors": "^10.0.1",
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/rate-limit": "^11.1.0",
     "@fastify/static": "^9.1.3",
     "@holocron/contracts": "workspace:*",
     "@holocron/db": "workspace:*",

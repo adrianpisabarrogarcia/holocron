@@ -2,6 +2,8 @@ import 'dotenv/config';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import Fastify from 'fastify';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -38,6 +40,23 @@ const corsOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
 mkdirSync(resolve(process.cwd(), uploadsDir), { recursive: true });
 
 const app = Fastify({ logger: true });
+
+await app.register(helmet, {
+  contentSecurityPolicy: false, // Disabled to prevent blocking file uploads previews in SPA
+});
+
+await app.register(rateLimit, {
+  max: 150,
+  timeWindow: '1 minute',
+  errorResponseBuilder: (_request, _context) => {
+    return {
+      error: {
+        code: 'TOO_MANY_REQUESTS',
+        message: 'Demasiadas solicitudes. Por favor, inténtalo de nuevo más tarde.',
+      }
+    };
+  }
+});
 
 await app.register(cors, {
   credentials: true,
