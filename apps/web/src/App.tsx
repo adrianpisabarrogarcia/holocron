@@ -19,6 +19,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { OverviewPage } from './features/overview/OverviewPage';
 import { BoardPage } from './features/board/BoardPage';
 import { SprintsPage } from './features/sprints/SprintsPage';
+import { TimelinePage } from './features/timeline/TimelinePage';
 import { AdminPage } from './features/admin/AdminPage';
 import { ProjectsAdminPage } from './features/admin/ProjectsAdminPage';
 import { AccessAdminPage } from './features/admin/AccessAdminPage';
@@ -348,6 +349,12 @@ export function App() {
               selectedProjectId={boardSelectedProjectId}
               userRole={user.platformRole}
             />
+          }
+        />
+        <Route
+          path="/timeline"
+          element={
+            <TimelinePage />
           }
         />
         <Route path="/admin" element={<Navigate replace to="/admin/users" />} />
