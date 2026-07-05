@@ -18,13 +18,14 @@ import {
 import { fieldClassName } from '../../lib/constants';
 
 export function TimelinePage() {
-  const { tasks, projects, selectedProjectId, updateTask } = useBoardStore();
+  const { tasks, projects, selectedProjectId, updateTask, sprints } = useBoardStore();
   const [activeTab, setActiveTab] = useState<'cascade' | 'calendar'>('cascade');
 
   // Filter parameters
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
+  const [sprintFilter, setSprintFilter] = useState('ALL');
 
   // Find current project
   const currentProject = useMemo(() => {
@@ -38,10 +39,13 @@ export function TimelinePage() {
                             (t.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
       const matchesPriority = priorityFilter === 'ALL' || t.priority === priorityFilter;
+      const matchesSprint = sprintFilter === 'ALL' || 
+                            (sprintFilter === 'BACKLOG' && t.sprintId === null) || 
+                            t.sprintId === sprintFilter;
 
-      return matchesSearch && matchesStatus && matchesPriority;
+      return matchesSearch && matchesStatus && matchesPriority && matchesSprint;
     });
-  }, [tasks, searchQuery, statusFilter, priorityFilter]);
+  }, [tasks, searchQuery, statusFilter, priorityFilter, sprintFilter]);
 
   // State for Calendar Month View
   const [currentDate, setCurrentDate] = useState(() => new Date());
@@ -153,9 +157,10 @@ export function TimelinePage() {
     setSearchQuery('');
     setStatusFilter('ALL');
     setPriorityFilter('ALL');
+    setSprintFilter('ALL');
   };
 
-  const hasActiveFilters = searchQuery !== '' || statusFilter !== 'ALL' || priorityFilter !== 'ALL';
+  const hasActiveFilters = searchQuery !== '' || statusFilter !== 'ALL' || priorityFilter !== 'ALL' || sprintFilter !== 'ALL';
 
   if (!currentProject) {
     return (
@@ -260,6 +265,23 @@ export function TimelinePage() {
               <X className="h-3 w-3" />
             </button>
           )}
+        </div>
+
+        {/* Sprint filter dropdown */}
+        <div className="flex items-center gap-2 shrink-0">
+          <select
+            value={sprintFilter}
+            onChange={(e) => setSprintFilter(e.target.value)}
+            className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-semibold text-slate-600 dark:text-slate-300 outline-none hover:border-indigo-500 transition"
+          >
+            <option value="ALL">Todos los Sprints</option>
+            <option value="BACKLOG">Backlog General</option>
+            {sprints.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Status filter dropdown */}
