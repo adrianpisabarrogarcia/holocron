@@ -417,6 +417,28 @@ Este sprint introduce mejoras sustanciales en la seguridad, la usabilidad de la 
 *   **Cabeceras Seguras**: Registro de `@fastify/helmet` para forzar cabeceras HTTP robustas recomendadas por OWASP (prevención de iframe clickjacking, sniffing, referrers, etc.).
 *   **Límite de Peticiones**: Registro de `@fastify/rate-limit` configurado a un máximo de **150 peticiones por minuto por IP** para mitigar ataques DDoS y abusos de llamadas automáticas en endpoints críticos de correo.
 
+### Sprint 4 - Aislamiento Multi-Tenant (Workspaces)
+
+Este sprint introduce el soporte de múltiples espacios de trabajo aislados (Workspaces), permitiendo separar proyectos, carpetas, miembros y configuraciones de acceso de forma estricta.
+
+#### 1. Aislamiento e Independencia Completa
+* **Aislamiento de proyectos y carpetas**: Todos los proyectos y carpetas están vinculados a un `workspaceId`. Los endpoints de la API filtran rigurosamente por el workspace activo en sesión.
+* **Control de Semilla (`seed`)**: Se configuró la inicialización automática de base de datos para no recrear el workspace `default` si ya existen otros en el sistema.
+* **Gitignore recursivo**: Se protegió el repositorio configurando el `.gitignore` para ignorar bases de datos (`*.db`) y archivos subidos (`storage/uploads`) de manera recursiva en todo el monorepo.
+
+#### 2. Navegación y Rutas Dinámicas
+* **AppRouter y URLs por Workspace**: Las vistas de la aplicación se enrutan bajo `/workspace/:slug/*` (ej: `/workspace/teknei/overview`).
+* **WorkspaceSwitcher**: Componente interactivo en el header lateral que permite cambiar de workspace.
+* **Navegación dinámica**: El sidebar resuelve dinámicamente las rutas al workspace actual. Si se cambia de workspace desde secciones globales de administración, el usuario se mantiene en la misma pantalla en lugar de ser redirigido.
+
+#### 3. Gestión y Asignación de Usuarios
+* **Directorio de Cuentas**: Se añadió una columna "Workspaces" a la tabla de administración de usuarios.
+* **Formularios con casillas**: Los modales de creación y edición de usuarios ahora permiten asignar al usuario a múltiples workspaces al instante marcando casillas de verificación.
+* **Upsert en Registro**: Registrar a un usuario que ya había sido invitado a un workspace actualiza su perfil en la plataforma y sincroniza sus workspaces en lugar de arrojar error de duplicidad.
+
+#### 4. Seguridad
+* **Protección a Superadmins**: Solo los usuarios con rol de `SUPERADMIN` pueden borrar a otros Superadministradores. Los administradores estándar (`ADMIN`) no tienen visualización del botón de borrado en la UI ni autorización a nivel de API (403 Forbidden).
+
 ### Cierre
 
-Este roadmap prioriza fundamentos sobre expansion superficial. La plataforma cuenta ahora con una columna estructural sólida: identidad segura sin contraseñas, vistas avanzadas de planificación visual (Gantt/Calendario) con ordenación interactiva, y un backend protegido frente a abusos.
+Este roadmap prioriza fundamentos sobre expansion superficial. La plataforma cuenta ahora con una columna estructural sólida: soporte multi-tenant con workspaces aislados, identidad segura sin contraseñas, vistas avanzadas de planificación visual (Gantt/Calendario) con ordenación interactiva, y un backend protegido frente a abusos.
