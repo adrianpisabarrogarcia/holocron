@@ -34,6 +34,19 @@ type RouteState = {
 export function App() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('adrian.pisabarro.garcia@gmail.com');
+  const [recentEmails, setRecentEmails] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('holocron_recent_emails');
+      if (saved) {
+        setRecentEmails(JSON.parse(saved));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
   const [magicLinkSentMessage, setMagicLinkSentMessage] = useState<string | null>(null);
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
@@ -232,10 +245,40 @@ export function App() {
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={handleSubmit}>
-              <label className="block text-sm font-medium text-slate-650 dark:text-slate-300">
+              <label className="block text-sm font-medium text-slate-655 dark:text-slate-300">
                 <span className="mb-1.5 block">Correo electrónico</span>
-                <input className={fieldClassName} onChange={(event) => setEmail(event.target.value)} type="email" value={email} required />
+                <input
+                  id="email"
+                  name="email"
+                  autoComplete="username email"
+                  className={fieldClassName}
+                  onChange={(event) => setEmail(event.target.value)}
+                  type="email"
+                  value={email}
+                  required
+                />
               </label>
+
+              {recentEmails.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">
+                    Cuentas recientes
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {recentEmails.map((recentEmail) => (
+                      <button
+                        key={recentEmail}
+                        type="button"
+                        onClick={() => setEmail(recentEmail)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:border-indigo-150 dark:hover:border-indigo-900/50 text-slate-600 dark:text-slate-355 hover:text-indigo-650 dark:hover:text-indigo-400 transition cursor-pointer"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0"></span>
+                        {recentEmail}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {magicLinkSentMessage && (
                 <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/20 p-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
                   {magicLinkSentMessage}
@@ -429,6 +472,16 @@ function LoginCallbackPage() {
       loginWithMagicToken(token)
         .then(() => loadWs())
         .then(() => {
+          const user = useAuthStore.getState().user;
+          if (user?.email) {
+            try {
+              const recent = JSON.parse(localStorage.getItem('holocron_recent_emails') || '[]');
+              const filtered = [user.email, ...recent.filter((e: string) => e !== user.email)];
+              localStorage.setItem('holocron_recent_emails', JSON.stringify(filtered.slice(0, 5)));
+            } catch (e) {
+              // ignore
+            }
+          }
           const firstSlug = useWorkspaceStore.getState().workspaces[0]?.slug ?? 'default';
           navigate(`/workspace/${firstSlug}/overview`);
         })
