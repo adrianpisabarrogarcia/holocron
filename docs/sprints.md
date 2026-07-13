@@ -438,6 +438,7 @@ Este sprint introduce el soporte de múltiples espacios de trabajo aislados (Wor
 
 #### 4. Seguridad
 * **Protección a Superadmins**: Solo los usuarios con rol de `SUPERADMIN` pueden borrar a otros Superadministradores. Los administradores estándar (`ADMIN`) no tienen visualización del botón de borrado en la UI ni autorización a nivel de API (403 Forbidden).
+* **Historial de inicio de sesión**: Habilitados los atributos nativos de autocompletado del navegador (`autoComplete`, `name`, `id`) y un listado dinámico de accesos recientes persistidos en `localStorage` (píldoras clicables para autocompletado inmediato).
 
 ### Cierre
 
