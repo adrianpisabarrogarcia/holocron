@@ -42,7 +42,7 @@ export const accessTokenTtlMinutes = Number(process.env.ACCESS_TOKEN_TTL_MINUTES
 export const refreshTokenTtlHours = Number(process.env.REFRESH_TOKEN_TTL_HOURS ?? 10);
 export const refreshCookieName = 'holocron_refresh_token';
 export const isProduction = process.env.NODE_ENV === 'production';
-export const allowedPlatformRoles = new Set<AuthenticatedUser['platformRole']>(['ADMIN', 'MEMBER']);
+export const allowedPlatformRoles = new Set<AuthenticatedUser['platformRole']>(['SUPERADMIN', 'ADMIN', 'MEMBER']);
 export const allowedProjectRoles = new Set<ProjectMembershipRole>(['MANAGER', 'CONTRIBUTOR', 'VIEWER']);
 export const allowedScrumRoles = new Set<ScrumRole>(['DEVELOPER', 'PRODUCT_OWNER', 'SCRUM_MASTER']);
 
@@ -273,8 +273,40 @@ export async function requireAdmin(request: FastifyRequest, reply: FastifyReply)
   if (reply.sent) {
     return;
   }
-  if (request.authUser?.platformRole !== 'ADMIN') {
+  const role = request.authUser?.platformRole;
+  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
     sendError(reply, 403, 'FORBIDDEN', 'Admin access is required');
+  }
+}
+
+export async function requireSuperAdmin(request: FastifyRequest, reply: FastifyReply) {
+  await authenticateRequest(request, reply);
+  if (reply.sent) {
+    return;
+  }
+  if (request.authUser?.platformRole !== 'SUPERADMIN') {
+    sendError(reply, 403, 'FORBIDDEN', 'Superadmin access is required');
+  }
+}
+
+export async function requireWorkspaceAdmin(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  workspaceId: string
+) {
+  const authUser = request.authUser;
+  if (!authUser) {
+    sendError(reply, 401, 'UNAUTHORIZED', 'Authentication is required');
+    return;
+  }
+  if (authUser.platformRole === 'SUPERADMIN') {
+    return; // SUPERADMIN has unrestricted access
+  }
+  const membership = await prisma.workspaceMembership.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: authUser.id } },
+  });
+  if (!membership || membership.workspaceRole !== 'WORKSPACE_ADMIN') {
+    sendError(reply, 403, 'FORBIDDEN', 'Workspace admin access is required');
   }
 }
 

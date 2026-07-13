@@ -33,6 +33,10 @@ import { registerUsersRoutes } from './features/users/users.routes';
 import { UsersController } from './features/users/users.controller';
 import { UsersService } from './features/users/users.service';
 
+import { registerWorkspacesRoutes } from './features/workspaces/workspaces.routes';
+import { WorkspacesController } from './features/workspaces/workspaces.controller';
+import { WorkspacesService } from './features/workspaces/workspaces.service';
+
 const port = Number(process.env.API_PORT ?? process.env.PORT ?? 4000);
 const host = '0.0.0.0';
 const corsOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
@@ -109,6 +113,10 @@ registerSprintsRoutes(app, sprintsController);
 const usersService = new UsersService();
 const usersController = new UsersController(usersService);
 registerUsersRoutes(app, usersController);
+
+const workspacesService = new WorkspacesService();
+const workspacesController = new WorkspacesController(workspacesService);
+registerWorkspacesRoutes(app, workspacesController);
 
 await ensureSeedData();
 await app.listen({ port, host });

@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, useEffect } from 'react';
 import type { PlatformRole, AuthenticatedUser } from '@holocron/contracts';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -9,11 +9,12 @@ import { EditUserModal } from '../users/EditUserModal';
 import { ProjectsAdminPage } from './ProjectsAdminPage';
 import { RefreshCw, UserPlus, Download, Upload, Pencil, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../../lib/api';
+import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 
 export type AdminPageProps = {
   adminNotice: string | null;
   createUserPending: boolean;
-  handleCreateUser: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  handleCreateUser: (workspaceIds: string[]) => Promise<void>;
   newUserEmail: string;
   newUserName: string;
   newUserRole: PlatformRole;
@@ -26,6 +27,7 @@ export type AdminPageProps = {
   usersLoading: boolean;
   usersPending: boolean;
   currentUserId: string;
+  currentUserRole: PlatformRole;
   onUpdateUser: (userId: string, payload: any) => Promise<void>;
   onDeleteUser: (userId: string, name: string) => Promise<void>;
 };
@@ -46,12 +48,21 @@ export function AdminPage({
   usersLoading,
   usersPending,
   currentUserId,
+  currentUserRole,
   onUpdateUser,
   onDeleteUser,
 }: AdminPageProps) {
   // Modal toggle states
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Workspaces list
+  const { workspaces, loadWorkspaces } = useWorkspaceStore();
+  const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    void loadWorkspaces();
+  }, [loadWorkspaces]);
 
   // Edit user state
   const [editUserId, setEditUserId] = useState('');
@@ -66,6 +77,12 @@ export function AdminPage({
     setEditUserEmail(member.email);
     setEditUserRole(member.platformRole);
     setEditUserAvatarUrl(member.avatarUrl || null);
+    
+    // Map assigned workspaces back to their IDs
+    const userWorkspaceIds = (member.assignedWorkspaces ?? [])
+      .map((name: string) => workspaces.find((ws) => ws.name === name)?.id)
+      .filter(Boolean) as string[];
+    setSelectedWorkspaceIds(userWorkspaceIds);
     setIsEditModalOpen(true);
   };
 
@@ -77,6 +94,7 @@ export function AdminPage({
         email: editUserEmail,
         platformRole: editUserRole,
         avatarUrl: editUserAvatarUrl,
+        workspaceIds: selectedWorkspaceIds,
       };
       await onUpdateUser(editUserId, payload);
       setIsEditModalOpen(false);
@@ -142,8 +160,9 @@ export function AdminPage({
   const onCreateUserSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await handleCreateUser(e);
+      await handleCreateUser(selectedWorkspaceIds);
       setIsUserModalOpen(false);
+      setSelectedWorkspaceIds([]);
     } catch {
       // Keep modal open if error
     }
@@ -296,6 +315,7 @@ export function AdminPage({
                   <th className="px-6 py-4">Usuario</th>
                   <th className="px-6 py-4">Email</th>
                   <th className="px-6 py-4">Rol del Sistema</th>
+                  <th className="px-6 py-4">Workspaces</th>
                   <th className="px-6 py-4">Proyectos Asignados</th>
                   <th className="px-6 py-4">ID de Cuenta</th>
                   <th className="px-6 py-4 text-right">Acciones</th>
@@ -350,6 +370,23 @@ export function AdminPage({
                         </span>
                       </td>
 
+                      {/* Workspaces */}
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1.5 max-w-xs">
+                          {member.assignedWorkspaces && member.assignedWorkspaces.length > 0 ? (
+                            member.assignedWorkspaces.map((wsName) => (
+                              <span key={`ws-${wsName}`} className="inline-flex items-center rounded-md bg-violet-50 dark:bg-violet-950/30 text-violet-750 dark:text-violet-400 border border-violet-100 dark:border-violet-900/40 px-2 py-0.5 text-xs font-semibold">
+                                🏢 {wsName}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="italic text-xs text-slate-400 dark:text-slate-500">
+                              Ninguno
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
                       {/* Assigned Projects & Folders */}
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1.5 max-w-xs">
@@ -391,7 +428,7 @@ export function AdminPage({
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
-                          {currentUserId !== member.id && (
+                          {currentUserId !== member.id && !(member.platformRole === 'SUPERADMIN' && currentUserRole !== 'SUPERADMIN') && (
                             <button
                               type="button"
                               className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/20 h-8 w-8 inline-flex items-center justify-center rounded-lg transition duration-150 active:scale-95"
@@ -423,7 +460,7 @@ export function AdminPage({
       {/* CREATE USER MODAL */}
       <CreateUserModal
         isOpen={isUserModalOpen}
-        onClose={() => setIsUserModalOpen(false)}
+        onClose={() => { setIsUserModalOpen(false); setSelectedWorkspaceIds([]); }}
         onSubmit={onCreateUserSubmit}
         newUserName={newUserName}
         onNewUserNameChange={onNewUserNameChange}
@@ -432,12 +469,15 @@ export function AdminPage({
         newUserRole={newUserRole}
         onNewUserRoleChange={onNewUserRoleChange}
         createUserPending={createUserPending}
+        workspaces={workspaces}
+        selectedWorkspaceIds={selectedWorkspaceIds}
+        onSelectedWorkspaceIdsChange={setSelectedWorkspaceIds}
       />
 
       {/* EDIT USER MODAL */}
       <EditUserModal
         isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
+        onClose={() => { setIsEditModalOpen(false); setSelectedWorkspaceIds([]); }}
         onSubmit={onEditUserSubmit}
         name={editUserName}
         onNameChange={setEditUserName}
@@ -448,6 +488,9 @@ export function AdminPage({
         avatarUrl={editUserAvatarUrl}
         onAvatarUrlChange={setEditUserAvatarUrl}
         pending={usersPending}
+        workspaces={workspaces}
+        selectedWorkspaceIds={selectedWorkspaceIds}
+        onSelectedWorkspaceIdsChange={setSelectedWorkspaceIds}
       />
     </section>
   );

@@ -1,12 +1,13 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Navigate, Route, Routes, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
-import type { PlatformRole, ProjectMembershipRole } from '@holocron/contracts';
+import { Navigate, Route, Routes, useLocation, useSearchParams, useNavigate, useParams } from 'react-router-dom';
+import type { PlatformRole, ProjectMembershipRole, ProjectSummary, TaskSummary } from '@holocron/contracts';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { cn } from './lib/cn';
 import { useAdminStore } from './store/useAdminStore';
 import { useAuthStore } from './store/useAuthStore';
 import { useBoardStore } from './store/useBoardStore';
+import { useWorkspaceStore } from './store/useWorkspaceStore';
 import {
   RefreshCw,
   Ban,
@@ -23,6 +24,7 @@ import { TimelinePage } from './features/timeline/TimelinePage';
 import { AdminPage } from './features/admin/AdminPage';
 import { ProjectsAdminPage } from './features/admin/ProjectsAdminPage';
 import { AccessAdminPage } from './features/admin/AccessAdminPage';
+import { WorkspacesAdminPage } from './features/admin/WorkspacesAdminPage';
 import { CreateProjectCard } from './features/overview/CreateProjectCard';
 
 type RouteState = {
@@ -30,6 +32,7 @@ type RouteState = {
 };
 
 export function App() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('adrian.pisabarro.garcia@gmail.com');
   const [magicLinkSentMessage, setMagicLinkSentMessage] = useState<string | null>(null);
   const [newUserName, setNewUserName] = useState('');
@@ -63,6 +66,13 @@ export function App() {
 
   const { bootstrap, error: authError, login, logout, status, user } = useAuthStore();
   const { error, loadBoard, loading, projects, selectProject, selectedProjectId: boardSelectedProjectId, tasks, folders } = useBoardStore();
+  const { workspaces, loadWorkspaces } = useWorkspaceStore();
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      void loadWorkspaces();
+    }
+  }, [status, loadWorkspaces]);
   const {
     assignProjectMembership,
     assignFolderMembership,
@@ -78,8 +88,9 @@ export function App() {
   } = useAdminStore();
 
   const currentProject = projects.find((project) => project.id === boardSelectedProjectId) ?? null;
-  const projectAccessLabel = currentProject?.membershipRole ?? (user?.platformRole === 'ADMIN' ? 'ADMIN' : null);
-  const isAdmin = user?.platformRole === 'ADMIN';
+  const projectAccessLabel = currentProject?.membershipRole ?? (user?.platformRole === 'ADMIN' || user?.platformRole === 'SUPERADMIN' ? 'ADMIN' : null);
+  const isAdmin = user?.platformRole === 'ADMIN' || user?.platformRole === 'SUPERADMIN';
+  const isSuperAdmin = user?.platformRole === 'SUPERADMIN';
   const projectColumns = currentProject?.columns && currentProject.columns.length > 0
     ? currentProject.columns
     : [
@@ -104,27 +115,7 @@ export function App() {
     void bootstrap();
   }, [bootstrap]);
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      if (projectParam) {
-        useBoardStore.setState({ selectedProjectId: projectParam });
-      }
-      void loadBoard();
-    }
-  }, [loadBoard, status]);
 
-  useEffect(() => {
-    if (status === 'authenticated' && boardSelectedProjectId && boardSelectedProjectId !== projectParam) {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          next.set('project', boardSelectedProjectId);
-          return next;
-        },
-        { replace: true }
-      );
-    }
-  }, [status, boardSelectedProjectId, projectParam, setSearchParams]);
 
   useEffect(() => {
     if (status === 'authenticated' && isAdmin) {
@@ -157,8 +148,7 @@ export function App() {
     }
   };
 
-  const handleCreateUser = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleCreateUser = async (workspaceIds: string[]) => {
     setAdminNotice(null);
 
     try {
@@ -166,6 +156,7 @@ export function App() {
         email: newUserEmail,
         name: newUserName,
         platformRole: newUserRole,
+        workspaceIds,
       });
 
       setNewUserEmail('');
@@ -236,7 +227,7 @@ export function App() {
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
               <Database className="h-6 w-6" />
             </div>
-            <CardDescription className="text-xs tracking-wider text-indigo-600 dark:text-indigo-400 font-bold">HOLOCRON WORKSPACE</CardDescription>
+            <CardDescription className="text-xs tracking-wider text-indigo-600 dark:text-indigo-400 font-bold">HOLOCRON</CardDescription>
             <CardTitle className="text-2xl font-black">Iniciar Sesión</CardTitle>
           </CardHeader>
           <CardContent>
@@ -269,6 +260,7 @@ export function App() {
     <AppLayout
       user={user}
       isAdmin={isAdmin}
+      isSuperAdmin={isSuperAdmin}
       theme={theme}
       setTheme={setTheme}
       logout={logout}
@@ -291,72 +283,71 @@ export function App() {
         </Card>
       ) : null}
 
-      {!error && !loading && !projects.length ? (
+      {!error && !loading && !projects.length && location.pathname.startsWith('/workspace/') ? (
         <div className="space-y-6">
-          <Card className="border-slate-200 dark:border-slate-800 bg-white/75 dark:bg-slate-900/60 p-6 text-center">
-            <Ban className="mx-auto h-12 w-12 text-slate-400 dark:text-slate-650 mb-3" />
-            <CardTitle className="text-lg">No hay proyectos asignados</CardTitle>
-            <CardDescription className="normal-case tracking-normal max-w-md mx-auto mt-2">
-              Tu cuenta está activa, pero actualmente no posees acceso a ningún proyecto. ¡Crea uno nuevo a continuación para comenzar!
-            </CardDescription>
-          </Card>
+          {workspaces.length === 0 ? (
+            <Card className="border-slate-200 dark:border-slate-800 bg-white/75 dark:bg-slate-900/60 p-6 text-center max-w-lg mx-auto">
+              <Ban className="mx-auto h-12 w-12 text-slate-400 dark:text-slate-650 mb-3" />
+              <CardTitle className="text-lg">Sin acceso a Workspaces</CardTitle>
+              <CardDescription className="normal-case tracking-normal mt-2 leading-relaxed">
+                {isSuperAdmin ? (
+                  <>
+                    No tienes ningún workspace asignado. Crea un nuevo workspace desde la{' '}
+                    <button
+                      onClick={() => navigate('/admin/workspaces')}
+                      className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold"
+                    >
+                      Gestión de Workspaces
+                    </button>{' '}
+                    para poder crear proyectos.
+                  </>
+                ) : (
+                  'Tu cuenta está activa, pero actualmente no posees acceso a ningún workspace. Ponte en contacto con el administrador de la plataforma para que te asigne a uno.'
+                )}
+              </CardDescription>
+            </Card>
+          ) : (
+            <>
+              <Card className="border-slate-200 dark:border-slate-800 bg-white/75 dark:bg-slate-900/60 p-6 text-center">
+                <Ban className="mx-auto h-12 w-12 text-slate-400 dark:text-slate-655 mb-3" />
+                <CardTitle className="text-lg">No hay proyectos asignados</CardTitle>
+                <CardDescription className="normal-case tracking-normal max-w-md mx-auto mt-2">
+                  Tu cuenta está activa, pero actualmente no posees acceso a ningún proyecto. ¡Crea uno nuevo a continuación para comenzar!
+                </CardDescription>
+              </Card>
 
-          <div className="max-w-md mx-auto">
-            <CreateProjectCard />
-          </div>
+              <div className="max-w-md mx-auto">
+                <CreateProjectCard />
+              </div>
+            </>
+          )}
         </div>
       ) : null}
 
       <Routes>
-        <Route path="/" element={<Navigate replace to="/overview" />} />
-        <Route
-          path="/overview"
-          element={
-            <OverviewPage
-              blockedTasks={blockedTasks}
-              completedTasks={completedTasks}
-              currentProject={currentProject}
-              onProjectChange={handleProjectChange}
-              projectAccessLabel={projectAccessLabel}
-              projects={projects}
-              selectedProjectId={boardSelectedProjectId}
-              tasksByStatus={tasksByStatus}
-              tasks={tasks}
-              userRole={user.platformRole}
-            />
-          }
-        />
-        <Route
-          path="/board"
-          element={
-            <BoardPage
-              currentProject={currentProject}
-              onProjectChange={handleProjectChange}
-              projects={projects}
-              selectedProjectId={boardSelectedProjectId}
-              tasksByStatus={tasksByStatus}
-              userRole={user.platformRole}
-            />
-          }
-        />
-        <Route
-          path="/sprints"
-          element={
-            <SprintsPage
-              currentProject={currentProject}
-              onProjectChange={handleProjectChange}
-              projects={projects}
-              selectedProjectId={boardSelectedProjectId}
-              userRole={user.platformRole}
-            />
-          }
-        />
-        <Route
-          path="/timeline"
-          element={
-            <TimelinePage />
-          }
-        />
+        {/* Redirect legacy and root paths to the first real workspace */}
+        <Route path="/" element={<WorkspaceRedirect />} />
+        <Route path="/overview" element={<WorkspaceRedirect subPath="/overview" />} />
+        <Route path="/board" element={<WorkspaceRedirect subPath="/board" />} />
+        <Route path="/sprints" element={<WorkspaceRedirect subPath="/sprints" />} />
+        <Route path="/timeline" element={<WorkspaceRedirect subPath="/timeline" />} />
+
+        {/* Workspace-scoped pages — WorkspacePageRenderer reloads board on slug change */}
+        <Route path="/workspace/:slug" element={<Navigate replace to="overview" />} />
+        <Route path="/workspace/:slug/overview" element={
+          <WorkspacePageRenderer page="overview" blockedTasks={blockedTasks} completedTasks={completedTasks} currentProject={currentProject} handleProjectChange={handleProjectChange} projectAccessLabel={projectAccessLabel} projects={projects} boardSelectedProjectId={boardSelectedProjectId} tasksByStatus={tasksByStatus} tasks={tasks} userRole={user.platformRole} loadBoard={loadBoard} />
+        } />
+        <Route path="/workspace/:slug/board" element={
+          <WorkspacePageRenderer page="board" blockedTasks={blockedTasks} completedTasks={completedTasks} currentProject={currentProject} handleProjectChange={handleProjectChange} projectAccessLabel={projectAccessLabel} projects={projects} boardSelectedProjectId={boardSelectedProjectId} tasksByStatus={tasksByStatus} tasks={tasks} userRole={user.platformRole} loadBoard={loadBoard} />
+        } />
+        <Route path="/workspace/:slug/sprints" element={
+          <WorkspacePageRenderer page="sprints" blockedTasks={blockedTasks} completedTasks={completedTasks} currentProject={currentProject} handleProjectChange={handleProjectChange} projectAccessLabel={projectAccessLabel} projects={projects} boardSelectedProjectId={boardSelectedProjectId} tasksByStatus={tasksByStatus} tasks={tasks} userRole={user.platformRole} loadBoard={loadBoard} />
+        } />
+        <Route path="/workspace/:slug/timeline" element={
+          <WorkspacePageRenderer page="timeline" blockedTasks={blockedTasks} completedTasks={completedTasks} currentProject={currentProject} handleProjectChange={handleProjectChange} projectAccessLabel={projectAccessLabel} projects={projects} boardSelectedProjectId={boardSelectedProjectId} tasksByStatus={tasksByStatus} tasks={tasks} userRole={user.platformRole} loadBoard={loadBoard} />
+        } />
+
+        {/* Admin routes */}
         <Route path="/admin" element={<Navigate replace to="/admin/users" />} />
         <Route
           path="/admin/users"
@@ -377,12 +368,13 @@ export function App() {
                 usersLoading={usersLoading}
                 usersPending={usersPending}
                 currentUserId={user?.id || ''}
+                currentUserRole={user?.platformRole || 'MEMBER'}
                 onUpdateUser={handleUpdateUser}
                 onDeleteUser={handleDeleteUser}
                 onRefreshUsers={() => void loadUsers()}
               />
             ) : (
-              <Navigate replace state={{ denied: 'admin' } satisfies RouteState} to="/overview" />
+              <WorkspaceRedirect />
             )
           }
         />
@@ -392,7 +384,7 @@ export function App() {
             isAdmin ? (
               <ProjectsAdminPage />
             ) : (
-              <Navigate replace state={{ denied: 'admin' } satisfies RouteState} to="/overview" />
+              <WorkspaceRedirect />
             )
           }
         />
@@ -402,11 +394,21 @@ export function App() {
             isAdmin ? (
               <AccessAdminPage />
             ) : (
-              <Navigate replace state={{ denied: 'admin' } satisfies RouteState} to="/overview" />
+              <WorkspaceRedirect />
             )
           }
         />
-        <Route path="*" element={<Navigate replace to="/overview" />} />
+        <Route
+          path="/admin/workspaces"
+          element={
+            isSuperAdmin ? (
+              <WorkspacesAdminPage />
+            ) : (
+              <WorkspaceRedirect />
+            )
+          }
+        />
+        <Route path="*" element={<WorkspaceRedirect />} />
       </Routes>
     </AppLayout>
   );
@@ -420,11 +422,15 @@ function LoginCallbackPage() {
   const status = useAuthStore((s) => s.status);
   const navigate = useNavigate();
 
+  const { loadWorkspaces: loadWs } = useWorkspaceStore();
+
   useEffect(() => {
     if (token) {
       loginWithMagicToken(token)
+        .then(() => loadWs())
         .then(() => {
-          navigate('/overview');
+          const firstSlug = useWorkspaceStore.getState().workspaces[0]?.slug ?? 'default';
+          navigate(`/workspace/${firstSlug}/overview`);
         })
         .catch((err) => {
           console.error('[MAGIC LOGIN ERROR]:', err);
@@ -453,4 +459,82 @@ function LoginCallbackPage() {
       </div>
     </div>
   );
+}
+
+type WorkspacePageRendererProps = {
+  page: 'overview' | 'board' | 'sprints' | 'timeline';
+  blockedTasks: number;
+  completedTasks: number;
+  currentProject: ProjectSummary | null;
+  handleProjectChange: (projectId: string) => Promise<void>;
+  projectAccessLabel: string | null;
+  projects: ProjectSummary[];
+  boardSelectedProjectId: string | null;
+  tasksByStatus: { status: string; emoji: string | null; tasks: TaskSummary[] }[];
+  tasks: TaskSummary[];
+  userRole: string;
+  loadBoard: (workspaceSlug?: string) => Promise<void>;
+};
+
+function WorkspaceRedirect({ subPath = '/overview' }: { subPath?: string }) {
+  const { workspaces, loadWorkspaces } = useWorkspaceStore();
+  useEffect(() => { void loadWorkspaces(); }, [loadWorkspaces]);
+  const slug = workspaces[0]?.slug;
+  if (!slug) return null; // loading
+  return <Navigate replace to={`/workspace/${slug}${subPath}`} />;
+}
+
+function WorkspacePageRenderer({ page, blockedTasks, completedTasks, currentProject, handleProjectChange, projectAccessLabel, projects, boardSelectedProjectId, tasksByStatus, tasks, userRole, loadBoard }: WorkspacePageRendererProps) {
+  const { slug } = useParams<{ slug: string }>();
+  const firstWorkspaceSlug = useWorkspaceStore((s) => s.workspaces[0]?.slug);
+  const activeSlug = slug ?? firstWorkspaceSlug ?? 'default';
+
+  // Reload board whenever the workspace slug changes
+  useEffect(() => {
+    void loadBoard(activeSlug);
+  }, [activeSlug]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (page === 'overview') {
+    return (
+      <OverviewPage
+        blockedTasks={blockedTasks}
+        completedTasks={completedTasks}
+        currentProject={currentProject}
+        onProjectChange={handleProjectChange}
+        projectAccessLabel={projectAccessLabel}
+        projects={projects}
+        selectedProjectId={boardSelectedProjectId}
+        tasksByStatus={tasksByStatus}
+        tasks={tasks}
+        userRole={userRole}
+      />
+    );
+  }
+
+  if (page === 'board') {
+    return (
+      <BoardPage
+        currentProject={currentProject}
+        onProjectChange={handleProjectChange}
+        projects={projects}
+        selectedProjectId={boardSelectedProjectId}
+        tasksByStatus={tasksByStatus}
+        userRole={userRole}
+      />
+    );
+  }
+
+  if (page === 'sprints') {
+    return (
+      <SprintsPage
+        currentProject={currentProject}
+        onProjectChange={handleProjectChange}
+        projects={projects}
+        selectedProjectId={boardSelectedProjectId}
+        userRole={userRole}
+      />
+    );
+  }
+
+  return <TimelinePage />;
 }

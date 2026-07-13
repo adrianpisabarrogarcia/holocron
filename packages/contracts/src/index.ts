@@ -2,7 +2,9 @@ export type HealthResponse = {
   status: 'ok';
 };
 
-export type PlatformRole = 'ADMIN' | 'MEMBER';
+export type PlatformRole = 'SUPERADMIN' | 'ADMIN' | 'MEMBER';
+
+export type WorkspaceRole = 'WORKSPACE_ADMIN' | 'MEMBER';
 
 export type ProjectMembershipRole = 'MANAGER' | 'CONTRIBUTOR' | 'VIEWER';
 
@@ -12,8 +14,31 @@ export type AuthenticatedUser = {
   name: string;
   platformRole: PlatformRole;
   avatarUrl?: string | null;
+  activeWorkspaceId?: string | null;
   assignedProjects?: string[];
   assignedFolders?: string[];
+  assignedWorkspaces?: string[];
+};
+
+export type WorkspaceSummary = {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  logoUrl?: string | null;
+  primaryColor?: string | null;
+  memberCount?: number;
+  projectCount?: number;
+  workspaceRole?: WorkspaceRole;
+};
+
+export type WorkspaceMemberSummary = {
+  userId: string;
+  email: string;
+  name: string;
+  platformRole: PlatformRole;
+  workspaceRole: WorkspaceRole;
+  avatarUrl?: string | null;
 };
 
 export type AuthResponse = {

@@ -7,13 +7,14 @@ type BoardStore = {
   loading: boolean;
   projects: ProjectSummary[];
   folders: FolderSummary[];
+  activeWorkspaceSlug: string | null;
   resetBoard: () => void;
   selectedProjectId: string | null;
   selectProject: (projectId: string) => Promise<void>;
   tasks: TaskSummary[];
   members: ProjectMemberSummary[];
   sprints: SprintSummary[];
-  loadBoard: () => Promise<void>;
+  loadBoard: (workspaceSlug?: string) => Promise<void>;
   loadFolders: () => Promise<void>;
   createFolder: (name: string, parentFolderId?: string | null) => Promise<void>;
   deleteFolder: (folderId: string) => Promise<void>;
@@ -67,8 +68,9 @@ async function loadProjectSprints(projectId: string) {
   return (await sprintsResponse.json()) as SprintSummary[];
 }
 
-async function loadProjectFolders() {
-  const foldersResponse = await apiFetch('/api/folders');
+async function loadProjectFolders(workspaceSlug?: string) {
+  const qs = workspaceSlug ? `?workspaceSlug=${encodeURIComponent(workspaceSlug)}` : '';
+  const foldersResponse = await apiFetch(`/api/folders${qs}`);
 
   if (!foldersResponse.ok) {
     throw new Error(await parseJsonError(foldersResponse));
@@ -82,7 +84,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   loading: false,
   projects: [],
   folders: [],
-  resetBoard: () => set({ error: null, loading: false, projects: [], folders: [], selectedProjectId: null, tasks: [], members: [], sprints: [] }),
+  activeWorkspaceSlug: null,
+  resetBoard: () => set({ error: null, loading: false, projects: [], folders: [], selectedProjectId: null, tasks: [], members: [], sprints: [], activeWorkspaceSlug: null }),
   selectedProjectId: null,
   selectProject: async (projectId) => {
     set({ error: null, loading: true, selectedProjectId: projectId });
@@ -101,11 +104,21 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   tasks: [],
   members: [],
   sprints: [],
-  loadBoard: async () => {
+  loadBoard: async (workspaceSlug?: string) => {
+    // Skip reload if already loaded for this workspace slug
+    const currentSlug = get().activeWorkspaceSlug;
+    if (workspaceSlug && workspaceSlug === currentSlug && get().projects.length > 0) return;
+
+    // Si cambia el workspace, limpia inmediatamente para no mostrar datos del workspace anterior
+    if (workspaceSlug !== currentSlug) {
+      set({ projects: [], folders: [], tasks: [], members: [], sprints: [], selectedProjectId: null });
+    }
+
     set({ error: null, loading: true });
 
     try {
-      const projectsResponse = await apiFetch('/api/projects');
+      const qs = workspaceSlug ? `?workspaceSlug=${encodeURIComponent(workspaceSlug)}` : '';
+      const projectsResponse = await apiFetch(`/api/projects${qs}`);
 
       if (!projectsResponse.ok) {
         throw new Error(await parseJsonError(projectsResponse));
@@ -116,13 +129,13 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? projects[0] ?? null;
 
       if (!selectedProject) {
-        set({ error: null, loading: false, projects: [], selectedProjectId: null, tasks: [], members: [], sprints: [] });
+        set({ error: null, loading: false, projects: [], selectedProjectId: null, tasks: [], members: [], sprints: [], activeWorkspaceSlug: workspaceSlug ?? null });
         return;
       }
 
       const [tasks, folders, members, sprints] = await Promise.all([
         loadProjectTasks(selectedProject.id),
-        loadProjectFolders(),
+        loadProjectFolders(workspaceSlug),
         loadProjectMembers(selectedProject.id),
         loadProjectSprints(selectedProject.id),
       ]);
@@ -136,6 +149,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         tasks,
         members,
         sprints,
+        activeWorkspaceSlug: workspaceSlug ?? null,
       });
     } catch (error) {
       set({
@@ -329,7 +343,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   loadFolders: async () => {
     set({ error: null, loading: true });
     try {
-      const folders = await loadProjectFolders();
+      const folders = await loadProjectFolders(get().activeWorkspaceSlug ?? undefined);
       set({ error: null, folders, loading: false });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Unknown API error', loading: false, folders: [] });

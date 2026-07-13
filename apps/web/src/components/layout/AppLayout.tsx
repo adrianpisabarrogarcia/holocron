@@ -1,10 +1,12 @@
 import { ReactNode, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useParams } from 'react-router-dom';
+import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import type { ProjectSummary, AuthenticatedUser } from '@holocron/contracts';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/cn';
 import { useBoardStore } from '../../store/useBoardStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import { getApiUrl } from '../../lib/api';
 import { ProfileModal } from '../../features/users/ProfileModal';
 import {
@@ -24,12 +26,14 @@ import {
   Workflow,
   Menu,
   X,
+  Building2,
 } from 'lucide-react';
 
 type AppLayoutProps = {
   children: ReactNode;
   user: AuthenticatedUser;
   isAdmin: boolean;
+  isSuperAdmin?: boolean;
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
   logout: () => Promise<void>;
@@ -38,13 +42,14 @@ type AppLayoutProps = {
   boardSelectedProjectId: string | null;
   handleProjectChange: (projectId: string) => Promise<void>;
   loading: boolean;
-  loadBoard: () => Promise<void>;
+  loadBoard: (workspaceSlug?: string) => Promise<void>;
 };
 
 export function AppLayout({
   children,
   user,
   isAdmin,
+  isSuperAdmin = false,
   theme,
   setTheme,
   logout,
@@ -56,6 +61,11 @@ export function AppLayout({
   loadBoard,
 }: AppLayoutProps) {
   const { folders } = useBoardStore();
+  const urlSlug = pathname.match(/^\/workspace\/([^/]+)/)?.[1] ?? null;
+  const storeActiveSlug = useWorkspaceStore((s) => s.activeWorkspace?.slug);
+  const firstWorkspaceSlug = useWorkspaceStore((s) => s.workspaces[0]?.slug);
+  const slug = urlSlug ?? storeActiveSlug ?? firstWorkspaceSlug ?? 'default';
+  const wsBase = `/workspace/${slug}`;
   const [projectCopied, setProjectCopied] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -124,7 +134,7 @@ export function AppLayout({
         <div>
           {/* Logo / Header */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200/80 dark:border-slate-800/80">
-            <span className="text-xs font-black tracking-widest uppercase text-slate-400 dark:text-slate-500">Holocron Workspace</span>
+            <span className="text-xs font-black tracking-widest uppercase text-slate-400 dark:text-slate-500">Holocron</span>
             <button
               onClick={() => setIsMobileMenuOpen(false)}
               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 md:hidden"
@@ -166,7 +176,7 @@ export function AppLayout({
           {/* Links */}
           <nav className="p-4 space-y-1.5">
             <NavLink
-              to="/overview"
+              to={`${wsBase}/overview`}
               onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 cn(
@@ -182,7 +192,7 @@ export function AppLayout({
             </NavLink>
 
             <NavLink
-              to="/board"
+              to={`${wsBase}/board`}
               onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 cn(
@@ -198,7 +208,7 @@ export function AppLayout({
             </NavLink>
 
             <NavLink
-              to="/sprints"
+              to={`${wsBase}/sprints`}
               onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 cn(
@@ -214,7 +224,7 @@ export function AppLayout({
             </NavLink>
 
             <NavLink
-              to="/timeline"
+              to={`${wsBase}/timeline`}
               onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 cn(
@@ -281,6 +291,23 @@ export function AppLayout({
                   <Key className="h-4 w-4" />
                   <span>Gestión Accesos</span>
                 </NavLink>
+                {isSuperAdmin && (
+                  <NavLink
+                    to="/admin/workspaces"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
+                        isActive
+                          ? 'bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400 font-bold border-l-4 border-violet-600 dark:border-violet-400 pl-3'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+                      )
+                    }
+                  >
+                    <Building2 className="h-4 w-4" />
+                    <span>Workspaces</span>
+                  </NavLink>
+                )}
               </>
             ) : null}
           </nav>
@@ -348,10 +375,10 @@ export function AppLayout({
             </button>
 
             <h1 className="text-sm md:text-lg font-bold text-slate-900 dark:text-white truncate">
-              {pathname === '/overview' && 'Resumen'}
-              {pathname === '/board' && 'Tablero'}
-              {pathname === '/sprints' && 'Sprints'}
-              {pathname === '/timeline' && 'Cronograma'}
+              {pathname.endsWith('/overview') && 'Resumen'}
+              {pathname.endsWith('/board') && 'Tablero'}
+              {pathname.endsWith('/sprints') && 'Sprints'}
+              {pathname.endsWith('/timeline') && 'Cronograma'}
               {pathname.startsWith('/admin') && 'Admin'}
             </h1>
             
@@ -396,7 +423,8 @@ export function AppLayout({
           </div>
 
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={loading} onClick={() => void loadBoard()} className="px-2 md:px-3 h-8.5 text-xs">
+            <WorkspaceSwitcher className="hidden sm:flex" />
+            <Button size="sm" variant="outline" disabled={loading} onClick={() => void loadBoard(slug)} className="px-2 md:px-3 h-8.5 text-xs">
               <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
               <span className="hidden sm:inline">{loading ? 'Sincronizando...' : 'Actualizar'}</span>
             </Button>

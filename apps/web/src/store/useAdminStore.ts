@@ -6,6 +6,7 @@ type CreateUserInput = {
   email: string;
   name: string;
   platformRole: PlatformRole;
+  workspaceIds?: string[];
 };
 
 type AssignProjectMembershipInput = {
@@ -25,6 +26,8 @@ type UpdateUserInput = {
   email?: string;
   name?: string;
   platformRole?: PlatformRole;
+  workspaceIds?: string[];
+  avatarUrl?: string | null;
 };
 
 type AdminStore = {

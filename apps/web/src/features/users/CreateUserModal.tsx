@@ -1,7 +1,7 @@
 import { FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useEscapeKey } from '../../lib/useEscapeKey';
-import type { PlatformRole } from '@holocron/contracts';
+import type { PlatformRole, WorkspaceSummary } from '@holocron/contracts';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { UserPlus, X } from 'lucide-react';
@@ -18,13 +18,15 @@ type CreateUserModalProps = {
   newUserRole: PlatformRole;
   onNewUserRoleChange: (val: PlatformRole) => void;
   createUserPending: boolean;
+  workspaces: WorkspaceSummary[];
+  selectedWorkspaceIds: string[];
+  onSelectedWorkspaceIdsChange: (ids: string[]) => void;
 };
 
 const platformRoles: PlatformRole[] = ['ADMIN', 'MEMBER'];
 
 export function CreateUserModal({
   isOpen,
-  isOpen: _unused_isOpen,
   onClose,
   onSubmit,
   newUserName,
@@ -34,6 +36,9 @@ export function CreateUserModal({
   newUserRole,
   onNewUserRoleChange,
   createUserPending,
+  workspaces,
+  selectedWorkspaceIds,
+  onSelectedWorkspaceIdsChange,
 }: CreateUserModalProps) {
   useEscapeKey(onClose, isOpen);
   if (!isOpen) return null;
@@ -57,16 +62,16 @@ export function CreateUserModal({
         </CardHeader>
         <CardContent className="p-0">
           <form className="space-y-4" onSubmit={onSubmit}>
-            <label className="block text-sm text-slate-650 dark:text-slate-355">
+            <label className="block text-sm text-slate-655 dark:text-slate-355">
               <span className="mb-1 block font-medium">Nombre completo</span>
               <input className={fieldClassName} onChange={(event) => onNewUserNameChange(event.target.value)} required type="text" value={newUserName} placeholder="Ej: Adrian Garcia" />
             </label>
-            <label className="block text-sm text-slate-650 dark:text-slate-355">
+            <label className="block text-sm text-slate-655 dark:text-slate-355">
               <span className="mb-1 block font-medium">Email</span>
               <input className={fieldClassName} onChange={(event) => onNewUserEmailChange(event.target.value)} required type="email" value={newUserEmail} placeholder="adrian@holocron.local" />
             </label>
 
-            <label className="block text-sm text-slate-650 dark:text-slate-355">
+            <label className="block text-sm text-slate-655 dark:text-slate-355">
               <span className="mb-1 block font-medium">Rol del sistema</span>
               <select className={fieldClassName} onChange={(event) => onNewUserRoleChange(event.target.value as PlatformRole)} value={newUserRole}>
                 {platformRoles.map((role) => (
@@ -76,6 +81,38 @@ export function CreateUserModal({
                 ))}
               </select>
             </label>
+
+            {/* Workspace selector */}
+            <div className="space-y-1.5">
+              <span className="block text-sm font-medium text-slate-655 dark:text-slate-355">Asignar a Workspaces</span>
+              <div className="max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2 bg-slate-50/50 dark:bg-slate-900/30">
+                {workspaces.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">No hay workspaces creados aún.</p>
+                ) : (
+                  workspaces.map((ws) => {
+                    const isChecked = selectedWorkspaceIds.includes(ws.id);
+                    return (
+                      <label key={ws.id} className="flex items-center gap-2.5 text-sm text-slate-655 dark:text-slate-300 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              onSelectedWorkspaceIdsChange([...selectedWorkspaceIds, ws.id]);
+                            } else {
+                              onSelectedWorkspaceIdsChange(selectedWorkspaceIds.filter((id) => id !== ws.id));
+                            }
+                          }}
+                          className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+                        />
+                        <span className="font-medium">{ws.name}</span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
             <div className="flex gap-3 justify-end pt-2">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancelar

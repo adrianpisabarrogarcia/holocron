@@ -52,9 +52,25 @@ export function getCompletedTaskCount(project: any, cols: ProjectColumnSummary[]
 export class ProjectsService {
   async listProjects(request: FastifyRequest): Promise<ProjectSummary[]> {
     const authUser = request.authUser as AuthenticatedUser;
+    const { workspaceSlug } = (request.query ?? {}) as { workspaceSlug?: string };
+
+    // Resolve workspaceId from slug if provided, else from user's active workspace
+    // IMPORTANT: if slug is given but not found → use sentinel so we get 0 results (not all results)
+    let workspaceId: string | undefined;
+    const NONEXISTENT = '__nonexistent__';
+    if (workspaceSlug) {
+      const ws = await prisma.workspace.findUnique({ where: { slug: workspaceSlug }, select: { id: true } });
+      workspaceId = ws?.id ?? NONEXISTENT;
+    } else if (authUser.activeWorkspaceId) {
+      workspaceId = authUser.activeWorkspaceId;
+    }
+
+    const isPrivileged = authUser.platformRole === 'ADMIN' || authUser.platformRole === 'SUPERADMIN';
+
     const [projects, directMemberships, folderMemberships, folders] = await Promise.all([
       prisma.project.findMany({
         orderBy: { createdAt: 'asc' },
+        where: workspaceId ? { workspaceId } : undefined,
         select: {
           id: true,
           name: true,
@@ -63,6 +79,7 @@ export class ProjectsService {
           startDate: true,
           endDate: true,
           folderId: true,
+          workspaceId: true,
           _count: {
             select: {
               tasks: true,
@@ -87,7 +104,7 @@ export class ProjectsService {
           },
         },
       }),
-      authUser.platformRole === 'ADMIN'
+      isPrivileged
         ? Promise.resolve([] as Array<{ projectId: string; role: string }>)
         : prisma.projectMembership.findMany({
             where: {
@@ -98,7 +115,7 @@ export class ProjectsService {
               role: true,
             },
           }),
-      authUser.platformRole === 'ADMIN'
+      isPrivileged
         ? Promise.resolve([] as Array<{ folderId: string; role: string }>)
         : prisma.folderMembership.findMany({
             where: {
@@ -109,9 +126,10 @@ export class ProjectsService {
               role: true,
             },
           }),
-      authUser.platformRole === 'ADMIN'
+      isPrivileged
         ? Promise.resolve([] as Array<{ id: string; parentFolderId: string | null }>)
         : prisma.folder.findMany({
+            where: workspaceId ? { workspaceId } : undefined,
             select: {
               id: true,
               parentFolderId: true,
@@ -119,7 +137,7 @@ export class ProjectsService {
           }),
     ]);
 
-    if (authUser.platformRole === 'ADMIN') {
+    if (isPrivileged) {
       return projects.map((project) => {
         const cols = getProjectColumns(project);
         return {
@@ -203,6 +221,11 @@ export class ProjectsService {
       return sendError(reply, 400, 'VALIDATION_ERROR', 'Project name is required');
     }
 
+    // Require active workspace
+    if (!authUser.activeWorkspaceId) {
+      return sendError(reply, 400, 'WORKSPACE_REQUIRED', 'User has no active workspace');
+    }
+
     const project = await prisma.project.create({
       data: {
         name,
@@ -212,6 +235,7 @@ export class ProjectsService {
         endDate: endDate ? new Date(endDate) : null,
         folderId: folderId ?? null,
         ownerId: authUser.id,
+        workspaceId: authUser.activeWorkspaceId,
         memberships: {
           create: {
             userId: authUser.id,
@@ -536,7 +560,22 @@ export class ProjectsService {
   }
 
   async listFolders(request: FastifyRequest, reply: FastifyReply): Promise<any[] | void> {
+    const authUser = request.authUser as AuthenticatedUser;
+    const { workspaceSlug } = (request.query ?? {}) as { workspaceSlug?: string };
+
+    // Resolve workspaceId — same pattern as listProjects
+    // IMPORTANT: if slug given but not found → use sentinel so we get 0 results (not all results)
+    const NONEXISTENT = '__nonexistent__';
+    let workspaceId: string | undefined;
+    if (workspaceSlug) {
+      const ws = await prisma.workspace.findUnique({ where: { slug: workspaceSlug }, select: { id: true } });
+      workspaceId = ws?.id ?? NONEXISTENT;
+    } else if (authUser.activeWorkspaceId) {
+      workspaceId = authUser.activeWorkspaceId;
+    }
+
     const folders = await prisma.folder.findMany({
+      where: workspaceId ? { workspaceId } : undefined,
       orderBy: { createdAt: 'asc' },
       select: {
         id: true,
@@ -554,8 +593,12 @@ export class ProjectsService {
 
   async createFolder(request: FastifyRequest, reply: FastifyReply): Promise<any | void> {
     const authUser = request.authUser as AuthenticatedUser;
-    if (authUser.platformRole !== 'ADMIN') {
+    if (authUser.platformRole !== 'ADMIN' && authUser.platformRole !== 'SUPERADMIN') {
       return sendError(reply, 403, 'FORBIDDEN', 'Admin role is required to manage folders');
+    }
+
+    if (!authUser.activeWorkspaceId) {
+      return sendError(reply, 400, 'WORKSPACE_REQUIRED', 'User has no active workspace');
     }
 
     const { name, parentFolderId } = (request.body ?? {}) as {
@@ -571,6 +614,7 @@ export class ProjectsService {
       data: {
         name,
         parentFolderId: parentFolderId ?? null,
+        workspaceId: authUser.activeWorkspaceId,
       },
       select: {
         id: true,

@@ -24,21 +24,47 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export async function ensureSeedData() {
+  const workspaceCount = await prisma.workspace.count();
+  if (workspaceCount > 0) {
+    return;
+  }
+
+  // Ensure Default workspace exists
+  const defaultWorkspace = await prisma.workspace.upsert({
+    where: { slug: 'default' },
+    update: {},
+    create: {
+      name: 'Holocron',
+      slug: 'default',
+      description: 'Workspace principal de Holocron',
+      primaryColor: '#6366f1',
+    },
+  });
+
   const admin = await prisma.user.upsert({
     where: { email: initialAdminEmail },
     update: {
       name: initialAdminName,
       passwordHash: hashPassword(initialAdminPassword),
-      platformRole: 'ADMIN',
+      platformRole: 'SUPERADMIN',
       isActive: true,
+      activeWorkspaceId: defaultWorkspace.id,
     },
     create: {
       email: initialAdminEmail,
       name: initialAdminName,
       passwordHash: hashPassword(initialAdminPassword),
-      platformRole: 'ADMIN',
+      platformRole: 'SUPERADMIN',
       isActive: true,
+      activeWorkspaceId: defaultWorkspace.id,
     },
+  });
+
+  // Ensure admin is workspace member
+  await prisma.workspaceMembership.upsert({
+    where: { workspaceId_userId: { workspaceId: defaultWorkspace.id, userId: admin.id } },
+    update: {},
+    create: { workspaceId: defaultWorkspace.id, userId: admin.id, workspaceRole: 'WORKSPACE_ADMIN' },
   });
 
   const existingDemoProject = await prisma.project.findFirst({
@@ -82,6 +108,7 @@ export async function ensureSeedData() {
       description: 'Bring scattered sector intelligence back into a single command board.',
       status: 'ACTIVE',
       ownerId: admin.id,
+      workspaceId: defaultWorkspace.id,
       memberships: {
         create: {
           userId: admin.id,

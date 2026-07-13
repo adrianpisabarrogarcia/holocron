@@ -7,26 +7,59 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Workspace {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  description  String?
+  logoUrl      String?
+  primaryColor String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships WorkspaceMembership[]
+  projects    Project[]
+  folders     Folder[]
+
+  @@index([slug])
+}
+
+model WorkspaceMembership {
+  workspaceId   String
+  userId        String
+  workspaceRole String   @default("MEMBER") // WORKSPACE_ADMIN | MEMBER
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, userId])
+  @@index([userId])
+  @@index([workspaceId])
+}
+
 model User {
-  id               String             @id @default(cuid())
-  email            String             @unique
-  name             String
-  passwordHash     String             @default("")
-  platformRole     String             @default("MEMBER")
-  isActive         Boolean            @default(true)
-  avatarUrl        String?
-  lastLoginAt      DateTime?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  ownedProjects    Project[]          @relation("ProjectOwner")
-  ownedTasks       Task[]             @relation("TaskOwners")
-  assignedTasks    Task[]             @relation("TaskAssignees")
-  createdTasks     Task[]             @relation("TaskCreator")
-  stateTransitions TaskStateHistory[] @relation("StateChangedBy")
-  sessions         UserSession[]
-  memberships      ProjectMembership[]
-  folderMemberships FolderMembership[]
-  comments          Comment[]
+  id                  String                @id @default(cuid())
+  email               String                @unique
+  name                String
+  passwordHash        String                @default("")
+  platformRole        String                @default("MEMBER") // SUPERADMIN | ADMIN | MEMBER
+  isActive            Boolean               @default(true)
+  avatarUrl           String?
+  activeWorkspaceId   String?
+  lastLoginAt         DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  ownedProjects       Project[]             @relation("ProjectOwner")
+  ownedTasks          Task[]                @relation("TaskOwners")
+  assignedTasks       Task[]                @relation("TaskAssignees")
+  createdTasks        Task[]                @relation("TaskCreator")
+  stateTransitions    TaskStateHistory[]    @relation("StateChangedBy")
+  sessions            UserSession[]
+  memberships         ProjectMembership[]
+  folderMemberships   FolderMembership[]
+  comments            Comment[]
+  workspaceMemberships WorkspaceMembership[]
 }
 
 model UserSession {
@@ -51,12 +84,14 @@ model Project {
   status      String        @default("PLANNING")
   ownerId     String
   folderId    String?
+  workspaceId String
   startDate   DateTime?
   endDate     DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id])
   folder      Folder?       @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   tasks       Task[]
   memberships ProjectMembership[]
   columns     ProjectColumn[]
@@ -64,6 +99,7 @@ model Project {
 
   @@index([ownerId])
   @@index([folderId])
+  @@index([workspaceId])
 }
 
 model ProjectMembership {
@@ -115,14 +151,17 @@ model Folder {
   id             String    @id @default(cuid())
   name           String
   parentFolderId String?
+  workspaceId    String
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   parentFolder   Folder?   @relation("Subfolders", fields: [parentFolderId], references: [id], onDelete: Cascade)
   subfolders     Folder[]  @relation("Subfolders")
   projects       Project[]
   memberships    FolderMembership[]
+  workspace      Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([parentFolderId])
+  @@index([workspaceId])
 }
 
 model FolderMembership {
