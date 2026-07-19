@@ -40,6 +40,10 @@ Useful local checks:
 
 ## Docker run
 
-`docker compose up --build`
+Para levantar rápidamente el stack completo en local con Docker y recarga en caliente:
 
-SQLite data persists through the Docker volume mounted at `packages/db/prisma/data`.
+```bash
+docker compose up --build
+```
+
+Los datos de SQLite y los archivos adjuntos se persisten a través de volúmenes de Docker. Para obtener instrucciones de configuración detalladas, gestión de variables de entorno y guías para el despliegue en entornos de producción real, consulta la [Guía de Despliegue con Docker](docs/docker-deployment.md).
