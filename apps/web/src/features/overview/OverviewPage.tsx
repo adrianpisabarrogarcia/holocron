@@ -15,7 +15,9 @@ import {
   AlertTriangle,
   Plus,
   Folder,
+  Bell,
 } from 'lucide-react';
+import { ProjectNotificationModal } from '../projects/ProjectNotificationModal';
 import {
   projectStatusLabel,
   statusLabel,
@@ -74,6 +76,9 @@ export function OverviewPage({
   const [editStartDate, setEditStartDate] = useState<string | null>(null);
   const [editEndDate, setEditEndDate] = useState<string | null>(null);
   const [editFolderId, setEditFolderId] = useState<string | null>(null);
+
+  // Notification modal state
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   // Collapsed folders state
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({});
@@ -261,12 +266,14 @@ export function OverviewPage({
               <CardTitle>Mis Proyectos</CardTitle>
               <CardDescription>Selecciona un proyecto para ver sus detalles</CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="primary" onClick={() => setIsCreateOpen(true)} className="text-white">
-                <Plus className="h-4 w-4" />
-                <span>Nuevo</span>
-              </Button>
-            </div>
+            {userRole !== 'MEMBER' && (
+              <div className="flex gap-2">
+                <Button size="sm" variant="primary" onClick={() => setIsCreateOpen(true)} className="text-white">
+                  <Plus className="h-4 w-4" />
+                  <span>Nuevo</span>
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-3 pt-2">
             {renderProjectHierarchy(null, 0)}
@@ -352,7 +359,12 @@ export function OverviewPage({
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 gap-2">
             <div>
               <CardDescription>Descripción del proyecto</CardDescription>
-              <CardTitle className="text-lg">{currentProject.name}</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg">{currentProject.name}</CardTitle>
+                <button onClick={() => setIsNotifOpen(true)} className="text-slate-400 hover:text-indigo-500 transition-colors" title="Notificaciones del proyecto">
+                  <Bell className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             {(currentProject.startDate || currentProject.endDate) && (
               <div className="text-xs font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5">
@@ -389,6 +401,15 @@ export function OverviewPage({
           initialEndDate={editEndDate}
           initialFolderId={editFolderId}
           onSave={handleEditSave}
+        />
+      )}
+
+      {currentProject && (
+        <ProjectNotificationModal
+          isOpen={isNotifOpen}
+          onClose={() => setIsNotifOpen(false)}
+          projectId={currentProject.id}
+          projectName={currentProject.name}
         />
       )}
     </section>

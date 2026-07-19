@@ -20,4 +20,7 @@ export function registerProjectsRoutes(app: FastifyInstance, controller: Project
 
   app.delete('/api/projects/:projectId/members/:userId', { preHandler: requireAdmin }, controller.removeMember);
   app.delete('/api/folders/:folderId/members/:userId', { preHandler: requireAdmin }, controller.removeFolderMember);
+
+  app.get('/api/projects/:projectId/notifications', { preHandler: authenticateRequest }, controller.getNotifications);
+  app.patch('/api/projects/:projectId/notifications', { preHandler: authenticateRequest }, controller.updateNotifications);
 }

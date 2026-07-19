@@ -9,8 +9,31 @@ import {
 } from '../../shared';
 
 export class UsersService {
-  async listUsers(): Promise<AuthenticatedUser[]> {
+  async listUsers(request: FastifyRequest, reply: FastifyReply): Promise<AuthenticatedUser[] | void> {
+    const currentUser = request.authUser as AuthenticatedUser;
+    if (!currentUser) {
+      return sendError(reply, 401, 'UNAUTHORIZED', 'Authentication is required');
+    }
+
+    const whereClause: any = {};
+
+    if (currentUser.platformRole === 'ADMIN') {
+      // Un admin solo ve usuarios que pertenezcan a los mismos workspaces que él
+      const memberships = await prisma.workspaceMembership.findMany({
+        where: { userId: currentUser.id },
+        select: { workspaceId: true },
+      });
+      const workspaceIds = memberships.map((m) => m.workspaceId);
+
+      whereClause.workspaceMemberships = {
+        some: {
+          workspaceId: { in: workspaceIds },
+        },
+      };
+    }
+
     const users = await prisma.user.findMany({
+      where: whereClause,
       orderBy: [{ name: 'asc' }, { email: 'asc' }],
       select: {
         id: true,
@@ -60,6 +83,7 @@ export class UsersService {
   }
 
   async createUser(request: FastifyRequest, reply: FastifyReply): Promise<AuthenticatedUser | void> {
+    const currentUser = request.authUser as AuthenticatedUser;
     const { email, name, platformRole, workspaceIds } = (request.body ?? {}) as {
       email?: string;
       name?: string;
@@ -73,6 +97,29 @@ export class UsersService {
 
     if (platformRole && !allowedPlatformRoles.has(platformRole)) {
       return sendError(reply, 400, 'VALIDATION_ERROR', 'platformRole must be ADMIN or MEMBER');
+    }
+
+    // Un admin no puede crear a un superadmin ni otorgar ese rol
+    if (platformRole === 'SUPERADMIN' && currentUser.platformRole !== 'SUPERADMIN') {
+      return sendError(reply, 403, 'FORBIDDEN', 'Only superadministrators can assign the superadministrator role');
+    }
+
+    // Validar workspaces del admin si no es SUPERADMIN
+    if (currentUser && currentUser.platformRole === 'ADMIN') {
+      const adminMemberships = await prisma.workspaceMembership.findMany({
+        where: { userId: currentUser.id },
+        select: { workspaceId: true },
+      });
+      const adminWorkspaceIds = adminMemberships.map((m) => m.workspaceId);
+
+      if (workspaceIds) {
+        const hasInvalidWorkspace = workspaceIds.some((id) => !adminWorkspaceIds.includes(id));
+        if (hasInvalidWorkspace) {
+          return sendError(reply, 403, 'FORBIDDEN', 'You can only assign users to your own workspaces');
+        }
+      } else {
+        return sendError(reply, 400, 'VALIDATION_ERROR', 'Workspace assignment is required for administrators');
+      }
     }
 
     try {
@@ -152,6 +199,7 @@ export class UsersService {
   }
 
   async updateUser(request: FastifyRequest, reply: FastifyReply): Promise<AuthenticatedUser | void> {
+    const currentUser = request.authUser as AuthenticatedUser;
     const { userId } = request.params as { userId: string };
     const { email, name, password, platformRole, avatarUrl, workspaceIds } = (request.body ?? {}) as {
       email?: string;
@@ -174,6 +222,43 @@ export class UsersService {
       return sendError(reply, 400, 'VALIDATION_ERROR', 'platformRole must be ADMIN or MEMBER');
     }
 
+    // Un admin no puede otorgar el rol de superadmin ni quitárselo a nadie
+    if (platformRole === 'SUPERADMIN' && currentUser.platformRole !== 'SUPERADMIN') {
+      return sendError(reply, 403, 'FORBIDDEN', 'Only superadministrators can assign the superadministrator role');
+    }
+
+    // Validar acceso del admin si no es SUPERADMIN
+    let adminWorkspaceIds: string[] = [];
+    if (currentUser && currentUser.platformRole === 'ADMIN') {
+      // Un ADMIN nunca puede editar a un SUPERADMIN
+      if (user.platformRole === 'SUPERADMIN') {
+        return sendError(reply, 403, 'FORBIDDEN', 'Administrators cannot manage superadministrators');
+      }
+      const adminMemberships = await prisma.workspaceMembership.findMany({
+        where: { userId: currentUser.id },
+        select: { workspaceId: true },
+      });
+      adminWorkspaceIds = adminMemberships.map((m) => m.workspaceId);
+
+      const targetUserMemberships = await prisma.workspaceMembership.findMany({
+        where: { userId },
+        select: { workspaceId: true },
+      });
+      const targetWorkspaceIds = targetUserMemberships.map((m) => m.workspaceId);
+
+      const sharesWorkspace = targetWorkspaceIds.some((id) => adminWorkspaceIds.includes(id));
+      if (!sharesWorkspace) {
+        return sendError(reply, 403, 'FORBIDDEN', 'You do not have permission to manage this user');
+      }
+
+      if (workspaceIds) {
+        const hasInvalidWorkspace = workspaceIds.some((id) => !adminWorkspaceIds.includes(id));
+        if (hasInvalidWorkspace) {
+          return sendError(reply, 403, 'FORBIDDEN', 'You can only assign users to your own workspaces');
+        }
+      }
+    }
+
     const data: any = {};
     if (email) data.email = email;
     if (name) data.name = name;
@@ -189,18 +274,39 @@ export class UsersService {
 
       // Sync workspace memberships
       if (workspaceIds) {
-        await prisma.workspaceMembership.deleteMany({
-          where: {
-            userId: userId,
-            workspaceId: { notIn: workspaceIds },
-          },
-        });
-        for (const workspaceId of workspaceIds) {
-          await prisma.workspaceMembership.upsert({
-            where: { workspaceId_userId: { workspaceId, userId } },
-            update: {},
-            create: { workspaceId, userId, workspaceRole: 'MEMBER' },
+        if (currentUser && currentUser.platformRole === 'ADMIN') {
+          // Un admin solo gestiona memberships dentro de sus propios workspaces
+          await prisma.workspaceMembership.deleteMany({
+            where: {
+              userId: userId,
+              workspaceId: {
+                in: adminWorkspaceIds,
+                notIn: workspaceIds,
+              },
+            },
           });
+          for (const workspaceId of workspaceIds) {
+            await prisma.workspaceMembership.upsert({
+              where: { workspaceId_userId: { workspaceId, userId } },
+              update: {},
+              create: { workspaceId, userId, workspaceRole: 'MEMBER' },
+            });
+          }
+        } else {
+          // El superadmin puede cambiar todo
+          await prisma.workspaceMembership.deleteMany({
+            where: {
+              userId: userId,
+              workspaceId: { notIn: workspaceIds },
+            },
+          });
+          for (const workspaceId of workspaceIds) {
+            await prisma.workspaceMembership.upsert({
+              where: { workspaceId_userId: { workspaceId, userId } },
+              update: {},
+              create: { workspaceId, userId, workspaceRole: 'MEMBER' },
+            });
+          }
         }
       }
 
@@ -281,6 +387,31 @@ export class UsersService {
       return sendError(reply, 403, 'FORBIDDEN', 'Administrators cannot delete superadministrators');
     }
 
+    // Si es ADMIN, verificar si comparte workspace y si el usuario a borrar pertenece a algún workspace externo
+    if (currentUser && currentUser.platformRole === 'ADMIN') {
+      const adminMemberships = await prisma.workspaceMembership.findMany({
+        where: { userId: currentUser.id },
+        select: { workspaceId: true },
+      });
+      const adminWorkspaceIds = adminMemberships.map((m) => m.workspaceId);
+
+      const targetUserMemberships = await prisma.workspaceMembership.findMany({
+        where: { userId },
+        select: { workspaceId: true },
+      });
+      const targetWorkspaceIds = targetUserMemberships.map((m) => m.workspaceId);
+
+      const sharesWorkspace = targetWorkspaceIds.some((id) => adminWorkspaceIds.includes(id));
+      if (!sharesWorkspace) {
+        return sendError(reply, 403, 'FORBIDDEN', 'You do not have permission to delete this user');
+      }
+
+      const belongsToExternalWorkspace = targetWorkspaceIds.some((id) => !adminWorkspaceIds.includes(id));
+      if (belongsToExternalWorkspace) {
+        return sendError(reply, 400, 'BAD_REQUEST', 'Cannot delete user because they belong to other workspaces outside your management. Remove their memberships instead.');
+      }
+    }
+
     try {
       await prisma.user.delete({
         where: { id: userId },
@@ -293,6 +424,7 @@ export class UsersService {
   }
 
   async bulkImportUsers(request: FastifyRequest, reply: FastifyReply) {
+    const currentUser = request.authUser as AuthenticatedUser;
     const { users } = (request.body ?? {}) as {
       users?: Array<{ email: string; name: string; platformRole?: string }>;
     };
@@ -307,6 +439,15 @@ export class UsersService {
       errors: [] as string[],
     };
 
+    // Si es un ADMIN, se requiere que tenga un activeWorkspaceId para asociar los usuarios importados
+    let targetWorkspaceId: string | null = null;
+    if (currentUser && currentUser.platformRole === 'ADMIN') {
+      if (!currentUser.activeWorkspaceId) {
+        return sendError(reply, 400, 'VALIDATION_ERROR', 'Active workspace is required to import users');
+      }
+      targetWorkspaceId = currentUser.activeWorkspaceId;
+    }
+
     for (const item of users) {
       if (!item.email || !item.name) {
         results.errors.push(`Usuario omitido: Falta email o nombre para: ${JSON.stringify(item)}`);
@@ -316,12 +457,13 @@ export class UsersService {
       const role = item.platformRole === 'ADMIN' ? 'ADMIN' : 'MEMBER';
 
       try {
+        let user;
         const existing = await prisma.user.findUnique({
           where: { email: item.email },
         });
 
         if (existing) {
-          await prisma.user.update({
+          user = await prisma.user.update({
             where: { id: existing.id },
             data: {
               name: item.name,
@@ -330,7 +472,7 @@ export class UsersService {
           });
           results.updated++;
         } else {
-          await prisma.user.create({
+          user = await prisma.user.create({
             data: {
               email: item.email,
               name: item.name,
@@ -341,11 +483,62 @@ export class UsersService {
           });
           results.created++;
         }
+
+        // Si hay un workspace destino (el caso del admin), asociamos al usuario a ese workspace
+        if (targetWorkspaceId && user) {
+          await prisma.workspaceMembership.upsert({
+            where: { workspaceId_userId: { workspaceId: targetWorkspaceId, userId: user.id } },
+            update: {},
+            create: { workspaceId: targetWorkspaceId, userId: user.id, workspaceRole: 'MEMBER' },
+          });
+        }
       } catch (error) {
         results.errors.push(`Error al importar ${item.email}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
     return results;
+  }
+
+  async getNotifications(request: FastifyRequest, reply: FastifyReply) {
+    const currentUser = request.authUser as AuthenticatedUser;
+    if (!currentUser) return sendError(reply, 401, 'UNAUTHORIZED', 'Authentication is required');
+
+    let prefs = await prisma.notificationPreference.findUnique({
+      where: { userId: currentUser.id },
+    });
+
+    if (!prefs) {
+      prefs = await prisma.notificationPreference.create({
+        data: { userId: currentUser.id },
+      });
+    }
+
+    return prefs;
+  }
+
+  async updateNotifications(request: FastifyRequest, reply: FastifyReply) {
+    const currentUser = request.authUser as AuthenticatedUser;
+    if (!currentUser) return sendError(reply, 401, 'UNAUTHORIZED', 'Authentication is required');
+
+    const body = (request.body ?? {}) as any;
+    const { onTaskAssigned, onTaskUnassigned, onTaskStatusChanged, onCommentAdded } = body;
+
+    const data: any = {};
+    if (onTaskAssigned !== undefined) data.onTaskAssigned = onTaskAssigned;
+    if (onTaskUnassigned !== undefined) data.onTaskUnassigned = onTaskUnassigned;
+    if (onTaskStatusChanged !== undefined) data.onTaskStatusChanged = onTaskStatusChanged;
+    if (onCommentAdded !== undefined) data.onCommentAdded = onCommentAdded;
+
+    const prefs = await prisma.notificationPreference.upsert({
+      where: { userId: currentUser.id },
+      update: data,
+      create: {
+        userId: currentUser.id,
+        ...data,
+      },
+    });
+
+    return prefs;
   }
 }

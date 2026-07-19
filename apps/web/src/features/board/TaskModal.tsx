@@ -90,6 +90,7 @@ type TaskModalProps = {
   onSave: (
     title: string,
     desc: string | undefined,
+    type: TaskSummary['type'],
     status: TaskSummary['status'],
     priority: TaskSummary['priority'],
     isBlocked: boolean,
@@ -128,6 +129,7 @@ export function TaskModal({
   const [taskTitle, setTaskTitle] = useState(task?.title ?? '');
   const [taskDesc, setTaskDesc] = useState(initialHtml);
   const [attachments, setAttachments] = useState<Attachment[]>(initialAtts);
+  const [taskType, setTaskType] = useState<TaskSummary['type']>(task?.type ?? 'DEVELOPMENT');
   const [taskPriority, setTaskPriority] = useState<TaskSummary['priority']>(task?.priority ?? 'MEDIUM');
   const [taskStatus, setTaskStatus] = useState<TaskSummary['status']>(task?.status ?? initialStatus);
   const [isBlocked, setIsBlocked] = useState(task?.isBlocked ?? false);
@@ -330,6 +332,7 @@ export function TaskModal({
       await onSave(
         taskTitle,
         fullDesc || undefined,
+        taskType,
         taskStatus,
         taskPriority,
         isBlocked,
@@ -403,6 +406,36 @@ export function TaskModal({
                   />
                 </label>
 
+                <div className="flex flex-col gap-1.5 mb-2">
+                  <span className="text-sm font-medium text-slate-650 dark:text-slate-355">Tipo de Tarea</span>
+                  <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-900 rounded-xl max-w-sm">
+                    <button
+                      type="button"
+                      onClick={() => setTaskType('DEVELOPMENT')}
+                      className={cn(
+                        "flex-1 text-xs font-bold py-2 rounded-lg transition-all duration-200",
+                        taskType === 'DEVELOPMENT' 
+                          ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm" 
+                          : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                      )}
+                    >
+                      Desarrollo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTaskType('MANAGEMENT')}
+                      className={cn(
+                        "flex-1 text-xs font-bold py-2 rounded-lg transition-all duration-200",
+                        taskType === 'MANAGEMENT' 
+                          ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm" 
+                          : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                      )}
+                    >
+                      Gestión
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex-1 flex flex-col gap-1">
                   <span className="text-sm font-medium text-slate-650 dark:text-slate-355">Descripción</span>
                   <div className="flex-1">
@@ -410,6 +443,7 @@ export function TaskModal({
                       value={taskDesc}
                       onChange={(html) => setTaskDesc(html)}
                       placeholder="Describe los pasos, requerimientos o contexto de la tarea..."
+                      members={members}
                     />
                   </div>
                 </div>
@@ -483,6 +517,7 @@ export function TaskModal({
                                       editorMinHeight="min-h-[80px]"
                                       maxHeight="max-h-[200px]"
                                       placeholder="Escribe tu comentario aquí..."
+                                      members={members}
                                     />
                                     <div className="rounded-xl border border-slate-200/60 dark:border-slate-800/80 bg-white dark:bg-slate-900/30 p-2.5">
                                       <span className="text-[10px] font-bold text-slate-450 dark:text-slate-555 uppercase tracking-wider block mb-2">Modificar adjuntos</span>
@@ -583,6 +618,7 @@ export function TaskModal({
                         editorMinHeight="min-h-[80px]"
                         maxHeight="max-h-[200px]"
                         placeholder="Escribe un comentario o aclaración sobre la tarea..."
+                        members={members}
                       />
 
                       {/* Attachments inside Comment */}
@@ -810,7 +846,7 @@ export function TaskModal({
                               const now = new Date().toISOString();
                               setTimerStartedAt(now);
                               // Auto-update timer in background
-                              updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, now);
+                              updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, now);
                             }}
                             className="flex-1 text-xs py-1.5 h-8.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
                           >
@@ -828,7 +864,7 @@ export function TaskModal({
                                 setTimeSpent(newTimeSpent);
                                 setTimerStartedAt(null);
                                 setElapsedSeconds(0);
-                                updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, newTimeSpent, null);
+                                updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, newTimeSpent, null);
                               }}
                               className="flex-1 text-xs py-1.5 h-8.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
                             >
@@ -842,7 +878,7 @@ export function TaskModal({
                                 if (confirm("¿Estás seguro de que quieres detener el cronómetro sin guardar el tiempo transcurrido?")) {
                                   setTimerStartedAt(null);
                                   setElapsedSeconds(0);
-                                  updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, null);
+                                  updateTask(task.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, null);
                                 }
                               }}
                               className="text-xs py-1.5 px-3 h-8.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95"

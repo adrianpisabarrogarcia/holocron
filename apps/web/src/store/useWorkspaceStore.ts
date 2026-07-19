@@ -14,6 +14,7 @@ type WorkspaceState = {
   createWorkspace: (data: { name: string; slug: string; description?: string; primaryColor?: string }) => Promise<WorkspaceSummary>;
   updateWorkspace: (slug: string, data: Partial<WorkspaceSummary>) => Promise<void>;
   deleteWorkspace: (slug: string) => Promise<void>;
+  resetWorkspaces: () => void;
 };
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
@@ -80,4 +81,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       workspaces: state.workspaces.filter((ws) => ws.slug !== slug),
     }));
   },
+
+  resetWorkspaces: () => set({ workspaces: [], activeWorkspace: null, error: null }),
 }));

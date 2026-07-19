@@ -26,6 +26,7 @@ export class TasksService {
         id: true,
         title: true,
         description: true,
+        type: true,
         status: true,
         priority: true,
         isBlocked: true,
@@ -47,6 +48,7 @@ export class TasksService {
 
     return tasks.map((task) => ({
       ...task,
+      type: task.type as TaskSummary['type'],
       status: task.status,
       priority: task.priority as TaskSummary['priority'],
       isBlocked: task.isBlocked,
@@ -76,6 +78,7 @@ export class TasksService {
     const {
       title,
       description,
+      type,
       status,
       priority,
       isBlocked,
@@ -91,6 +94,7 @@ export class TasksService {
     } = (request.body ?? {}) as {
       title?: string;
       description?: string;
+      type?: 'DEVELOPMENT' | 'MANAGEMENT';
       status?: string;
       priority?: string;
       isBlocked?: boolean;
@@ -113,6 +117,7 @@ export class TasksService {
       data: {
         title,
         description,
+        type: type ?? 'DEVELOPMENT',
         status: status ?? 'TODO',
         priority: priority ?? 'MEDIUM',
         projectId,
@@ -134,8 +139,10 @@ export class TasksService {
       },
       select: {
         id: true,
+        projectId: true,
         title: true,
         description: true,
+        type: true,
         status: true,
         priority: true,
         isBlocked: true,
@@ -173,6 +180,7 @@ export class TasksService {
       id: task.id,
       title: task.title,
       description: task.description,
+      type: task.type as TaskSummary['type'],
       status: task.status,
       priority: task.priority as TaskSummary['priority'],
       isBlocked: task.isBlocked,
@@ -202,6 +210,7 @@ export class TasksService {
     const {
       title,
       description,
+      type,
       status,
       priority,
       isBlocked,
@@ -217,6 +226,7 @@ export class TasksService {
     } = (request.body ?? {}) as {
       title?: string;
       description?: string;
+      type?: 'DEVELOPMENT' | 'MANAGEMENT';
       status?: string;
       priority?: string;
       isBlocked?: boolean;
@@ -247,6 +257,7 @@ export class TasksService {
     const dataToUpdate: any = {};
     if (title !== undefined) dataToUpdate.title = title;
     if (description !== undefined) dataToUpdate.description = description;
+    if (type !== undefined) dataToUpdate.type = type;
     if (status !== undefined) dataToUpdate.status = status;
     if (priority !== undefined) dataToUpdate.priority = priority;
     if (isBlocked !== undefined) dataToUpdate.isBlocked = isBlocked;
@@ -274,8 +285,10 @@ export class TasksService {
       data: dataToUpdate,
       select: {
         id: true,
+        projectId: true,
         title: true,
         description: true,
+        type: true,
         status: true,
         priority: true,
         isBlocked: true,
@@ -299,14 +312,14 @@ export class TasksService {
       const originalAssigneeIds = existingTask.assignees.map(a => a.id);
       const newAssignees = updatedTask.assignees.filter(a => !originalAssigneeIds.includes(a.id));
       for (const a of newAssignees) {
-        EmailService.sendTaskAssignedEmail(updatedTask.title, a, authUser).catch(err => {
+        EmailService.sendTaskAssignedEmail({ id: updatedTask.id, title: updatedTask.title }, updatedTask.projectId, a, authUser).catch(err => {
           console.error('[EMAIL ERROR] Failed to send task assigned email:', err);
         });
       }
     }
 
     if (isBlocked === true && existingTask?.isBlocked === false) {
-      EmailService.sendTaskBlockedEmail(updatedTask, authUser).catch(err => {
+      EmailService.sendTaskBlockedEmail(updatedTask, authUser, updatedTask.projectId).catch(err => {
         console.error('[EMAIL ERROR] Failed to send task blocked email:', err);
       });
     }
@@ -327,6 +340,7 @@ export class TasksService {
       id: updatedTask.id,
       title: updatedTask.title,
       description: updatedTask.description,
+      type: updatedTask.type as TaskSummary['type'],
       status: updatedTask.status,
       priority: updatedTask.priority as TaskSummary['priority'],
       isBlocked: updatedTask.isBlocked,
@@ -495,11 +509,11 @@ export class TasksService {
 
     const commentTask = await prisma.task.findUnique({
       where: { id: taskId },
-      select: { title: true }
+      select: { id: true, title: true }
     });
 
     if (commentTask) {
-      EmailService.handleCommentMentions(comment.content, commentTask.title, comment.user).catch(err => {
+      EmailService.handleCommentMentions(comment.content, commentTask, projectId, comment.user).catch(err => {
         console.error('[EMAIL ERROR] Failed to check comment mentions:', err);
       });
     }

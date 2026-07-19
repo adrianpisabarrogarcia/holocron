@@ -472,6 +472,7 @@ export function AdminPage({
         workspaces={workspaces}
         selectedWorkspaceIds={selectedWorkspaceIds}
         onSelectedWorkspaceIdsChange={setSelectedWorkspaceIds}
+        currentUserRole={currentUserRole}
       />
 
       {/* EDIT USER MODAL */}
@@ -491,6 +492,7 @@ export function AdminPage({
         workspaces={workspaces}
         selectedWorkspaceIds={selectedWorkspaceIds}
         onSelectedWorkspaceIdsChange={setSelectedWorkspaceIds}
+        currentUserRole={currentUserRole}
       />
     </section>
   );

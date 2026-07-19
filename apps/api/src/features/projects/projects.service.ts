@@ -208,6 +208,11 @@ export class ProjectsService {
 
   async createProject(request: FastifyRequest, reply: FastifyReply): Promise<ProjectSummary | void> {
     const authUser = request.authUser as AuthenticatedUser;
+
+    if (authUser.platformRole === 'MEMBER') {
+      return sendError(reply, 403, 'FORBIDDEN', 'Standard members are not allowed to create projects');
+    }
+
     const { name, description, status, startDate, endDate, folderId } = (request.body ?? {}) as {
       name?: string;
       description?: string;
@@ -812,5 +817,58 @@ export class ProjectsService {
     });
 
     return updatedCols;
+  }
+
+  async getNotifications(request: FastifyRequest, reply: FastifyReply) {
+    const { projectId } = request.params as { projectId: string };
+    const currentUser = request.authUser as AuthenticatedUser;
+
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access || reply.sent) return;
+
+    let prefs = await prisma.projectNotificationPreference.findUnique({
+      where: {
+        projectId_userId: { projectId, userId: currentUser.id },
+      },
+    });
+
+    if (!prefs) {
+      prefs = await prisma.projectNotificationPreference.create({
+        data: { projectId, userId: currentUser.id },
+      });
+    }
+
+    return prefs;
+  }
+
+  async updateNotifications(request: FastifyRequest, reply: FastifyReply) {
+    const { projectId } = request.params as { projectId: string };
+    const currentUser = request.authUser as AuthenticatedUser;
+
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access || reply.sent) return;
+
+    const body = (request.body ?? {}) as any;
+    const { onTaskAssigned, onTaskUnassigned, onTaskStatusChanged, onCommentAdded } = body;
+
+    const data: any = {};
+    if (onTaskAssigned !== undefined) data.onTaskAssigned = onTaskAssigned;
+    if (onTaskUnassigned !== undefined) data.onTaskUnassigned = onTaskUnassigned;
+    if (onTaskStatusChanged !== undefined) data.onTaskStatusChanged = onTaskStatusChanged;
+    if (onCommentAdded !== undefined) data.onCommentAdded = onCommentAdded;
+
+    const prefs = await prisma.projectNotificationPreference.upsert({
+      where: {
+        projectId_userId: { projectId, userId: currentUser.id },
+      },
+      update: data,
+      create: {
+        projectId,
+        userId: currentUser.id,
+        ...data,
+      },
+    });
+
+    return prefs;
   }
 }

@@ -443,3 +443,29 @@ Este sprint introduce el soporte de múltiples espacios de trabajo aislados (Wor
 ### Cierre
 
 Este roadmap prioriza fundamentos sobre expansion superficial. La plataforma cuenta ahora con una columna estructural sólida: soporte multi-tenant con workspaces aislados, identidad segura sin contraseñas, vistas avanzadas de planificación visual (Gantt/Calendario) con ordenación interactiva, y un backend protegido frente a abusos.
+
+### Sprint 5 - Control de Accesos, Notificaciones Jira, Clasificación de Tareas y Menciones en Editor
+
+Este sprint consolida la seguridad operativa de los workspaces, el sistema de notificaciones transaccionales por email y enriquece la experiencia de usuario en el tablero y el editor colaborativo.
+
+#### 1. Seguridad y Control de Accesos
+* **Restricción a Miembros Estándar:** Modificado el backend (`projects.service.ts`) para denegar la creación de proyectos a usuarios con rol `MEMBER` (403 Forbidden). En el frontend, se oculta el formulario `CreateProjectCard` y el botón "Nuevo" para usuarios sin permisos de administración, adaptando los mensajes del dashboard.
+* **Aislamiento del Selector de Workspaces:** Corregida la fuga de estado global de Zustand al cerrar sesión. Se implementó una acción `resetWorkspaces` en `useWorkspaceStore.ts` que se invoca en el logout de `useAuthStore.ts`, garantizando que un usuario no pueda ver los workspaces del usuario que inició sesión previamente.
+
+#### 2. Sistema de Notificaciones por Email (Estilo Jira)
+* **Preferencia de Notificaciones en Cascada:** Creados los modelos `NotificationPreference` (global) y `ProjectNotificationPreference` (por proyecto) en `schema.prisma`. El motor de resolución en `EmailService` evalúa la preferencia específica de proyecto y, si no está definida, hereda la configuración global de la cuenta (por defecto `true`).
+* **Exclusión de Remitente:** El backend filtra automáticamente al autor del evento para evitar enviarle notificaciones por correo a sí mismo.
+* **Interfaz de Gestión de Alertas:** Integrada una pestaña "Notificaciones" en el perfil de usuario (`ProfileModal.tsx`) y una campana 🔔 interactiva con el modal `ProjectNotificationModal.tsx` tanto en la vista del tablero (`BoardPage.tsx`) como en la vista de proyectos (`OverviewPage.tsx`).
+* **URLs de Acción Completas:** Corregidos todos los enlaces generados en los correos (`sendMentionEmail`, `sendTaskCreatedEmail`, `sendTaskAssignedEmail`, etc.) para que apunten a la ruta del workspace `/workspace/:slug/board?project=:projectId&task=:taskId`, abriendo el modal de la tarea concreta directamente al hacer clic.
+
+#### 3. Clasificación de Tareas (Gestión vs Desarrollo)
+* **Tipado y Persistencia:** Añadido el campo `type` con valor por defecto `"DEVELOPMENT"` en el modelo `Task` de la base de datos SQLite y al tipado `TaskSummary` del paquete de contratos compartidos.
+* **Selector Segmentado en UI:** Añadida una botonera segmentada premium en `TaskModal.tsx` para alternar fluidamente entre "Desarrollo" y "Gestión".
+* **Visualización en Kanban:** Diseñados dos badges translúcidos elegantes en `TaskCard.tsx` para distinguir el tipo de tarea al primer golpe de vista:
+  - 💻 **Desarrollo:** Color azul/índigo (`bg-indigo-50/70 text-indigo-700 border-indigo-200`).
+  - 📋 **Gestión:** Color verde/esmeralda (`bg-emerald-50/70 text-emerald-700 border-emerald-200`).
+
+#### 4. Autocompletado de Menciones `@` en Editores
+* **Dropdown Inteligente bajo el Cursor:** Modificado el `RichTextEditor` para procesar la lista de miembros del proyecto. Se desarrolló un parser basado en la API de Selección y Rangos nativa del navegador para detectar `@...` y anclar de forma absoluta un desplegable de sugerencias flotante justo debajo del cursor de texto en tiempo real.
+* **Navegación e Inserción Fluidas:** Soporte para navegar la lista de miembros con las flechas del teclado (`ArrowUp` / `ArrowDown`), confirmar con `Enter` o `Tab` e inyectar un badge de mención no editable (`contenteditable="false"`) seguido de un espacio no separable para continuar redactando.
+

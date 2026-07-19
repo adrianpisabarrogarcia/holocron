@@ -115,7 +115,7 @@ export function normalizeProjectRole(role: string): ProjectMembershipRole | null
   return allowedProjectRoles.has(role as ProjectMembershipRole) ? (role as ProjectMembershipRole) : null;
 }
 
-export function buildAuthUser(user: { id: string; email: string; name: string; platformRole: string; avatarUrl?: string | null }) {
+export function buildAuthUser(user: { id: string; email: string; name: string; platformRole: string; avatarUrl?: string | null; activeWorkspaceId?: string | null }) {
   const platformRole = normalizePlatformRole(user.platformRole);
   if (!platformRole) {
     throw new Error(`Unsupported platform role: ${user.platformRole}`);
@@ -126,6 +126,7 @@ export function buildAuthUser(user: { id: string; email: string; name: string; p
     name: user.name,
     platformRole,
     avatarUrl: user.avatarUrl || null,
+    activeWorkspaceId: user.activeWorkspaceId || null,
   } satisfies AuthenticatedUser;
 }
 
@@ -259,6 +260,7 @@ export async function authenticateRequest(request: FastifyRequest, reply: Fastif
       platformRole: true,
       isActive: true,
       avatarUrl: true,
+      activeWorkspaceId: true,
     },
   });
   if (!user || !user.isActive) {

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Laura Martínez",
+    "email": "laura.martinez@example.com",
+    "platformRole": "MEMBER"
+  },
+  {
+    "name": "Carlos Ruiz",
+    "email": "carlos.ruiz@example.com",
+    "platformRole": "MEMBER"
+  },
+  {
+    "name": "Ana García",
+    "email": "ana.garcia@example.com",
+    "platformRole": "ADMIN"
+  },
+  {
+    "name": "Pedro Sánchez",
+    "email": "pedro.sanchez@example.com",
+    "platformRole": "MEMBER"
+  },
+  {
+    "name": "Elena Torres",
+    "email": "elena.torres@example.com",
+    "platformRole": "MEMBER"
+  }
+]

@@ -351,17 +351,21 @@ export function App() {
             </Card>
           ) : (
             <>
-              <Card className="border-slate-200 dark:border-slate-800 bg-white/75 dark:bg-slate-900/60 p-6 text-center">
+              <Card className="border-slate-200 dark:border-slate-800 bg-white/75 dark:bg-slate-900/60 p-6 text-center mb-6">
                 <Ban className="mx-auto h-12 w-12 text-slate-400 dark:text-slate-655 mb-3" />
                 <CardTitle className="text-lg">No hay proyectos asignados</CardTitle>
                 <CardDescription className="normal-case tracking-normal max-w-md mx-auto mt-2">
-                  Tu cuenta está activa, pero actualmente no posees acceso a ningún proyecto. ¡Crea uno nuevo a continuación para comenzar!
+                  {isAdmin 
+                    ? 'Tu cuenta está activa, pero actualmente no posees acceso a ningún proyecto. ¡Crea uno nuevo a continuación para comenzar!'
+                    : 'Tu cuenta está activa, pero actualmente no tienes acceso a ningún proyecto en este workspace. Solicita a un administrador que te asigne a uno para comenzar.'}
                 </CardDescription>
               </Card>
 
-              <div className="max-w-md mx-auto">
-                <CreateProjectCard />
-              </div>
+              {isAdmin && (
+                <div className="max-w-md mx-auto">
+                  <CreateProjectCard />
+                </div>
+              )}
             </>
           )}
         </div>

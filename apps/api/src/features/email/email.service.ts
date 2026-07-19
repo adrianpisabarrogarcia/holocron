@@ -60,22 +60,51 @@ ${html}
     }
   }
 
+  private static async shouldNotifyUser(userId: string, projectId: string, eventField: keyof import('@prisma/client').NotificationPreference): Promise<boolean> {
+    const projectPref = await prisma.projectNotificationPreference.findUnique({
+      where: { projectId_userId: { projectId, userId } }
+    });
+    if (projectPref && (projectPref as any)[eventField] !== null) {
+      return (projectPref as any)[eventField] as boolean;
+    }
+    const globalPref = await prisma.notificationPreference.findUnique({
+      where: { userId }
+    });
+    if (globalPref && (globalPref as any)[eventField] !== null) {
+      return (globalPref as any)[eventField] as boolean;
+    }
+    return true;
+  }
+
   static async sendTaskCreatedEmail(
-    task: { id: string; title: string; description: string | null; owners: Array<{ email: string; name: string }>; assignees: Array<{ email: string; name: string }> },
-    creator: { name: string }
+    task: { id: string; title: string; description: string | null; owners: Array<{ id: string; email: string; name: string }>; assignees: Array<{ id: string; email: string; name: string }> },
+    creator: { id: string; name: string }
   ) {
     const project = await prisma.project.findFirst({
       where: { tasks: { some: { id: task.id } } },
-      select: { name: true, id: true }
+      select: { 
+        name: true, 
+        id: true,
+        workspace: { select: { slug: true } }
+      }
     });
 
     const projectName = project?.name ?? 'Proyecto';
-    const projectQuery = project ? `?project=${project.id}` : '';
-    const actionUrl = `${emailConfig.appUrl}/board${projectQuery}`;
+    const workspaceSlug = project?.workspace.slug ?? 'default';
+    const actionUrl = project 
+      ? `${emailConfig.appUrl}/workspace/${workspaceSlug}/board?project=${project.id}&task=${task.id}` 
+      : `${emailConfig.appUrl}/board`;
     
+    if (!project) return;
+
     const participantEmails = new Set<string>();
-    task.owners.forEach(o => participantEmails.add(o.email));
-    task.assignees.forEach(a => participantEmails.add(a.email));
+    
+    for (const p of [...task.owners, ...task.assignees]) {
+      if (p.id === creator.id) continue;
+      if (await this.shouldNotifyUser(p.id, project.id, 'onTaskAssigned')) {
+        participantEmails.add(p.email);
+      }
+    }
 
     if (participantEmails.size === 0) return;
 
@@ -151,13 +180,21 @@ ${html}
   }
 
   static async sendTaskAssignedEmail(
-    taskTitle: string,
-    assignee: { name: string; email: string },
-    assigner: { name: string }
+    task: { id: string; title: string },
+    projectId: string,
+    assignee: { id: string; name: string; email: string },
+    assigner: { id: string; name: string }
   ) {
-    const subject = `📌 Asignación: "${taskTitle}"`;
-    const actionUrl = `${emailConfig.appUrl}/board`;
-    const text = `Hola ${assignee.name},\n\n${assigner.name} te ha asignado a la tarea: "${taskTitle}".\n\nVer mis tareas: ${actionUrl}`;
+    if (assignee.id === assigner.id) return;
+    if (!(await this.shouldNotifyUser(assignee.id, projectId, 'onTaskAssigned'))) return;
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { workspace: { select: { slug: true } } }
+    });
+    const workspaceSlug = project?.workspace.slug ?? 'default';
+    const subject = `📌 Asignación: "${task.title}"`;
+    const actionUrl = `${emailConfig.appUrl}/workspace/${workspaceSlug}/board?project=${projectId}&task=${task.id}`;
+    const text = `Hola ${assignee.name},\n\n${assigner.name} te ha asignado a la tarea: "${task.title}".\n\nVer tarea: ${actionUrl}`;
     
     const html = `
       <!DOCTYPE html>
@@ -218,7 +255,7 @@ ${html}
   ) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { name: true, memberships: { select: { user: { select: { email: true, name: true } } } } }
+      select: { name: true, workspace: { select: { slug: true } }, memberships: { select: { user: { select: { email: true, name: true } } } } }
     });
 
     if (!project) return;
@@ -226,7 +263,8 @@ ${html}
     const emails = project.memberships.map(m => m.user.email);
     if (emails.length === 0) return;
 
-    const actionUrl = `${emailConfig.appUrl}/sprints?project=${projectId}`;
+    const workspaceSlug = project.workspace.slug;
+    const actionUrl = `${emailConfig.appUrl}/workspace/${workspaceSlug}/sprints?project=${projectId}`;
     const subject = `🎉 Hito/Sprint Cerrado: "${sprintName}" en ${projectName}`;
     const text = `Hola,\n\nEl sprint/hito "${sprintName}" en el proyecto "${projectName}" ha sido cerrado por ${closer.name}.\n\n¡Buen trabajo equipo!\n\nVer sprints: ${actionUrl}`;
     
@@ -285,7 +323,12 @@ ${html}
     await this.sendEmail(emails, subject, html, text);
   }
 
-  static async handleCommentMentions(commentContent: string, taskTitle: string, commenter: { name: string }) {
+  static async handleCommentMentions(
+    commentContent: string,
+    task: { id: string; title: string },
+    projectId: string,
+    commenter: { name: string }
+  ) {
     const matches = commentContent.match(/@([a-zA-Z0-9_À-ÿ\s\.\-\@]+)/g);
     if (!matches) return;
 
@@ -307,22 +350,28 @@ ${html}
 
     for (const serialized of mentionedUsers) {
       const u = JSON.parse(serialized) as { name: string; email: string };
-      this.sendMentionEmail(taskTitle, u, commenter, commentContent).catch(err => {
+      this.sendMentionEmail(task, projectId, u, commenter, commentContent).catch(err => {
         console.error('[EMAIL ERROR] Failed to send mention email:', err);
       });
     }
   }
 
   static async sendMentionEmail(
-    taskTitle: string,
+    task: { id: string; title: string },
+    projectId: string,
     mentionedUser: { name: string; email: string },
     commenter: { name: string },
     commentContent: string
   ) {
-    const subject = `💬 Mención: "${taskTitle}"`;
-    const actionUrl = `${emailConfig.appUrl}/board`;
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { workspace: { select: { slug: true } } }
+    });
+    const workspaceSlug = project?.workspace.slug ?? 'default';
+    const subject = `💬 Mención: "${task.title}"`;
+    const actionUrl = `${emailConfig.appUrl}/workspace/${workspaceSlug}/board?project=${projectId}&task=${task.id}`;
     const cleanComment = commentContent.replace(/<[^>]*>/g, '');
-    const text = `Hola ${mentionedUser.name},\n\n${commenter.name} te ha mencionado en un comentario dentro de la tarea "${taskTitle}":\n\n"${cleanComment}"\n\nVer conversación: ${actionUrl}`;
+    const text = `Hola ${mentionedUser.name},\n\n${commenter.name} te ha mencionado en un comentario dentro de la tarea "${task.title}":\n\n"${cleanComment}"\n\nVer conversación: ${actionUrl}`;
     
     const html = `
       <!DOCTYPE html>
@@ -377,16 +426,27 @@ ${html}
   }
 
   static async sendTaskBlockedEmail(
-    task: { id: string; title: string; blockedReason: string | null; owners: Array<{ email: string; name: string }>; assignees: Array<{ email: string; name: string }> },
-    blocker: { name: string }
+    task: { id: string; title: string; blockedReason: string | null; owners: Array<{ id: string; email: string; name: string }>; assignees: Array<{ id: string; email: string; name: string }> },
+    blocker: { id: string; name: string },
+    projectId: string
   ) {
     const participantEmails = new Set<string>();
-    task.owners.forEach(o => participantEmails.add(o.email));
-    task.assignees.forEach(a => participantEmails.add(a.email));
+    
+    for (const p of [...task.owners, ...task.assignees]) {
+      if (p.id === blocker.id) continue;
+      if (await this.shouldNotifyUser(p.id, projectId, 'onTaskStatusChanged')) {
+        participantEmails.add(p.email);
+      }
+    }
 
     if (participantEmails.size === 0) return;
 
-    const actionUrl = `${emailConfig.appUrl}/board`;
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { workspace: { select: { slug: true } } }
+    });
+    const workspaceSlug = project?.workspace.slug ?? 'default';
+    const actionUrl = `${emailConfig.appUrl}/workspace/${workspaceSlug}/board?project=${projectId}&task=${task.id}`;
     const subject = `⚠️ Tarea Bloqueada: "${task.title}"`;
     const text = `Hola,\n\nLa tarea "${task.title}" ha sido marcada como BLOQUEADA por ${blocker.name}.\n\nMotivo del bloqueo:\n${task.blockedReason || 'Sin motivo especificado'}\n\nVer tarea: ${actionUrl}`;
     

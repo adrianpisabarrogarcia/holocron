@@ -21,9 +21,8 @@ type CreateUserModalProps = {
   workspaces: WorkspaceSummary[];
   selectedWorkspaceIds: string[];
   onSelectedWorkspaceIdsChange: (ids: string[]) => void;
+  currentUserRole?: PlatformRole;
 };
-
-const platformRoles: PlatformRole[] = ['ADMIN', 'MEMBER'];
 
 export function CreateUserModal({
   isOpen,
@@ -39,12 +38,17 @@ export function CreateUserModal({
   workspaces,
   selectedWorkspaceIds,
   onSelectedWorkspaceIdsChange,
+  currentUserRole,
 }: CreateUserModalProps) {
   useEscapeKey(onClose, isOpen);
   if (!isOpen) return null;
 
+  const rolesToShow: PlatformRole[] = currentUserRole === 'SUPERADMIN'
+    ? ['SUPERADMIN', 'ADMIN', 'MEMBER']
+    : ['ADMIN', 'MEMBER'];
+
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-sm p-4 w-screen h-screen">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-955/60 backdrop-blur-sm p-4 w-screen h-screen">
       <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200 outline-none">
         <button
           onClick={onClose}
@@ -74,9 +78,9 @@ export function CreateUserModal({
             <label className="block text-sm text-slate-655 dark:text-slate-355">
               <span className="mb-1 block font-medium">Rol del sistema</span>
               <select className={fieldClassName} onChange={(event) => onNewUserRoleChange(event.target.value as PlatformRole)} value={newUserRole}>
-                {platformRoles.map((role) => (
+                {rolesToShow.map((role) => (
                   <option key={role} value={role}>
-                    {role === 'ADMIN' ? 'Administrador' : 'Miembro Estándar'}
+                    {role === 'SUPERADMIN' ? 'Superadministrador' : role === 'ADMIN' ? 'Administrador' : 'Miembro Estándar'}
                   </option>
                 ))}
               </select>

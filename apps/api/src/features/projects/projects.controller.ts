@@ -59,4 +59,12 @@ export class ProjectsController {
   syncProjectColumns = async (request: FastifyRequest, reply: FastifyReply) => {
     return this.projectsService.syncProjectColumns(request, reply);
   };
+
+  getNotifications = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.projectsService.getNotifications(request, reply);
+  };
+
+  updateNotifications = async (request: FastifyRequest, reply: FastifyReply) => {
+    return this.projectsService.updateNotifications(request, reply);
+  };
 }

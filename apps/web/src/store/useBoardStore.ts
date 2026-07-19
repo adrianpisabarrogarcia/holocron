@@ -21,8 +21,8 @@ type BoardStore = {
   createProject: (name: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null, folderId?: string | null) => Promise<void>;
   updateProject: (projectId: string, name?: string, description?: string, status?: string, startDate?: string | null, endDate?: string | null, folderId?: string | null) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
-  createTask: (title: string, description?: string, status?: string, priority?: string, isBlocked?: boolean, blockedReason?: string | null, ownerIds?: string[], assigneeIds?: string[], sprintId?: string | null, startDate?: string | null, endDate?: string | null, estimatedHours?: number | null, timeSpent?: number, timerStartedAt?: string | null) => Promise<void>;
-  updateTask: (taskId: string, title?: string, description?: string, status?: string, priority?: string, isBlocked?: boolean, blockedReason?: string | null, ownerIds?: string[], assigneeIds?: string[], sprintId?: string | null, startDate?: string | null, endDate?: string | null, estimatedHours?: number | null, timeSpent?: number, timerStartedAt?: string | null) => Promise<void>;
+  createTask: (title: string, description?: string, type?: TaskSummary['type'], status?: string, priority?: string, isBlocked?: boolean, blockedReason?: string | null, ownerIds?: string[], assigneeIds?: string[], sprintId?: string | null, startDate?: string | null, endDate?: string | null, estimatedHours?: number | null, timeSpent?: number, timerStartedAt?: string | null) => Promise<void>;
+  updateTask: (taskId: string, title?: string, description?: string, type?: TaskSummary['type'], status?: string, priority?: string, isBlocked?: boolean, blockedReason?: string | null, ownerIds?: string[], assigneeIds?: string[], sprintId?: string | null, startDate?: string | null, endDate?: string | null, estimatedHours?: number | null, timeSpent?: number, timerStartedAt?: string | null) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   moveTask: (taskId: string, newStatus: TaskSummary['status']) => Promise<void>;
   syncColumns: (projectId: string, columns: { id?: string; name: string; emoji?: string | null; position: number }[]) => Promise<void>;
@@ -221,7 +221,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw error;
     }
   },
-  createTask: async (title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt) => {
+  createTask: async (title, description, type, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt) => {
     const { selectedProjectId } = get();
     if (!selectedProjectId) throw new Error('No project selected');
     set({ error: null, loading: true });
@@ -232,6 +232,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         body: JSON.stringify({
           title,
           description,
+          type,
           status,
           priority,
           isBlocked,
@@ -257,7 +258,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       throw error;
     }
   },
-  updateTask: async (taskId, title, description, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt) => {
+  updateTask: async (taskId, title, description, type, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt) => {
     const { selectedProjectId } = get();
     if (!selectedProjectId) throw new Error('No project selected');
     set({ error: null, loading: true });
@@ -268,6 +269,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         body: JSON.stringify({
           title,
           description,
+          type,
           status,
           priority,
           isBlocked,

@@ -26,9 +26,8 @@ type EditUserModalProps = {
   workspaces: WorkspaceSummary[];
   selectedWorkspaceIds: string[];
   onSelectedWorkspaceIdsChange: (ids: string[]) => void;
+  currentUserRole?: PlatformRole;
 };
-
-const platformRoles: PlatformRole[] = ['ADMIN', 'MEMBER'];
 
 export function EditUserModal({
   isOpen,
@@ -46,6 +45,7 @@ export function EditUserModal({
   workspaces,
   selectedWorkspaceIds,
   onSelectedWorkspaceIdsChange,
+  currentUserRole,
 }: EditUserModalProps) {
   const { uploadFile } = useBoardStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,6 +76,10 @@ export function EditUserModal({
 
   useEscapeKey(onClose, isOpen);
   if (!isOpen) return null;
+
+  const rolesToShow: PlatformRole[] = currentUserRole === 'SUPERADMIN'
+    ? ['SUPERADMIN', 'ADMIN', 'MEMBER']
+    : ['ADMIN', 'MEMBER'];
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-sm p-4 w-screen h-screen">
@@ -145,9 +149,9 @@ export function EditUserModal({
             <label className="block text-sm text-slate-655 dark:text-slate-355">
               <span className="mb-1 block font-medium">Rol del sistema</span>
               <select className={fieldClassName} onChange={(event) => onRoleChange(event.target.value as PlatformRole)} value={role}>
-                {platformRoles.map((r) => (
+                {rolesToShow.map((r) => (
                   <option key={r} value={r}>
-                    {r === 'ADMIN' ? 'Administrador' : 'Miembro Estándar'}
+                    {r === 'SUPERADMIN' ? 'Superadministrador' : r === 'ADMIN' ? 'Administrador' : 'Miembro Estándar'}
                   </option>
                 ))}
               </select>

@@ -117,6 +117,7 @@ export function SprintsPage({
   const handleEditTask = async (
     title: string,
     desc: string | undefined,
+    type: TaskSummary['type'],
     status: TaskSummary['status'],
     priority: TaskSummary['priority'],
     isBlocked: boolean,
@@ -131,7 +132,7 @@ export function SprintsPage({
     timerStartedAt?: string | null
   ) => {
     if (!selectedTask) return;
-    await updateTask(selectedTask.id, title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt);
+    await updateTask(selectedTask.id, title, desc, type, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt);
   };
 
   const handleDeleteTask = async () => {
@@ -145,6 +146,7 @@ export function SprintsPage({
   const handleCreateTask = async (
     title: string,
     desc: string | undefined,
+    type: TaskSummary['type'],
     status: TaskSummary['status'],
     priority: TaskSummary['priority'],
     isBlocked: boolean,
@@ -158,7 +160,7 @@ export function SprintsPage({
     timeSpent?: number,
     timerStartedAt?: string | null
   ) => {
-    await createTask(title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt);
+    await createTask(title, desc, type, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt);
   };
 
   // Group tasks by Sprint
@@ -235,7 +237,7 @@ export function SprintsPage({
         // First move unfinished tasks to Backlog
         await Promise.all(
           unfinished.map((t) => 
-            updateTask(t.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, null)
+            updateTask(t.id, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, null)
           )
         );
         // Complete Sprint
@@ -320,7 +322,7 @@ export function SprintsPage({
     } else {
       const taskId = e.dataTransfer.getData('text/plain');
       if (taskId) {
-        await updateTask(taskId, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, targetSprintId);
+        await updateTask(taskId, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, targetSprintId);
       }
     }
   };

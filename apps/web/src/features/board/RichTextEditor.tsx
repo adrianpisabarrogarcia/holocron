@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
-import { Bold, Italic, Underline, List, ListOrdered, Link2, Quote, Code, Image, Loader2 } from 'lucide-react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { Bold, Italic, Underline, List, ListOrdered, Link2, Quote, Code, Image, Loader2, UserCircle } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useBoardStore } from '../../store/useBoardStore';
 import { getApiUrl } from '../../lib/api';
@@ -12,6 +12,7 @@ type RichTextEditorProps = {
   minHeight?: string;
   editorMinHeight?: string;
   maxHeight?: string;
+  members?: Array<{ userId: string; name: string; email: string; avatarUrl?: string | null }>;
 };
 
 const TOOLBAR_BUTTONS = [
@@ -33,7 +34,8 @@ export function RichTextEditor({
   placeholder = 'Escribe aquí la descripción...',
   minHeight = 'min-h-[300px]',
   editorMinHeight = 'min-h-[280px]',
-  maxHeight = 'max-h-[420px]'
+  maxHeight = 'max-h-[420px]',
+  members
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +45,22 @@ export function RichTextEditor({
   const { uploadFile } = useBoardStore();
   const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
 
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState('');
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [selectionRange, setSelectionRange] = useState<Range | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+
+  const filteredMembers = useMemo(() => {
+    if (!members) return [];
+    const searchLower = mentionSearch.toLowerCase();
+    return members.filter(m => m.name.toLowerCase().includes(searchLower) || m.email.toLowerCase().includes(searchLower));
+  }, [members, mentionSearch]);
+
+  useEffect(() => {
+    setMentionIndex(0);
+  }, [mentionSearch]);
+
   // Load initial value
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
@@ -50,9 +68,105 @@ export function RichTextEditor({
     }
   }, [value]);
 
+  const updateMentionPosition = useCallback((range: Range) => {
+    const rect = range.getBoundingClientRect();
+    const editorRect = editorRef.current?.getBoundingClientRect();
+    if (rect && editorRect) {
+      setDropdownPosition({
+        top: rect.bottom - editorRect.top + 5,
+        left: rect.left - editorRect.left,
+      });
+    }
+  }, []);
+
   const handleInput = () => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
+      
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const node = range.startContainer;
+        
+        if (node.nodeType === Node.TEXT_NODE) {
+          const textBeforeCursor = node.textContent?.substring(0, range.startOffset) || '';
+          const match = textBeforeCursor.match(/@([a-zA-Z0-9_]*)$/);
+          
+          if (match) {
+            setShowMentions(true);
+            setMentionSearch(match[1]);
+            setSelectionRange(range.cloneRange());
+            updateMentionPosition(range);
+          } else {
+            setShowMentions(false);
+          }
+        } else {
+          setShowMentions(false);
+        }
+      }
+    }
+  };
+
+  const insertMention = (member: { userId: string; name: string; email: string; avatarUrl?: string | null }) => {
+    if (!selectionRange || !editorRef.current) return;
+    
+    const selection = window.getSelection();
+    if (!selection) return;
+    
+    selection.removeAllRanges();
+    selection.addRange(selectionRange);
+    
+    const node = selectionRange.startContainer;
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent || '';
+      const offset = selectionRange.startOffset;
+      const match = text.substring(0, offset).match(/@([a-zA-Z0-9_]*)$/);
+      
+      if (match) {
+        const startOffset = offset - match[0].length;
+        selectionRange.setStart(node, startOffset);
+        selectionRange.setEnd(node, offset);
+        selectionRange.deleteContents();
+        
+        const mentionNode = document.createElement('span');
+        mentionNode.className = 'inline-flex items-center px-1.5 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-650 dark:text-indigo-400 font-semibold text-xs border border-indigo-150 dark:border-indigo-900/30 mr-1 select-all mention';
+        mentionNode.contentEditable = 'false';
+        mentionNode.textContent = `@${member.name}`;
+        
+        selectionRange.insertNode(mentionNode);
+        
+        const spaceNode = document.createTextNode('\u00A0');
+        mentionNode.parentNode?.insertBefore(spaceNode, mentionNode.nextSibling);
+        
+        selectionRange.setStartAfter(spaceNode);
+        selectionRange.setEndAfter(spaceNode);
+        selection.removeAllRanges();
+        selection.addRange(selectionRange);
+        
+        handleInput();
+      }
+    }
+    
+    setShowMentions(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (showMentions) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionIndex(prev => Math.min(prev + 1, filteredMembers.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionIndex(prev => Math.max(prev - 1, 0));
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        if (filteredMembers[mentionIndex]) {
+          insertMention(filteredMembers[mentionIndex]);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowMentions(false);
+      }
     }
   };
 
@@ -284,6 +398,7 @@ export function RichTextEditor({
           ref={editorRef}
           contentEditable
           onInput={handleInput}
+          onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           onFocus={() => setIsFocused(true)}
           onBlur={() => {
@@ -295,6 +410,37 @@ export function RichTextEditor({
         {!isFocused && (!value || value === '<br>' || value === '<div><br></div>') && (
           <div className="absolute top-3 left-3 text-slate-400 pointer-events-none select-none text-sm">
             {placeholder}
+          </div>
+        )}
+
+        {showMentions && filteredMembers.length > 0 && (
+          <div 
+            className="absolute z-50 bg-white dark:bg-slate-900 shadow-xl border border-slate-200 dark:border-slate-800 rounded-xl max-h-48 overflow-y-auto w-64 p-1 flex flex-col gap-0.5"
+            style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+          >
+            {filteredMembers.map((member, index) => (
+              <button
+                key={member.userId}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  insertMention(member);
+                }}
+                className={cn(
+                  "flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-sm transition-colors",
+                  index === mentionIndex
+                    ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                )}
+              >
+                {member.avatarUrl ? (
+                  <img src={getApiUrl(member.avatarUrl)} alt={member.name} className="w-5 h-5 rounded-full object-cover shrink-0" />
+                ) : (
+                  <UserCircle className="w-5 h-5 shrink-0 opacity-70" />
+                )}
+                <span className="truncate flex-1 font-medium">{member.name}</span>
+              </button>
+            ))}
           </div>
         )}
       </div>

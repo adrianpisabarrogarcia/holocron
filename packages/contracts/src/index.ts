@@ -121,6 +121,7 @@ export type TaskSummary = {
   id: string;
   title: string;
   description: string | null;
+  type: 'DEVELOPMENT' | 'MANAGEMENT';
   status: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   isBlocked: boolean;

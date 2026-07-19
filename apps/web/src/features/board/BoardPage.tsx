@@ -6,7 +6,8 @@ import { useBoardStore } from '../../store/useBoardStore';
 import { TaskColumn } from './TaskColumn';
 import { TaskModal } from './TaskModal';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Settings, Search, SlidersHorizontal, Filter, X } from 'lucide-react';
+import { Settings, Search, SlidersHorizontal, Filter, X, Bell } from 'lucide-react';
+import { ProjectNotificationModal } from '../projects/ProjectNotificationModal';
 import { ManageColumnsModal } from './ManageColumnsModal';
 
 type BoardPageProps = {
@@ -29,6 +30,7 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
   // Task creation/editing state
   const [isTaskCreateOpen, setIsTaskCreateOpen] = useState(false);
   const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskSummary | null>(null);
   const [createInitialStatus, setCreateInitialStatus] = useState<TaskSummary['status']>('TODO');
@@ -154,6 +156,7 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
   const handleCreateTask = async (
     title: string,
     desc: string | undefined,
+    type: TaskSummary['type'],
     status: TaskSummary['status'],
     priority: TaskSummary['priority'],
     isBlocked: boolean,
@@ -167,7 +170,7 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
     timeSpent?: number,
     timerStartedAt?: string | null
   ) => {
-    await createTask(title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt);
+    await createTask(title, desc, type, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt);
   };
 
   const openEditTask = (task: TaskSummary) => {
@@ -192,6 +195,7 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
   const handleEditTask = async (
     title: string,
     desc: string | undefined,
+    type: TaskSummary['type'],
     status: TaskSummary['status'],
     priority: TaskSummary['priority'],
     isBlocked: boolean,
@@ -206,7 +210,7 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
     timerStartedAt?: string | null
   ) => {
     if (!selectedTask) return;
-    await updateTask(selectedTask.id, title, desc, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt);
+    await updateTask(selectedTask.id, title, desc, type, status, priority, isBlocked, blockedReason, ownerIds, assigneeIds, sprintId, startDate, endDate, estimatedHours, timeSpent, timerStartedAt);
   };
 
   const handleDeleteTask = async () => {
@@ -302,8 +306,13 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
       <Card>
         <CardHeader className="flex flex-col gap-4 border-b border-slate-200/80 dark:border-slate-800/80 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <CardTitle>{currentProject?.name ?? 'Tablero Principal'}</CardTitle>
+              {currentProject && (
+                <button onClick={() => setIsNotifOpen(true)} className="text-slate-400 hover:text-indigo-500 transition-colors" title="Notificaciones del proyecto">
+                  <Bell className="h-4 w-4" />
+                </button>
+              )}
               {canWrite && currentProject && (
                 <button
                   type="button"
@@ -575,6 +584,15 @@ export function BoardPage({ currentProject, userRole }: BoardPageProps) {
           onSave={async (cols) => {
             await syncColumns(currentProject.id, cols);
           }}
+        />
+      )}
+
+      {currentProject && (
+        <ProjectNotificationModal
+          isOpen={isNotifOpen}
+          onClose={() => setIsNotifOpen(false)}
+          projectId={currentProject.id}
+          projectName={currentProject.name}
         />
       )}
     </div>

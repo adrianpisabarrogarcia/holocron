@@ -54,13 +54,26 @@ export function TaskCard({ task, canWrite, onDragStart, onClick, onDragOver, onD
           : 'border-slate-200/80 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-750'
       )}
     >
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-snug break-words">
+      <div className="mb-2 flex flex-col gap-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {task.type === 'DEVELOPMENT' ? (
+              <span className="inline-flex items-center gap-1 rounded bg-indigo-50/70 dark:bg-indigo-500/10 px-2 py-0.5 text-[9px] font-bold text-indigo-700 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/20">
+                <span className="text-[10px]">💻</span> Desarrollo
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded bg-emerald-50/70 dark:bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-500/20">
+                <span className="text-[10px]">📋</span> Gestión
+              </span>
+            )}
+          </div>
+          <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold tracking-wide uppercase ${priorityTone[task.priority]} shrink-0`}>
+            {task.priority}
+          </span>
+        </div>
+        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-snug break-words mt-0.5">
           {task.title}
         </h3>
-        <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold tracking-wide uppercase ${priorityTone[task.priority]} shrink-0`}>
-          {task.priority}
-        </span>
       </div>
       <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-3">
         {plainDescription || 'Sin descripción añadida.'}

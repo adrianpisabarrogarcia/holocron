@@ -60,6 +60,8 @@ model User {
   folderMemberships   FolderMembership[]
   comments            Comment[]
   workspaceMemberships WorkspaceMembership[]
+  notificationPreference NotificationPreference?
+  projectNotificationPreferences ProjectNotificationPreference[]
 }
 
 model UserSession {
@@ -96,6 +98,7 @@ model Project {
   memberships ProjectMembership[]
   columns     ProjectColumn[]
   sprints     Sprint[]
+  notificationPreferences ProjectNotificationPreference[]
 
   @@index([ownerId])
   @@index([folderId])
@@ -120,6 +123,7 @@ model Task {
   id             String             @id @default(cuid())
   title          String
   description    String?
+  type           String             @default("DEVELOPMENT") // "DEVELOPMENT" o "MANAGEMENT"
   status         String             @default("TODO")
   priority       String             @default("MEDIUM")
   projectId      String
@@ -233,4 +237,34 @@ model Comment {
 
   @@index([taskId])
   @@index([userId])
+}
+
+model NotificationPreference {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  onTaskAssigned      Boolean  @default(true)
+  onTaskUnassigned    Boolean  @default(true)
+  onTaskStatusChanged Boolean  @default(true)
+  onCommentAdded      Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model ProjectNotificationPreference {
+  id                  String   @id @default(cuid())
+  projectId           String
+  userId              String
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  onTaskAssigned      Boolean?
+  onTaskUnassigned    Boolean?
+  onTaskStatusChanged Boolean?
+  onCommentAdded      Boolean?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@index([projectId])
 }

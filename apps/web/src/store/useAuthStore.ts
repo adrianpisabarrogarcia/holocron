@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { apiFetch, getApiUrl, parseJsonError, setApiAuthHooks } from '../lib/api';
 import { useAdminStore } from './useAdminStore';
 import { useBoardStore } from './useBoardStore';
+import { useWorkspaceStore } from './useWorkspaceStore';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -62,6 +63,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   clearSession: () => {
     useAdminStore.getState().resetAdmin();
     useBoardStore.getState().resetBoard();
+    useWorkspaceStore.getState().resetWorkspaces();
     set({ accessToken: null, error: null, status: 'unauthenticated', user: null });
   },
   createUser: async (input) => useAdminStore.getState().createUser({ ...input, platformRole: input.platformRole ?? 'MEMBER' }),
