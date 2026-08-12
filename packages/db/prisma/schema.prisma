@@ -59,6 +59,9 @@ model User {
   memberships         ProjectMembership[]
   folderMemberships   FolderMembership[]
   comments            Comment[]
+  createdPages        Page[]                @relation("PageCreator")
+  updatedPages        Page[]                @relation("PageUpdater")
+  editedPageVersions  PageVersion[]         @relation("PageVersionEditor")
   workspaceMemberships WorkspaceMembership[]
   notificationPreference NotificationPreference?
   projectNotificationPreferences ProjectNotificationPreference[]
@@ -98,6 +101,7 @@ model Project {
   memberships ProjectMembership[]
   columns     ProjectColumn[]
   sprints     Sprint[]
+  pages       Page[]
   notificationPreferences ProjectNotificationPreference[]
 
   @@index([ownerId])
@@ -179,6 +183,44 @@ model FolderMembership {
 
   @@id([folderId, userId])
   @@index([userId])
+}
+
+model Page {
+  id            String    @id @default(cuid())
+  title         String
+  content       String    @default("")
+  projectId     String
+  parentPageId  String?
+  position      Int       @default(0)
+  createdById   String
+  updatedById   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentPage    Page?     @relation("SubPages", fields: [parentPageId], references: [id], onDelete: Cascade)
+  subPages      Page[]    @relation("SubPages")
+  createdBy     User      @relation("PageCreator", fields: [createdById], references: [id])
+  updatedBy     User      @relation("PageUpdater", fields: [updatedById], references: [id])
+  versions      PageVersion[]
+
+  @@index([projectId])
+  @@index([parentPageId])
+}
+
+model PageVersion {
+  id          String   @id @default(cuid())
+  pageId      String
+  title       String
+  content     String
+  editedById  String
+  createdAt   DateTime @default(now())
+
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  editedBy    User     @relation("PageVersionEditor", fields: [editedById], references: [id])
+
+  @@index([pageId])
+  @@index([pageId, createdAt])
 }
 
 model TaskStateHistory {

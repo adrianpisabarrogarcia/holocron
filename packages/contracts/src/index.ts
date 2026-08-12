@@ -152,3 +152,49 @@ export type CommentSummary = {
   updatedAt: string;
   user: UserMiniSummary;
 };
+
+export type PageSummary = {
+  id: string;
+  projectId: string;
+  parentPageId: string | null;
+  title: string;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: UserMiniSummary;
+  updatedBy: UserMiniSummary;
+};
+
+export type PageDetail = PageSummary & {
+  content: string;
+};
+
+export type PageVersionSummary = {
+  id: string;
+  pageId: string;
+  title: string;
+  createdAt: string;
+  editedBy: UserMiniSummary;
+};
+
+export type PageVersionDetail = PageVersionSummary & {
+  content: string;
+};
+
+export type CreatePageInput = {
+  title: string;
+  content?: string;
+  parentPageId?: string | null;
+};
+
+export type UpdatePageInput = {
+  title?: string;
+  content?: string;
+  parentPageId?: string | null;
+  position?: number;
+};
+
+export type ReorderPagesInput = {
+  parentPageId: string | null;
+  orderedPageIds: string[];
+};

@@ -68,6 +68,30 @@ async function loadProjectSprints(projectId: string) {
   return (await sprintsResponse.json()) as SprintSummary[];
 }
 
+const SELECTED_PROJECT_STORAGE_PREFIX = 'holocron_selected_project_';
+
+function loadStoredProjectId(workspaceSlug?: string | null): string | null {
+  if (!workspaceSlug) return null;
+  try {
+    return localStorage.getItem(`${SELECTED_PROJECT_STORAGE_PREFIX}${workspaceSlug}`);
+  } catch {
+    return null;
+  }
+}
+
+function storeSelectedProjectId(workspaceSlug: string | null | undefined, projectId: string | null) {
+  if (!workspaceSlug) return;
+  try {
+    if (projectId) {
+      localStorage.setItem(`${SELECTED_PROJECT_STORAGE_PREFIX}${workspaceSlug}`, projectId);
+    } else {
+      localStorage.removeItem(`${SELECTED_PROJECT_STORAGE_PREFIX}${workspaceSlug}`);
+    }
+  } catch {
+    // ignore storage errors (private browsing, quota, etc.)
+  }
+}
+
 async function loadProjectFolders(workspaceSlug?: string) {
   const qs = workspaceSlug ? `?workspaceSlug=${encodeURIComponent(workspaceSlug)}` : '';
   const foldersResponse = await apiFetch(`/api/folders${qs}`);
@@ -89,6 +113,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   selectedProjectId: null,
   selectProject: async (projectId) => {
     set({ error: null, loading: true, selectedProjectId: projectId });
+    storeSelectedProjectId(get().activeWorkspaceSlug, projectId);
 
     try {
       const [tasks, members, sprints] = await Promise.all([
@@ -126,7 +151,12 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
       const projects = (await projectsResponse.json()) as ProjectSummary[];
       const { selectedProjectId } = get();
-      const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? projects[0] ?? null;
+      const storedProjectId = loadStoredProjectId(workspaceSlug);
+      const selectedProject =
+        projects.find((project) => project.id === selectedProjectId) ??
+        projects.find((project) => project.id === storedProjectId) ??
+        projects[0] ??
+        null;
 
       if (!selectedProject) {
         set({ error: null, loading: false, projects: [], selectedProjectId: null, tasks: [], members: [], sprints: [], activeWorkspaceSlug: workspaceSlug ?? null });
@@ -139,6 +169,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         loadProjectMembers(selectedProject.id),
         loadProjectSprints(selectedProject.id),
       ]);
+
+      storeSelectedProjectId(workspaceSlug, selectedProject.id);
 
       set({
         error: null,

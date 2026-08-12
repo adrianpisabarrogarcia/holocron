@@ -27,6 +27,7 @@ import {
   Menu,
   X,
   Building2,
+  FileText,
 } from 'lucide-react';
 
 type AppLayoutProps = {
@@ -239,6 +240,22 @@ export function AppLayout({
               <span>Cronograma (Cascada)</span>
             </NavLink>
 
+            <NavLink
+              to={`${wsBase}/pages`}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-200',
+                  isActive
+                    ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-bold border-l-4 border-indigo-600 dark:border-indigo-400 pl-3'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+                )
+              }
+            >
+              <FileText className="h-4 w-4" />
+              <span>Páginas</span>
+            </NavLink>
+
             {isAdmin ? (
               <>
                 <div className="pt-4 pb-1">
@@ -379,6 +396,7 @@ export function AppLayout({
               {pathname.endsWith('/board') && 'Tablero'}
               {pathname.endsWith('/sprints') && 'Sprints'}
               {pathname.endsWith('/timeline') && 'Cronograma'}
+              {pathname.endsWith('/pages') && 'Páginas'}
               {pathname.startsWith('/admin') && 'Admin'}
             </h1>
             

@@ -29,6 +29,10 @@ import { registerTasksRoutes } from './features/tasks/tasks.routes';
 import { TasksController } from './features/tasks/tasks.controller';
 import { TasksService } from './features/tasks/tasks.service';
 
+import { registerPagesRoutes } from './features/pages/pages.routes';
+import { PagesController } from './features/pages/pages.controller';
+import { PagesService } from './features/pages/pages.service';
+
 import { registerUsersRoutes } from './features/users/users.routes';
 import { UsersController } from './features/users/users.controller';
 import { UsersService } from './features/users/users.service';
@@ -105,6 +109,10 @@ registerProjectsRoutes(app, projectsController);
 const tasksService = new TasksService();
 const tasksController = new TasksController(tasksService);
 registerTasksRoutes(app, tasksController);
+
+const pagesService = new PagesService();
+const pagesController = new PagesController(pagesService);
+registerPagesRoutes(app, pagesController);
 
 const sprintsService = new SprintsService();
 const sprintsController = new SprintsController(sprintsService);

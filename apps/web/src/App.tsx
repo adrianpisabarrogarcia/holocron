@@ -21,6 +21,7 @@ import { OverviewPage } from './features/overview/OverviewPage';
 import { BoardPage } from './features/board/BoardPage';
 import { SprintsPage } from './features/sprints/SprintsPage';
 import { TimelinePage } from './features/timeline/TimelinePage';
+import { PagesPage } from './features/pages/PagesPage';
 import { AdminPage } from './features/admin/AdminPage';
 import { ProjectsAdminPage } from './features/admin/ProjectsAdminPage';
 import { AccessAdminPage } from './features/admin/AccessAdminPage';
@@ -208,7 +209,22 @@ export function App() {
       return;
     }
     await selectProject(projectId);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('project', projectId);
+      return next;
+    });
   };
+
+  // Restore the selected project from the URL after a reload (or when opening a shared link)
+  useEffect(() => {
+    if (!projectParam || projects.length === 0) return;
+    if (projectParam === boardSelectedProjectId) return;
+    const exists = projects.some((project) => project.id === projectParam);
+    if (exists) {
+      void selectProject(projectParam);
+    }
+  }, [projectParam, projects, boardSelectedProjectId, selectProject]);
 
   if (status === 'loading' && !user) {
     return (
@@ -378,6 +394,7 @@ export function App() {
         <Route path="/board" element={<WorkspaceRedirect subPath="/board" />} />
         <Route path="/sprints" element={<WorkspaceRedirect subPath="/sprints" />} />
         <Route path="/timeline" element={<WorkspaceRedirect subPath="/timeline" />} />
+        <Route path="/pages" element={<WorkspaceRedirect subPath="/pages" />} />
 
         {/* Workspace-scoped pages — WorkspacePageRenderer reloads board on slug change */}
         <Route path="/workspace/:slug" element={<Navigate replace to="overview" />} />
@@ -392,6 +409,9 @@ export function App() {
         } />
         <Route path="/workspace/:slug/timeline" element={
           <WorkspacePageRenderer page="timeline" blockedTasks={blockedTasks} completedTasks={completedTasks} currentProject={currentProject} handleProjectChange={handleProjectChange} projectAccessLabel={projectAccessLabel} projects={projects} boardSelectedProjectId={boardSelectedProjectId} tasksByStatus={tasksByStatus} tasks={tasks} userRole={user.platformRole} loadBoard={loadBoard} />
+        } />
+        <Route path="/workspace/:slug/pages" element={
+          <WorkspacePageRenderer page="pages" blockedTasks={blockedTasks} completedTasks={completedTasks} currentProject={currentProject} handleProjectChange={handleProjectChange} projectAccessLabel={projectAccessLabel} projects={projects} boardSelectedProjectId={boardSelectedProjectId} tasksByStatus={tasksByStatus} tasks={tasks} userRole={user.platformRole} loadBoard={loadBoard} />
         } />
 
         {/* Admin routes */}
@@ -519,7 +539,7 @@ function LoginCallbackPage() {
 }
 
 type WorkspacePageRendererProps = {
-  page: 'overview' | 'board' | 'sprints' | 'timeline';
+  page: 'overview' | 'board' | 'sprints' | 'timeline' | 'pages';
   blockedTasks: number;
   completedTasks: number;
   currentProject: ProjectSummary | null;
@@ -584,6 +604,18 @@ function WorkspacePageRenderer({ page, blockedTasks, completedTasks, currentProj
   if (page === 'sprints') {
     return (
       <SprintsPage
+        currentProject={currentProject}
+        onProjectChange={handleProjectChange}
+        projects={projects}
+        selectedProjectId={boardSelectedProjectId}
+        userRole={userRole}
+      />
+    );
+  }
+
+  if (page === 'pages') {
+    return (
+      <PagesPage
         currentProject={currentProject}
         onProjectChange={handleProjectChange}
         projects={projects}
